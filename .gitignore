@@ -58,3 +58,5 @@ dfu-util-prefix/
 ../.vscode/*
 firmware/*/*.map
 cmake_install.cmake
+
+/bin/*
