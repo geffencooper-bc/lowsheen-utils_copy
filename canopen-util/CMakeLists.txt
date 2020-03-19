@@ -1,15 +1,19 @@
 cmake_minimum_required(VERSION 2.8.3)
 
+set(CMAKE_BUILD_TYPE Debug)
+
 set(CANOPEN_SRC ${CMAKE_CURRENT_SOURCE_DIR}/../modules/CANopenNode) 
 set(CANOPEND_SRC ${CMAKE_CURRENT_SOURCE_DIR}/../modules/CANopenSocket/canopend/src) 
 set(STACK_SRC ${CANOPEN_SRC}/stack)
 set(STACKDRV_SRC ${CANOPEN_SRC}/stack/socketCAN)
-set(OBJ_DICT_SRC ${CMAKE_CURRENT_SOURCE_DIR}/object_dictionary)
+set(OBJ_DICT_SRC ${CMAKE_CURRENT_SOURCE_DIR}/dictionary)
 set(APP_SRC ${CMAKE_CURRENT_SOURCE_DIR}/src)
 
-include_directories(    ${CANOPEN_SRC}
-                        ${STACK_SRC}
+include_directories(   
+                        ${CANOPEND_SRC}
                         ${STACKDRV_SRC}
+                        ${STACK_SRC}
+                        ${CANOPEN_SRC}
                         ${OBJ_DICT_SRC}
                         ${APPL_SRC})
 
@@ -25,14 +29,10 @@ set(SOURCES     ${STACKDRV_SRC}/CO_driver.c
                 ${STACK_SRC}/CO_HBconsumer.c        
                 ${STACK_SRC}/CO_SDOmaster.c         
                 ${STACK_SRC}/CO_LSSmaster.c     		
-                ${STACK_SRC}/CO_trace.c             
-                ${CANOPEN_SRC}/CANopen.c            
-                ${CANOPEND_SRC}/CO_command.c        
-                ${CANOPEND_SRC}/CO_comm_helpers.c   
+                ${STACK_SRC}/CO_trace.c         
                 ${CANOPEND_SRC}/CO_master.c         
-                ${CANOPEND_SRC}/CO_LSS_master.c     
-                ${CANOPEND_SRC}/CO_time.c           
-                ${CANOPEND_SRC}/main.c              
+                ${STACK_SRC}/CO_TIME.c         
+                ${CANOPEN_SRC}/CANopen.c                          
                 ${OBJ_DICT_SRC}/CO_OD.c             
                 ${APP_SRC}/main.c)
 
