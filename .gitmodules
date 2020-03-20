@@ -1,6 +1,3 @@
 [submodule "modules/CANopenNode"]
 	path = modules/CANopenNode
 	url = git@github.com:braincorp/CANopenNode.git
-[submodule "modules/CANopenSocket"]
-	path = modules/CANopenSocket
-	url = git@github.com:braincorp/CANopenSocket.git
