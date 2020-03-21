@@ -19,6 +19,7 @@
 #include <string.h>
 #include <unistd.h>
 #include "CO_Linux_threads.h"
+#include "CU.h"
 
 #define NSEC_PER_SEC            (1000000000)    /* The number of nanoseconds per second. */
 #define NSEC_PER_MSEC           (1000000)       /* The number of nanoseconds per millisecond. */
@@ -72,48 +73,6 @@ int block_stage = 0;
 int BCMnodeID = 0x48;
 int VCUnodeID = 0x49;
 
-
-void sdo_block_download_test(uint16_t timediff)
-{
-    uint32_t SDOabortCode;
-    int ret;
-
-    switch(block_stage)
-    {   
-        case 0:
-            /* Setup client. */
-            if(CO_SDOclient_setup(CO->SDOclient[0], 0, 0, VCUnodeID) != CO_SDOcli_ok_communicationEnd) {
-                printf("Failed to setup client");
-                block_stage = 99;
-            }
-            break;
-        case 1:
-            if(CO_SDOclientDownloadInitiate(CO->SDOclient[0], idx, subidx, dataTx,
-                    dataTxLen, blockTransferEnable) != CO_SDOcli_ok_communicationEnd)
-            {
-                block_stage = 99;
-            }
-            break;
-        case 2:
-            ret = CO_SDOclientDownload(CO->SDOclient[0], timediff, 500, &SDOabortCode);
-
-            if(ret <= 0)
-            {
-                block_transfer = 0;
-                printf("SDO Download Stopped: %d\r\n", ret);
-                CO_SDOclientClose(CO->SDOclient[0]);
-                block_stage = 99;
-            }
-            return;
-        default:
-            return;
-    }
-
-    block_stage += 1;
-}
-
-
-
 void canopen_init(int argc, char *argv[])
 {
 
@@ -153,6 +112,7 @@ void canopen_init(int argc, char *argv[])
 
         uint16_t timer1msPrevious = 0;
 
+        CU_TASK_addTask("info", 0);
 
         while(reset == CO_RESET_NOT)
         {
@@ -164,7 +124,10 @@ void canopen_init(int argc, char *argv[])
 
             threadMain_process(&reset);
 
-            sdo_block_download_test(timer1msDiff);
+            if(CU_TASK_update(timer1msDiff) != CU_TASK_STATUS_CONTINUE)
+            {
+                break;
+            }
            
             struct timespec sleepTime;
  
