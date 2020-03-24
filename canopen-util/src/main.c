@@ -40,14 +40,11 @@ volatile uint16_t           CO_timer1ms = 0U;
 
 void threadMain_callback(void *arg)
 {
-    printf("thread main1!\r\n");
-
-
+ 
 }
 
 void * threadRx(void *arg)
 {
-    printf("Starting RX Thread\r\n");
     CANrx_threadTmr_init(1);
 
     while(1)
@@ -77,67 +74,68 @@ void canopen_init(int argc, char *argv[])
 {
 
     CO_NMT_reset_cmd_t reset = CO_RESET_NOT;
+
+    CU_TASK_init();
   
-    while(reset != CO_RESET_APP){
-/* CANopen communication reset - initialize CANopen objects *******************/
-        CO_ReturnError_t err;
-
-        unsigned int interface_index = if_nametoindex("can0");
-
-        printf("Found can0 interface as %u\r\n", interface_index);
-
-        uintptr_t can_interface = interface_index;
-
-        /* initialize CANopen */
-        err = CO_init((void *)can_interface, BCMnodeID /* NodeID */, 250 /* bit rate */);  
-        if(err != CO_ERROR_NO){
-            CO_errorReport(CO->em, CO_EM_MEMORY_ALLOCATION_ERROR, CO_EMC_SOFTWARE_INTERNAL, err);  
-            while(1);
-        }
-
-
-        /* Configure CAN transmit and receive interrupt */
-        
-
-        /* start CAN */
-        CO_CANsetNormalMode(CO->CANmodule[0]);
-
-        reset = CO_RESET_NOT;
-    
-        CO_sendNMTcommand(CO, CO_NMT_ENTER_PRE_OPERATIONAL, VCUnodeID);
-
-        threadMain_init(threadMain_callback, NULL);
-
-        pthread_create(&CO_rx_thread_id, NULL, threadRx, NULL);
-
-        uint16_t timer1msPrevious = 0;
-
-        CU_TASK_addTask("info", 0);
-
-        while(reset == CO_RESET_NOT)
-        {
-            uint16_t timer1msCopy, timer1msDiff;
-
-            timer1msCopy = CO_timer1ms;
-            timer1msDiff = timer1msCopy - timer1msPrevious;
-            timer1msPrevious = timer1msCopy;
-
-            threadMain_process(&reset);
-
-            if(CU_TASK_update(timer1msDiff) != CU_TASK_STATUS_CONTINUE)
-            {
-                break;
-            }
-           
-            struct timespec sleepTime;
  
-            sleepTime.tv_sec = 0;
-            sleepTime.tv_nsec = 1000000;
-            nanosleep(&sleepTime, NULL);
-            CO_timer1ms += 1;
+/* CANopen communication reset - initialize CANopen objects *******************/
+    CO_ReturnError_t err;
 
-        }
+    unsigned int interface_index = if_nametoindex("can0");
+
+    uintptr_t can_interface = interface_index;
+
+    /* initialize CANopen */
+    err = CO_init((void *)can_interface, BCMnodeID /* NodeID */, 250 /* bit rate */);  
+    if(err != CO_ERROR_NO){
+        CO_errorReport(CO->em, CO_EM_MEMORY_ALLOCATION_ERROR, CO_EMC_SOFTWARE_INTERNAL, err);  
+        while(1);
     }
+
+
+    /* Configure CAN transmit and receive interrupt */
+    
+
+    /* start CAN */
+    CO_CANsetNormalMode(CO->CANmodule[0]);
+
+    reset = CO_RESET_NOT;
+
+    CO_sendNMTcommand(CO, CO_NMT_ENTER_PRE_OPERATIONAL, VCUnodeID);
+
+    threadMain_init(threadMain_callback, NULL);
+
+    pthread_create(&CO_rx_thread_id, NULL, threadRx, NULL);
+
+    uint16_t timer1msPrevious = 0;
+
+    CU_TASK_addTask("program", 0);
+
+    while(reset == CO_RESET_NOT)
+    {
+        uint16_t timer1msCopy, timer1msDiff;
+
+        timer1msCopy = CO_timer1ms;
+        timer1msDiff = timer1msCopy - timer1msPrevious;
+        timer1msPrevious = timer1msCopy;
+
+        threadMain_process(&reset);
+
+        if(CU_TASK_update(timer1msDiff) != CU_TASK_STATUS_CONTINUE)
+        {
+            printf("Done.\r\n");
+            return;
+        }
+        
+        struct timespec sleepTime;
+
+        sleepTime.tv_sec = 0;
+        sleepTime.tv_nsec = 1000000;
+        nanosleep(&sleepTime, NULL);
+        CO_timer1ms += 1;
+
+    }
+
 
 
 /* program exit ***************************************************************/
@@ -159,7 +157,6 @@ int main(int argc, char *argv[])
     {
         dataTx[i] = (uint8_t)i;
     }
-
     
     canopen_init(argc, argv);
 

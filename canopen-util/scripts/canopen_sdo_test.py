@@ -1,6 +1,7 @@
 from __future__ import print_function
 
 import can 
+import struct
 
 sdo_msgs = {}
 
@@ -17,9 +18,27 @@ sdo_msgs[0xD9] = "SDO Block Download End Request (2 bytes)"
 sdo_msgs[0xDD] = "SDO Block Download End Request (1 bytes)"
 sdo_msgs[0xA1] = "SDO Block Download End Response"
 sdo_msgs[0x80] = "SDO Abort"
+sdo_msgs[0x40] = "SDO Expedite Upload Request"
+sdo_msgs[0x43] = "SDO Expedite Upload Response (4 bytes)"
+sdo_msgs[0x45] = "SDO Expedite Upload Response (3 bytes)"
+sdo_msgs[0x47] = "SDO Expedite Upload Response (2 bytes)"
+sdo_msgs[0x4F] = "SDO Expedite Upload Response (1 bytes)"
+sdo_msgs[0x23] = "SDO Expedite Download Request (4 bytes)"
+sdo_msgs[0x27] = "SDO Expedite Download Request (3 bytes)"
+sdo_msgs[0x2B] = "SDO Expedite Download Request (2 bytes)"
+sdo_msgs[0x2F] = "SDO Expedite Download Request (1 bytes)"
+sdo_msgs[0x60] = "SDO Expedite Download Response"
 
 a = [0x1, 0x03]
 
+object_dictionary = {}
+object_dictionary[0x1000] = 0x0001
+object_dictionary[0x1001] = 0x0000
+object_dictionary[0x1018] = 0x0002
+object_dictionary[0x1F56] = 0xBEEF
+object_dictionary[0x1F57] = 0x0003
+object_dictionary[0x1F50] = 0x0000
+object_dictionary[0x1F51] = 0x0001
 
 crc16_ccitt_table = [
     0x0000, 0x1021, 0x2042, 0x3063, 0x4084, 0x50A5, 0x60C6, 0x70E7, \
@@ -55,24 +74,14 @@ crc16_ccitt_table = [
     0xEF1F, 0xFF3E, 0xCF5D, 0xDF7C, 0xAF9B, 0xBFBA, 0x8FD9, 0x9FF8, \
     0x6E17, 0x7E36, 0x4E55, 0x5E74, 0x2E93, 0x3EB2, 0x0ED1, 0x1EF0 \
 ]
-
-print("CRC TABLE RANGE:", len(crc16_ccitt_table))
-
-
-
+ 
 def crc16_ccitt( block, crc):    
     for i in range(0, len(block)):
         tmp =  ((crc >> 8) ^ block[i]) & 0xFF
         crc = ( ((crc << 8)) ^ crc16_ccitt_table[tmp]) & 0xFFFF
-        print("DATA: {:02X} CRC: {:04X} TMP: {:02X}".format(block[i], crc, tmp))
+     #   print("DATA: {:02X} CRC: {:04X} TMP: {:02X}".format(block[i], crc, tmp))
 
     return crc  
-
-d = [ 0x15, 0xCD, 0x5B, 0x07 ]
-
-crc = crc16_ccitt(d, 0)
-
-print("CRC TEST: {:04X}".format(crc))
 
 def print_msg(prepend, msg):
     sdo_str = sdo_msgs.get(msg.data[0], "Unknown: " + hex(msg.data[0]))
@@ -185,7 +194,7 @@ try:
 
                 print("RX: SDO Block Download Size: ", sdo_size)
 
-            if((msg_rx.data[0] & 0xC1)== 0xC1):    # SDO Block Download End Request
+            elif((msg_rx.data[0] & 0xC1)== 0xC1):    # SDO Block Download End Request
                 last_data_bytes_inv = (msg_rx.data[0] & 0x1C) >> 2
                 sdo_block_expected_crc = msg_rx.data[2] << 8 | msg_rx.data[1]
 
@@ -196,18 +205,68 @@ try:
                 for i in range(0, new_size):
                     s += "{:02X} ".format(sdo_block_download_data[i])
 
-                print("Data: \r\n", s)
+              #  print("Data: \r\n", s)
                 # calculate crc
 
                 sdo_block_calc_crc = crc16_ccitt(sdo_block_download_data, 0)
 
                 print("CRC Expected: {:04X}, CRC Calculated: {:04X}".format(sdo_block_expected_crc, sdo_block_calc_crc))
 
+                if(sdo_block_calc_crc == sdo_block_expected_crc):
+                    msg_tx = can.Message(arbitration_id=0x580 + VCUnodeID,
+                            data = [0xA1, 0, 0, 0, 0, 0, 0, 0],
+                            is_extended_id=False)
+                else:
+                    msg_tx = can.Message(arbitration_id=0x580 + VCUnodeID,
+                            data = [0x80, 0, 0, 0, 0, 0, 0xFF, 0],      # should be invalid CRC abort message
+                            is_extended_id=False)
+                sdo_send(msg_tx)
+            
+            elif(msg_rx.data[0] == 0x40):    # SDO Expedite Upload Request
+
+                sdo_index_lsb =  msg_rx.data[1]
+                sdo_index_msb =  msg_rx.data[2]
+                sdo_subindex =  msg_rx.data[3] 
+                sdo_size = 4
+
+                sdo_index = sdo_index_msb << 8 | sdo_index_lsb
+
+                try:
+                    
+                    sdo_value = object_dictionary[sdo_index]
+
+                    print("RX: Request OD Index: {:04X} SubIndex: {:02X} Size: {} Value: {:08X}".format(sdo_index, sdo_subindex, sdo_size, sdo_value))
+
+                    data_bytes = struct.pack("<I", sdo_value)
+                    msg_tx = can.Message(arbitration_id=0x580 + VCUnodeID,
+                            data = [0x43, sdo_index_lsb, sdo_index_msb, sdo_subindex, data_bytes[0], data_bytes[1],data_bytes[2],data_bytes[3]],
+                            is_extended_id=False)
+                except:
+ 
+                    msg_tx = can.Message(arbitration_id=0x580 + VCUnodeID,
+                            data = [0x80, sdo_index_lsb, sdo_index_msb, sdo_subindex, 0xFF, 0x00, 0x00, 0xFF],
+                            is_extended_id=False)      
+
+                sdo_send(msg_tx)
+
+            elif((msg_rx.data[0] & 0x23)== 0x23):    # SDO Expedite Download Request
+                last_data_bytes_inv = (msg_rx.data[0] & 0x1C) >> 2
+                sdo_index = msg_rx.data[2] << 8 | msg_rx.data[1]
+                sdo_subindex = msg_rx.data[3]
+ 
+                sdo_value = (msg_rx.data[7] << 24 | msg_rx.data[6] << 16 | msg_rx.data[5] << 8 | msg_rx.data[4]) & (0xFFFFFFFF >> (last_data_bytes_inv * 8))
+
+                object_dictionary[sdo_index] = sdo_value
+
+                print("RX: Request OD Index: {:04X} SubIndex: {:02X} Size: {} Value: {:08X}".format(sdo_index, sdo_subindex, sdo_size, sdo_value))
+ 
+
                 msg_tx = can.Message(arbitration_id=0x580 + VCUnodeID,
-                        data = [0xA1, 0, 0, 0, 0, 0, 0, 0],
+                        data = [0x60, msg_rx.data[1], msg_rx.data[2], msg_rx.data[3], 0, 0, 0, 0],
                         is_extended_id=False)
 
                 sdo_send(msg_tx)
+
     
 except can.CanError:
     print("Message NOT received")
