@@ -101,15 +101,11 @@ void canopen_init(int argc, char *argv[])
 
     reset = CO_RESET_NOT;
 
-    CO_sendNMTcommand(CO, CO_NMT_ENTER_PRE_OPERATIONAL, VCUnodeID);
-
     threadMain_init(threadMain_callback, NULL);
 
     pthread_create(&CO_rx_thread_id, NULL, threadRx, NULL);
 
     uint16_t timer1msPrevious = 0;
-
-    CU_TASK_addTask("program", 0);
 
     while(reset == CO_RESET_NOT)
     {

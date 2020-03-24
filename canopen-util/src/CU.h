@@ -11,8 +11,9 @@ typedef struct
     uint16_t sdoIndex;
     uint8_t sdoSubIndex;
     uint8_t interfaceIdx;
-    uint8_t *interfaceName;
-    uint8_t *programFilename;
+    char *interfaceName;
+    uint8_t programID;
+    char *programFilename;
     uint8_t *programData;
     uint32_t programDataLen;
     uint8_t option;

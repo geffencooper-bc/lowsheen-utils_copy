@@ -37,6 +37,7 @@ set(SOURCES     ${STACKDRV_SRC}/CO_driver.c
                 ${APP_SRC}/CU_TASK_PROGRAM.c 
                 ${APP_SRC}/CU_TASK_RESET.c 
                 ${APP_SRC}/CU_TASK_SDO.c
+                ${APP_SRC}/CU_COMMAND.c
                 ${APP_SRC}/main.c)
 
 add_executable(canopen-util ${SOURCES})
