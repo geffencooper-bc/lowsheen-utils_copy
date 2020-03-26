@@ -29,85 +29,81 @@
 
 pthread_mutex_t             CO_CAN_VALID_mtx = PTHREAD_MUTEX_INITIALIZER;
 pthread_t                   CO_rx_thread_id;
-/* Global variable increments each millisecond. */
-volatile uint16_t           CO_timer1ms = 0U;
- 
+volatile uint16_t           CO_timer1ms = 0U;   /* Global variable increments each millisecond. */
+CO_NMT_reset_cmd_t          reset = CO_RESET_NOT;
 
-/**
- * User-defined CAN base structure, passed as argument to CO_init.
- */
+const int8_t BCMnodeID = 0x48;
 
-
+/* CANopenNode main thread callback */
 void threadMain_callback(void *arg)
 {
- 
+    /* nothing to do */
 }
 
-void * threadRx(void *arg)
+/* receive thread */
+void *threadRx(void *arg)
 {
     CANrx_threadTmr_init(1);
 
-    while(1)
+    while(reset != CO_RESET_QUIT)
     {
         CANrx_threadTmr_process();
     }
 
-
     return NULL;
 }
 
-uint16_t idx = 1501;
-uint8_t subidx = 1;
-
-uint8_t dataTx[256];
-uint32_t dataTxLen = sizeof(dataTx);
-
-uint8_t blockTransferEnable = 1;
-uint8_t block_transfer = 1;
-
-int block_stage = 0;
-
-int BCMnodeID = 0x48;
-int VCUnodeID = 0x49;
-
-void canopen_init(int argc, char *argv[])
+static void canopen_init(CU_TaskDetails *args)
 {
-
-    CO_NMT_reset_cmd_t reset = CO_RESET_NOT;
-
-    CU_TASK_init();
-  
- 
-/* CANopen communication reset - initialize CANopen objects *******************/
     CO_ReturnError_t err;
 
-    unsigned int interface_index = if_nametoindex("can0");
+    if(args->interfaceName == NULL)
+    {
+        printf("Missing Socket CAN Interface. Please specify can0, can1, etc.\r\n");
+        exit(-1);
+    }
 
-    uintptr_t can_interface = interface_index;
+    unsigned int interface_index = if_nametoindex(args->interfaceName);
+    uintptr_t can_interface = interface_index;  // interface dependent device selection
 
     /* initialize CANopen */
     err = CO_init((void *)can_interface, BCMnodeID /* NodeID */, 250 /* bit rate */);  
-    if(err != CO_ERROR_NO){
-        CO_errorReport(CO->em, CO_EM_MEMORY_ALLOCATION_ERROR, CO_EMC_SOFTWARE_INTERNAL, err);  
-        while(1);
+    if(err != CO_ERROR_NO)
+    {
+        printf("Unable to Initialize Socket CAN Interface: %s\r\n", args->interfaceName);
+        exit(-1);
     }
-
-
-    /* Configure CAN transmit and receive interrupt */
-    
 
     /* start CAN */
     CO_CANsetNormalMode(CO->CANmodule[0]);
 
-    reset = CO_RESET_NOT;
-
     threadMain_init(threadMain_callback, NULL);
 
     pthread_create(&CO_rx_thread_id, NULL, threadRx, NULL);
+}
 
+static void canopen_close(void)
+{
+    CO_delete((void*) 0/* CAN module address */);
+}
+
+int main(int argc, char *argv[])
+{
+    struct timespec sleepTime;
     uint16_t timer1msPrevious = 0;
+    CU_TASK_STATUS status;
+    CU_TaskDetails task_details;
 
-    while(reset == CO_RESET_NOT)
+    printf("canopen-util application\r\n");
+
+    CU_COMMAND_parseArgs(&task_details, argc, argv);
+
+    canopen_init(&task_details);
+    
+    sleepTime.tv_sec = 0;
+    sleepTime.tv_nsec = 1000000;
+
+    while(reset != CO_RESET_QUIT)
     {
         uint16_t timer1msCopy, timer1msDiff;
 
@@ -117,44 +113,19 @@ void canopen_init(int argc, char *argv[])
 
         threadMain_process(&reset);
 
-        if(CU_TASK_update(timer1msDiff) != CU_TASK_STATUS_CONTINUE)
+        status = CU_TASK_update(&task_details, timer1msDiff);
+
+        if(status != CU_TASK_STATUS_CONTINUE)
         {
             printf("Done.\r\n");
-            return;
+            return (status == CU_TASK_STATUS_DONE) ? 0 : -1;
         }
-        
-        struct timespec sleepTime;
 
-        sleepTime.tv_sec = 0;
-        sleepTime.tv_nsec = 1000000;
         nanosleep(&sleepTime, NULL);
         CO_timer1ms += 1;
-
     }
 
-
-
-/* program exit ***************************************************************/
-    /* stop threads */
-
-
-    /* delete objects from memory */
-    CO_delete((void*) 0/* CAN module address */);
- 
-    exit(EXIT_SUCCESS);
-}
-
-
-int main(int argc, char *argv[])
-{
-    printf("canopen-util application\r\n");
-
-    for(size_t i = 0; i < sizeof(dataTx); i += 1)
-    {
-        dataTx[i] = (uint8_t)i;
-    }
-    
-    canopen_init(argc, argv);
+    canopen_close();
 
     return 0;
 }

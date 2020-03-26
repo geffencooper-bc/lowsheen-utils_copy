@@ -5,17 +5,24 @@
 #include <string.h>
 #include <stdlib.h> 
 
+#define STR_HELPER(x) #x
+#define STR(x) STR_HELPER(x)
+
+#define DEFAULT_PROGRAM_ID 1
+#define DEFAULT_SERVER_NODE_ID 0x49
+#define DEFAULT_SOCKET_CAN_INTERFACE "can0"
+
 const char *argp_program_version = "programname programversion";
 const char *argp_program_bug_address = "<your@email.address>";
 static char doc[] = "Your program description.";
 static char args_doc[] = "[FILENAME]...";
 static struct argp_option options[] = { 
-    { "program", 'p', 0, 0, "Select program to Download"},
-    { "file", 'f', 0, 0, "File to program device"},
-    { "interface", 'i', 0, 0, "socketcan interface"},
-    { "node", 'n', 0, 0, "selected canopen node"},
-    { "details", 'd', 0, 0, "print canopen node information"},
-    { "reset", 'r', 0, 0, "reset adapter"},
+    { "program", 'p', "PROGRAM", OPTION_ARG_OPTIONAL, "Select Program Number to Download (Default: " STR(DEFAULT_PROGRAM_ID) ")"},
+    { "file", 'f', "FILE", 0, "File to Program Device"},
+    { "interface", 'i', "INTERFACE", OPTION_ARG_OPTIONAL, "SocketCAN Interface (Default: " DEFAULT_SOCKET_CAN_INTERFACE ")"},
+    { "node", 'n', "NODE", OPTION_ARG_OPTIONAL, "Select CANopen Node (Default: " STR(DEFAULT_SERVER_NODE_ID) ")"},
+    { "details", 'd', 0, 0, "Print CANopen Node Information"},
+    { "reset", 'r', 0, 0, "Reset Adapter"},
     { 0 } 
 };
 
@@ -27,30 +34,37 @@ struct arguments {
 
 static error_t parse_opt(int key, char *arg, struct argp_state *state) {
     CU_TaskDetails *cmd = state->input;
+
     switch (key) {
     case 'p':
         if((strlen(arg) < 3) || (strcmp(arg, "0x") != 0))
         {
-            cmd->programID = strtol(&arg[2], NULL, 10);
+            cmd->programID = strtol(&arg[0], NULL, 10);
         }
         else
         {
             cmd->programID = strtol(&arg[2], NULL, 16);
         }   
+        printf("Parsing Program ID: %d\r\n", cmd->programID);
+
+        break;
+    case 'f': 
+        cmd->programFilename = arg; 
+        printf("Parsing Program Filename: %s\r\n", cmd->programFilename); 
         // add program task
         CU_TASK_addTask("program", 0);
         break;
-    case 'f': cmd->programFilename = arg; break;
-    case 'i': cmd->interfaceName = arg; break;
+    case 'i': cmd->interfaceName = arg; printf("Parsing Interface Name: %s\r\n", cmd->interfaceName);   break;
     case 'n': 
-        if((strlen(arg) < 3) || (strcmp(arg, "0x") != 0))
+        if((strlen(arg) < 3) || (strncmp(arg, "0x", 2) != 0))
         {
-            cmd->nodeID = strtol(&arg[2], NULL, 10);
+            cmd->nodeID = strtol(&arg[0], NULL, 10);
         }
         else
         {
             cmd->nodeID = strtol(&arg[2], NULL, 16);
         }   
+        printf("Parsing Node ID: %d\r\n", cmd->nodeID);
         break;
     case 'd': 
         // add task info task
@@ -70,5 +84,9 @@ static struct argp argp = { options, parse_opt, args_doc, doc, 0, 0, 0 };
 
 void CU_COMMAND_parseArgs(CU_TaskDetails *cmd, int argc, char *argv[])
 {
+    cmd->nodeID = DEFAULT_SERVER_NODE_ID;
+    cmd->interfaceName = DEFAULT_SOCKET_CAN_INTERFACE;
+    cmd->programID = DEFAULT_PROGRAM_ID;
+ 
     argp_parse(&argp, argc, argv, 0, 0, cmd);
 }

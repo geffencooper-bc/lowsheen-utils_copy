@@ -10,13 +10,11 @@ typedef struct
     uint8_t nodeID;
     uint16_t sdoIndex;
     uint8_t sdoSubIndex;
-    uint8_t interfaceIdx;
     char *interfaceName;
     uint8_t programID;
     char *programFilename;
     uint8_t *programData;
     uint32_t programDataLen;
-    uint8_t option;
     uint8_t sdo_process;
     uint8_t step;
     uint8_t index;
@@ -25,7 +23,7 @@ typedef struct
 typedef enum
 {   
     CU_TASK_STATUS_NO_ERROR,
-    CU_TASK_STATUS_READY,
+    CU_TASK_STATUS_PENDING,
     CU_TASK_STATUS_CONTINUE,
     CU_TASK_STATUS_DONE,
     CU_TASK_STATUS_TIMEOUT,
@@ -37,9 +35,8 @@ typedef enum
 void CU_COMMAND_parse(CU_TaskDetails *cmd, int argc, char *argv[]);
 
 /* task invocation */
-void CU_TASK_init(void);
 void CU_TASK_addTask(const char *request_task_name, int32_t option);
-CU_TASK_STATUS CU_TASK_update(uint32_t time_diff_1ms);
+CU_TASK_STATUS CU_TASK_update(CU_TaskDetails *task_details, uint32_t time_diff_1ms);
  
 /* sdo transfer helpers */
 CU_TASK_STATUS CU_TASK_SDO_download(CU_TaskDetails *cmd, uint8_t *data, uint32_t data_len);
@@ -61,3 +58,5 @@ CU_TASK_STATUS CU_TASK_PROGRAM_update(CU_TaskDetails *cmd, uint32_t time_diff_1m
 /* request exit back to default application*/
 void CU_TASK_RESET_prepare(CU_TaskDetails *cmd);
 CU_TASK_STATUS CU_TASK_RESET_update(CU_TaskDetails *cmd, uint32_t time_diff_1ms);
+
+void CU_COMMAND_parseArgs(CU_TaskDetails *cmd, int argc, char *argv[]);

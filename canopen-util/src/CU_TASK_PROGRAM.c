@@ -2,6 +2,9 @@
 
 #include "CU.h"
 #include <stdio.h>
+#include <stdlib.h>
+
+#define CU_TASK_PROGRAM_MAX_FILE_SIZE (4 * 1000 * 1024)     // arbitrary limit
 
 typedef enum
 {
@@ -17,24 +20,51 @@ typedef enum
     PROGRAM_STEP_START_PROGRAM,         // 1F51 = 1 PROGRAM CONTROL (START)
     PROGRAM_STEP_OPERATIONAL,           // switch desired node into operational state
     PROGRAM_STEP_OPERATIONAL_WAIT,
+    PROGRAM_STEP_OPERATION_ERROR,
 }PROGRAM_STEP;
-
-static uint8_t data[1 * 1024];
-
 
  void CU_TASK_PROGRAM_prepare(CU_TaskDetails *cmd)
  {
+    FILE *fp;
+    size_t file_size;
     cmd->step = PROGRAM_STEP_REQ_SW_VERSION;
     cmd->index = 0;
 
-     /* load program */
-    cmd->programData = data;
-    cmd->programDataLen = sizeof(data);
+    /* load program */
+    fp = fopen(cmd->programFilename, "r");
 
-    for(int i = 0; i < sizeof(data); i++)
+    /* determine size */
+    fseek(fp, 0L, SEEK_END);
+    file_size = ftell(fp);
+
+    if(file_size > CU_TASK_PROGRAM_MAX_FILE_SIZE)
     {
-        data[i] = i & 0xFF;
+        printf("file size exceeds expected amount. Read: %uz bytes\r\n", (unsigned int)file_size);
+        cmd->step = PROGRAM_STEP_OPERATION_ERROR;
+        fclose(fp);
+        return;
     }
+    else
+    {
+        cmd->programDataLen = (uint32_t)file_size;
+        printf("writing %s (%uz bytes)\r\n", (char *)cmd->programFilename, (unsigned int)file_size);
+    }
+
+    rewind(fp);
+
+    cmd->programData = malloc(file_size);
+
+    if(cmd->programData == NULL)
+    {
+        printf("Unable to allocate memory for writing file.\r\n");
+        fclose(fp);
+        return;
+    }
+
+    fgets((char *)cmd->programData, (int)file_size, fp);
+ 
+    fclose(fp);
+
     printf("Begin PROGRAM_STEP_REQ_SW_VERSION\r\n");
  }
 
@@ -127,6 +157,17 @@ CU_TASK_STATUS CU_TASK_PROGRAM_update(CU_TaskDetails *cmd, uint32_t time_diff_1m
 
         default:
             break;
+    }
+
+    if(status != CU_TASK_STATUS_CONTINUE)
+    {
+        // either done or error, destroy allocated memory
+        if(cmd->programData != NULL)
+        {
+            free(cmd->programData);
+            cmd->programData = NULL;
+            cmd->programDataLen = 0;
+        }
     }
 
     return status;
