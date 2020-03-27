@@ -46,7 +46,7 @@ CU_TASK_STATUS CU_TASK_SDO_upload(CU_TaskDetails *cmd, uint8_t *data, uint32_t d
     if(CO_SDOclientUploadInitiate(CO->SDOclient[0], cmd->sdoIndex, cmd->sdoSubIndex, data,
                     data_len, blockTransferEnable) != CO_SDOcli_ok_communicationEnd)
     {
-        printf("Failed to initiate SDO client upload");
+        printf("Failed to initiate SDO client upload\r\n");
         return CU_TASK_STATUS_ERROR;
     }
 
@@ -58,7 +58,7 @@ CU_TASK_STATUS CU_TAKS_SDO_downloadUpdate(CU_TaskDetails *cmd, uint32_t time_dif
 {
     int ret;
 
-    ret = CO_SDOclientDownload(CO->SDOclient[0], time_diff_1ms, 500, abort_code);
+    ret = CO_SDOclientDownload(CO->SDOclient[0], time_diff_1ms, 10000, abort_code);
 
     if(ret <= 0)
     {   

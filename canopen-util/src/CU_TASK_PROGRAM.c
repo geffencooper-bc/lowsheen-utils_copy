@@ -23,6 +23,8 @@ typedef enum
     PROGRAM_STEP_OPERATION_ERROR,
 }PROGRAM_STEP;
 
+#define PROGRAM_STEP_DELAY_MS (500)
+
  void CU_TASK_PROGRAM_prepare(CU_TaskDetails *cmd)
  {
     FILE *fp;
@@ -33,13 +35,19 @@ typedef enum
     /* load program */
     fp = fopen(cmd->programFilename, "r");
 
+    if(fp == NULL)
+    {
+        printf("Unable to open file %s\r\n", cmd->programFilename);
+        exit(-1);
+    }
+
     /* determine size */
     fseek(fp, 0L, SEEK_END);
     file_size = ftell(fp);
 
     if(file_size > CU_TASK_PROGRAM_MAX_FILE_SIZE)
     {
-        printf("file size exceeds expected amount. Read: %uz bytes\r\n", (unsigned int)file_size);
+        printf("file size exceeds expected amount. Read: %d KB (%u bytes)\r\n", (unsigned int)file_size / 1024, (unsigned int)file_size);
         cmd->step = PROGRAM_STEP_OPERATION_ERROR;
         fclose(fp);
         return;
@@ -47,7 +55,7 @@ typedef enum
     else
     {
         cmd->programDataLen = (uint32_t)file_size;
-        printf("writing %s (%uz bytes)\r\n", (char *)cmd->programFilename, (unsigned int)file_size);
+        printf("writing %s - %d KB (%u bytes)\r\n", (char *)cmd->programFilename, (unsigned int)file_size / 1024, (unsigned int)file_size); 
     }
 
     rewind(fp);
@@ -74,12 +82,17 @@ CU_TASK_STATUS CU_TASK_PROGRAM_update(CU_TaskDetails *cmd, uint32_t time_diff_1m
     static uint32_t sdo_value;
     static uint32_t sdo_len;
     uint32_t abort_code;
+
+    if(!(CU_TASK_isTimeout(cmd)))
+    {
+        return CU_TASK_STATUS_CONTINUE;
+    }
  
     switch(cmd->step)
     {
         case PROGRAM_STEP_REQ_SW_VERSION:
 
-            status = CU_TASK_SDO_uploadTask(cmd, time_diff_1ms, 0x49, 0x1F56, 0x00, (uint8_t *)&sdo_value, sizeof(sdo_value), &sdo_len, &abort_code);    
+            status = CU_TASK_SDO_uploadTask(cmd, time_diff_1ms, 0x49, 0x1F56, cmd->programID, (uint8_t *)&sdo_value, sizeof(sdo_value), &sdo_len, &abort_code);    
 
             if(status == CU_TASK_STATUS_DONE)
             {
@@ -87,6 +100,7 @@ CU_TASK_STATUS CU_TASK_PROGRAM_update(CU_TaskDetails *cmd, uint32_t time_diff_1m
                 cmd->step = PROGRAM_STEP_STOP_PROGRAM;
                 status = CU_TASK_STATUS_CONTINUE;
                 printf("Begin PROGRAM_STEP_STOP_PROGRAM\r\n");
+                CU_TASK_setTimeout(cmd, .3f);
             }
             break;
 
@@ -94,13 +108,14 @@ CU_TASK_STATUS CU_TASK_PROGRAM_update(CU_TaskDetails *cmd, uint32_t time_diff_1m
 
             sdo_value = 0;
 
-            status = CU_TASK_SDO_downloadTask(cmd, time_diff_1ms, 0x49, 0x1F51, 0x01, (uint8_t *)&sdo_value, sizeof(sdo_value), &abort_code);    
+            status = CU_TASK_SDO_downloadTask(cmd, time_diff_1ms, 0x49, 0x1F51, cmd->programID, (uint8_t *)&sdo_value, 0x02, &abort_code);    
 
             if(status == CU_TASK_STATUS_DONE)
             {
                 cmd->step = PROGRAM_STEP_CLEAR_PROGRAM;
                 status = CU_TASK_STATUS_CONTINUE;
                 printf("Begin PROGRAM_STEP_CLEAR_PROGRAM\r\n");
+                CU_TASK_setTimeout(cmd, .5f);
             }
             break;
 
@@ -108,37 +123,40 @@ CU_TASK_STATUS CU_TASK_PROGRAM_update(CU_TaskDetails *cmd, uint32_t time_diff_1m
 
             sdo_value = 3;
 
-            status = CU_TASK_SDO_downloadTask(cmd, time_diff_1ms, 0x49, 0x1F51, 0x01,  (uint8_t *)&sdo_value, sizeof(sdo_value), &abort_code);    
+            status = CU_TASK_SDO_downloadTask(cmd, time_diff_1ms, 0x49, 0x1F51, cmd->programID,  (uint8_t *)&sdo_value, 0x02, &abort_code);    
 
             if(status == CU_TASK_STATUS_DONE)
             {
                 cmd->step = PROGRAM_STEP_DOWNLOAD_PROGRAM;
                 status = CU_TASK_STATUS_CONTINUE;
                 printf("Begin PROGRAM_STEP_DOWNLOAD_PROGRAM\r\n");
+                CU_TASK_setTimeout(cmd, 0.5f);
             }
             break;
 
         case PROGRAM_STEP_DOWNLOAD_PROGRAM:
 
-            status = CU_TASK_SDO_downloadTask(cmd, time_diff_1ms, 0x49, 0x1F50, 0x01, cmd->programData, cmd->programDataLen, &abort_code);
+            status = CU_TASK_SDO_downloadTask(cmd, time_diff_1ms, 0x49, 0x1F50, cmd->programID, cmd->programData, cmd->programDataLen, &abort_code);
 
             if(status == CU_TASK_STATUS_DONE)
             {
                 cmd->step = PROGRAM_STEP_FLASH_SUCCESSFUL;
                 status = CU_TASK_STATUS_CONTINUE;
                 printf("Begin PROGRAM_STEP_FLASH_SUCCESSFUL\r\n");
+                CU_TASK_setTimeout(cmd, 2.0f);
             }
             break;
 
         case PROGRAM_STEP_FLASH_SUCCESSFUL:
 
-            status = CU_TASK_SDO_uploadTask(cmd, time_diff_1ms, 0x49, 0x1F57, 0x01,  (uint8_t *)&sdo_value, sizeof(sdo_value),  &sdo_len, &abort_code);    
+            status = CU_TASK_SDO_uploadTask(cmd, time_diff_1ms, 0x49, 0x1F57, cmd->programID,  (uint8_t *)&sdo_value, sizeof(sdo_value),  &sdo_len, &abort_code);    
 
             if(status == CU_TASK_STATUS_DONE)
             {
                 cmd->step = PROGRAM_STEP_START_PROGRAM;
                 status = CU_TASK_STATUS_CONTINUE;
                 printf("Begin PROGRAM_STEP_START_PROGRAM\r\n");
+                CU_TASK_setTimeout(cmd, .5f);
             }
             break;
 
@@ -146,7 +164,7 @@ CU_TASK_STATUS CU_TASK_PROGRAM_update(CU_TaskDetails *cmd, uint32_t time_diff_1m
 
             sdo_value = 1;
 
-            status = CU_TASK_SDO_downloadTask(cmd, time_diff_1ms, 0x49, 0x1F51, 0x01, (uint8_t *)&sdo_value, sizeof(sdo_value), &abort_code);    
+            status = CU_TASK_SDO_downloadTask(cmd, time_diff_1ms, 0x49, 0x1F51, cmd->programID, (uint8_t *)&sdo_value, 0x02, &abort_code);    
 
             if(status == CU_TASK_STATUS_DONE)
             {
@@ -161,6 +179,14 @@ CU_TASK_STATUS CU_TASK_PROGRAM_update(CU_TaskDetails *cmd, uint32_t time_diff_1m
 
     if(status != CU_TASK_STATUS_CONTINUE)
     {
+        if(status == CU_TASK_STATUS_DONE)
+        {
+            printf("Successfully Flashed Firmware\r\n");
+        }
+        else
+        {
+            printf("Failed to Flash Firmware. Abort Code: %08X\r\n", abort_code);
+        }
         // either done or error, destroy allocated memory
         if(cmd->programData != NULL)
         {

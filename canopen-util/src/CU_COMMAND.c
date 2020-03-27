@@ -8,7 +8,7 @@
 #define STR_HELPER(x) #x
 #define STR(x) STR_HELPER(x)
 
-#define DEFAULT_PROGRAM_ID 1
+#define DEFAULT_PROGRAM_ID 2
 #define DEFAULT_SERVER_NODE_ID 0x49
 #define DEFAULT_SOCKET_CAN_INTERFACE "can0"
 
@@ -17,12 +17,13 @@ const char *argp_program_bug_address = "<your@email.address>";
 static char doc[] = "Your program description.";
 static char args_doc[] = "[FILENAME]...";
 static struct argp_option options[] = { 
-    { "program", 'p', "PROGRAM", OPTION_ARG_OPTIONAL, "Select Program Number to Download (Default: " STR(DEFAULT_PROGRAM_ID) ")"},
+    { "program", 'p', "PROGRAM", 0, "Select Program Number to Download (Default: " STR(DEFAULT_PROGRAM_ID) ")"},
     { "file", 'f', "FILE", 0, "File to Program Device"},
-    { "interface", 'i', "INTERFACE", OPTION_ARG_OPTIONAL, "SocketCAN Interface (Default: " DEFAULT_SOCKET_CAN_INTERFACE ")"},
-    { "node", 'n', "NODE", OPTION_ARG_OPTIONAL, "Select CANopen Node (Default: " STR(DEFAULT_SERVER_NODE_ID) ")"},
+    { "interface", 'i', "INTERFACE", 0, "SocketCAN Interface (Default: " DEFAULT_SOCKET_CAN_INTERFACE ")"},
+    { "node", 'n', "NODE", 0, "Select CANopen Node (Default: " STR(DEFAULT_SERVER_NODE_ID) ")"},
     { "details", 'd', 0, 0, "Print CANopen Node Information"},
     { "reset", 'r', 0, 0, "Reset Adapter"},
+    { "state", 's', "STATE", 0, "Set Node into Specified State. 0x01: operational, 0x02: Stopped, 0x80: pre-operational, 0x81: reset, 0x82: reset comms"},
     { 0 } 
 };
 
@@ -73,6 +74,18 @@ static error_t parse_opt(int key, char *arg, struct argp_state *state) {
     case 'r': 
         // add task reset
         CU_TASK_addTask("reset", 0);
+        break;
+    case 's':
+        if((strlen(arg) < 3) || (strncmp(arg, "0x", 2) != 0))
+        {
+            cmd->options = strtol(&arg[0], NULL, 10);
+        }
+        else
+        {
+            cmd->options  = strtol(&arg[2], NULL, 16);
+        }  
+        printf("Parsing New State: %d\r\n", cmd->options);
+        CU_TASK_addTask("state", 0);
         break;
     case ARGP_KEY_ARG: return 0;
     default: return ARGP_ERR_UNKNOWN;

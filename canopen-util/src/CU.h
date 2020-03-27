@@ -18,6 +18,8 @@ typedef struct
     uint8_t sdo_process;
     uint8_t step;
     uint8_t index;
+    int32_t options;
+    float timeoutSec;
 }CU_TaskDetails;
 
 typedef enum
@@ -59,4 +61,11 @@ CU_TASK_STATUS CU_TASK_PROGRAM_update(CU_TaskDetails *cmd, uint32_t time_diff_1m
 void CU_TASK_RESET_prepare(CU_TaskDetails *cmd);
 CU_TASK_STATUS CU_TASK_RESET_update(CU_TaskDetails *cmd, uint32_t time_diff_1ms);
 
+/* change Node state */
+void CU_TASK_STATE_prepare(CU_TaskDetails *cmd);
+CU_TASK_STATUS CU_TASK_STATE_update(CU_TaskDetails *cmd, uint32_t time_diff_1ms);
+
 void CU_COMMAND_parseArgs(CU_TaskDetails *cmd, int argc, char *argv[]);
+
+uint8_t CU_TASK_setTimeout(CU_TaskDetails *cmd, float time_sec);
+uint8_t CU_TASK_isTimeout(CU_TaskDetails *cmd);

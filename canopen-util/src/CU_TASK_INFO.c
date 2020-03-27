@@ -16,8 +16,9 @@ static const CU_TASK_INFO_Entries scan_entries[] =
     {"Device Type", 0x1000, 0x00},
     {"Error Register", 0x1001, 0x00},
     {"Identity", 0x1018, 0x00},
-    {"Program Software Identification", 0x1F56, 0x00},
-    {"Flash Status Identification", 0x1F57, 0x00},
+    {"Program Control", 0x1F51, 0x02},
+    {"Program Software Identification", 0x1F56, 0x02},
+    {"Flash Status Identification", 0x1F57, 0x02},
 };
 
 static const size_t scan_entries_size = sizeof(scan_entries) / sizeof(CU_TASK_INFO_Entries);
@@ -72,7 +73,7 @@ CU_TASK_STATUS CU_TASK_INFO_update(CU_TaskDetails *cmd, uint32_t time_diff_1ms)
                 printf("Timeout Error attempting to read info entries\r\n");
                 return status;
             case CU_TASK_STATUS_ABORT:
-                printf("Abort Error attempting to read info entries. Abort Code: %08X\r\n", sdo_abort_code);
+                printf("Abort Error attempting to read info entries. Object: %04X-%02X Abort Code: %08X\r\n", cmd->sdoIndex, cmd->sdoSubIndex, sdo_abort_code);
                 return status;
             case CU_TASK_STATUS_ERROR:
             default:

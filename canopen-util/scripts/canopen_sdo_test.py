@@ -5,7 +5,9 @@ import struct
 
 sdo_msgs = {}
 
-sdo_msgs[0xC6] = "SDO Block Download Initiate Request"
+sdo_msgs[0xC6] = "SDO Block Download Initiate Request (with CRC, Size Indicator)"
+sdo_msgs[0xC4] = "SDO Block Download Initiate Request (with CRC)"
+sdo_msgs[0xC2] = "SDO Block Download Initiate Request (with Size Indicator)"
 sdo_msgs[0xA4] = "SDO Block Download Initiate Response"
 sdo_msgs[0xA2] = "SDO Block Download Response"
 sdo_msgs[0xC1] = "SDO Block Download End Request (8 bytes)"

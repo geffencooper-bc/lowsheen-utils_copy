@@ -4,7 +4,7 @@
 #include <string.h>
 #include <stdio.h>      /* printf, fopen */
 #include <stdlib.h>     /* exit, EXIT_FAILURE */
-
+#include <time.h>
 
 typedef struct
 {
@@ -19,6 +19,7 @@ static const CU_TASK_Entry taskEntries[] =
     {"info", CU_TASK_INFO_prepare, CU_TASK_INFO_update},
     {"program", CU_TASK_PROGRAM_prepare, CU_TASK_PROGRAM_update},
     {"reset", CU_TASK_RESET_prepare, CU_TASK_RESET_update},
+    {"state", CU_TASK_STATE_prepare, CU_TASK_STATE_update},
 } ;
 
 // size of entries
@@ -46,7 +47,8 @@ void CU_TASK_addTask(const char *request_task_name, int32_t option)
             if(taskEntriesRequested[i].state != CU_TASK_STATUS_PENDING)
             {
                 printf("Adding Task: %s\r\n", request_task_name);
-                taskEntriesRequested[i].state = CU_TASK_STATUS_PENDING;         
+                taskEntriesRequested[i].state = CU_TASK_STATUS_PENDING; 
+                taskEntriesRequested[i].option = option;        
             }
             return;
         }
@@ -104,4 +106,24 @@ CU_TASK_STATUS CU_TASK_update(CU_TaskDetails *task_details, uint32_t time_diff_1
     }
 
     return CU_TASK_STATUS_DONE;
+}
+
+
+uint8_t CU_TASK_setTimeout(CU_TaskDetails *cmd, float time_sec)
+{
+    struct timespec current_time={0,0}, tend={0,0};
+    clock_gettime(CLOCK_MONOTONIC, &current_time);
+
+    cmd->timeoutSec = (float)current_time.tv_sec + (float)current_time.tv_nsec / 1e9f + time_sec;
+}
+
+uint8_t CU_TASK_isTimeout(CU_TaskDetails *cmd)
+{
+    struct timespec current_time={0,0}, tend={0,0};
+    clock_gettime(CLOCK_MONOTONIC, &current_time);
+
+   float new_time = (float)current_time.tv_sec + (float)current_time.tv_nsec / 1e9f;
+
+   return (new_time > cmd->timeoutSec);
+
 }

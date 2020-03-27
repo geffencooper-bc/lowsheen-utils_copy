@@ -99,7 +99,7 @@ int main(int argc, char *argv[])
     CU_COMMAND_parseArgs(&task_details, argc, argv);
 
     canopen_init(&task_details);
-    
+
     sleepTime.tv_sec = 0;
     sleepTime.tv_nsec = 1000000;
 
