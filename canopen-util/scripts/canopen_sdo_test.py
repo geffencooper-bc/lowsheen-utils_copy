@@ -100,7 +100,7 @@ def sdo_send(msg):
    
     bus.send(msg)
  
-bus = can.interface.Bus(bustype='socketcan', channel='can1')
+bus = can.interface.Bus(bustype='socketcan', channel='can0')
  
 VCUnodeID = 0x49
 
