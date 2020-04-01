@@ -11,7 +11,7 @@ import can
 # bus = can.interface.Bus(bustype='vector', app_name='CANalyzer', channel=0, bitrate=250000)
 # ...
 #bus = can.interface.Bus(bustype='pcan', channel='PCAN_USBBUS1', bitrate=250000)
-bus1 = can.interface.Bus(bustype='socketcan', channel='can1')
+bus1 = can.interface.Bus(bustype='socketcan', channel='can0')
 #bus2 = can.interface.Bus(bustype='socketcan', channel='can1')
 
 

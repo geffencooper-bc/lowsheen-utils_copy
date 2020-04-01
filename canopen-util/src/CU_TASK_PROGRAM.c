@@ -69,7 +69,7 @@ typedef enum
         return;
     }
 
-    fgets((char *)cmd->programData, (int)file_size, fp);
+    fread((char *)cmd->programData, 1, (int)file_size, fp);
  
     fclose(fp);
 
