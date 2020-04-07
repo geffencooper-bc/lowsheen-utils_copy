@@ -12,6 +12,21 @@
 
 CU_TASK_STATUS CU_TASK_RESET_update(CU_TaskDetails *cmd, uint32_t time_diff_1ms)
 {
+    CO_CANtx_t tx_msg;
+
+    tx_msg.ident = 0x3 << 29;
+    tx_msg.DLC = 0x08;
+    tx_msg.data[0] = 0x0D;
+    tx_msg.data[1] = 0x0E;
+    tx_msg.data[2] = 0x0A;
+    tx_msg.data[3] = 0x0D;
+    tx_msg.data[4] = 0x0B;
+    tx_msg.data[5] = 0x0E;
+    tx_msg.data[6] = 0x0E;
+    tx_msg.data[7] = 0x0F;
+
+    printf("Resetting Interface\r\n");
+    return CO_CANsend(CO->CANmodule[0], &tx_msg); /* 0 = success */
     return CU_TASK_STATUS_DONE;
 }
 
