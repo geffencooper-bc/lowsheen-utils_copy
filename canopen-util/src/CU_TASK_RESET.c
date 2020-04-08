@@ -12,9 +12,9 @@
 
 CU_TASK_STATUS CU_TASK_RESET_update(CU_TaskDetails *cmd, uint32_t time_diff_1ms)
 {
-    CO_CANtx_t tx_msg;
+    CO_CANtx_t tx_msg;   
 
-    tx_msg.ident = 0x3 << 29;
+    tx_msg.ident = (0x3 << 29);
     tx_msg.DLC = 0x08;
     tx_msg.data[0] = 0x0D;
     tx_msg.data[1] = 0x0E;
@@ -24,10 +24,11 @@ CU_TASK_STATUS CU_TASK_RESET_update(CU_TaskDetails *cmd, uint32_t time_diff_1ms)
     tx_msg.data[5] = 0x0E;
     tx_msg.data[6] = 0x0E;
     tx_msg.data[7] = 0x0F;
+    tx_msg.CANdriverState = NULL;
 
     printf("Resetting Interface\r\n");
-    return CO_CANsend(CO->CANmodule[0], &tx_msg); /* 0 = success */
-    return CU_TASK_STATUS_DONE;
+     
+    return (CO_CANsend(CO->CANmodule[0], &tx_msg) == CO_ERROR_NO) ? CU_TASK_STATUS_DONE : CU_TASK_STATUS_ERROR;
 }
 
  void CU_TASK_STATE_prepare(CU_TaskDetails *cmd)
