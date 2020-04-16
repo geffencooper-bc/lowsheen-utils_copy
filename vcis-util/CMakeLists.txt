@@ -1,12 +1,16 @@
 cmake_minimum_required(VERSION 2.8.3)
 
+set(APP_NAME "vcis-util")
+
 set(CMAKE_BUILD_TYPE Debug)
 
+# default directory paths
 set(CANOPEN_SRC ${CMAKE_CURRENT_SOURCE_DIR}/../modules/CANopenNode) 
 set(STACK_SRC ${CANOPEN_SRC}/stack)
 set(STACKDRV_SRC ${CANOPEN_SRC}/stack/neuberger-socketCAN)
 set(OBJ_DICT_SRC ${CMAKE_CURRENT_SOURCE_DIR}/dictionary)
 set(APP_SRC ${CMAKE_CURRENT_SOURCE_DIR}/src)
+
 
 include_directories(   
                         ${CANOPEND_SRC}
@@ -40,8 +44,18 @@ set(SOURCES     ${STACKDRV_SRC}/CO_driver.c
                 ${APP_SRC}/CU_COMMAND.c
                 ${APP_SRC}/main.c)
 
-add_executable(vcis-util ${SOURCES})
+# remove stopping compilation due to warnings caused by the auto-generated file OC_OD.c
+set_source_files_properties(${OBJ_DICT_SRC}/CO_OD.c PROPERTIES COMPILE_FLAGS -w)
 
-target_compile_options(vcis-util PUBLIC "-pthread")
+add_executable(${APP_NAME} ${SOURCES})
 
-target_link_libraries(vcis-util pthread)
+target_compile_options(${APP_NAME} PUBLIC "-pthread")
+
+target_link_libraries(${APP_NAME} pthread)
+
+install(TARGETS ${APP_NAME}
+    COMPONENT linapp
+    RUNTIME DESTINATION ${LOWSHEEN_UTILS_PATH}
+    LIBRARY DESTINATION ${LOWSHEEN_UTILS_PATH}
+    DESTINATION ${LOWSHEEN_UTILS_PATH}
+)

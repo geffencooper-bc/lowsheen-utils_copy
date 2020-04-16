@@ -59,4 +59,7 @@ dfu-util-prefix/
 firmware/*/*.map
 cmake_install.cmake
 
+# lowsheen-utils specific
+lowsheen-utils.sh
 /bin/*
+/build
