@@ -111,15 +111,17 @@ CU_TASK_STATUS CU_TASK_update(CU_TaskDetails *task_details, uint32_t time_diff_1
 
 uint8_t CU_TASK_setTimeout(CU_TaskDetails *cmd, float time_sec)
 {
-    struct timespec current_time={0,0}, tend={0,0};
+    struct timespec current_time={0,0};
     clock_gettime(CLOCK_MONOTONIC, &current_time);
 
     cmd->timeoutSec = (float)current_time.tv_sec + (float)current_time.tv_nsec / 1e9f + time_sec;
+
+    return 0;
 }
 
 uint8_t CU_TASK_isTimeout(CU_TaskDetails *cmd)
 {
-    struct timespec current_time={0,0}, tend={0,0};
+    struct timespec current_time={0,0};
     clock_gettime(CLOCK_MONOTONIC, &current_time);
 
    float new_time = (float)current_time.tv_sec + (float)current_time.tv_nsec / 1e9f;

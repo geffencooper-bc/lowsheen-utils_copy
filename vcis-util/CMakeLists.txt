@@ -40,8 +40,8 @@ set(SOURCES     ${STACKDRV_SRC}/CO_driver.c
                 ${APP_SRC}/CU_COMMAND.c
                 ${APP_SRC}/main.c)
 
-add_executable(canopen-util ${SOURCES})
+add_executable(vcis-util ${SOURCES})
 
-target_compile_options(canopen-util PUBLIC "-pthread")
+target_compile_options(vcis-util PUBLIC "-pthread")
 
-target_link_libraries(canopen-util pthread)
+target_link_libraries(vcis-util pthread)

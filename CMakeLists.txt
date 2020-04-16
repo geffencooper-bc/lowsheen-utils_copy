@@ -5,6 +5,6 @@ project(lowsheen-utils)
 
 set(CMAKE_C_FLAGS ${CMAKE_C_FLAGS} "-Wall")
 
-set( EXECUTABLE_OUTPUT_PATH ${PROJECT_BINARY_DIR}/bin )
+set(EXECUTABLE_OUTPUT_PATH ${PROJECT_BINARY_DIR}/bin )
 
-add_subdirectory(canopen-util)
+add_subdirectory(vcis-util)
