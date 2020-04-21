@@ -18,7 +18,9 @@ include_directories(
                         ${STACK_SRC}
                         ${CANOPEN_SRC}
                         ${OBJ_DICT_SRC}
-                        ${APPL_SRC})
+                        ${APPL_SRC}
+                        ${CMAKE_CURRENT_BINARY_DIR}
+)
 
 set(SOURCES     ${STACKDRV_SRC}/CO_driver.c         
                 ${STACKDRV_SRC}/CO_Linux_threads.c    
@@ -42,12 +44,25 @@ set(SOURCES     ${STACKDRV_SRC}/CO_driver.c
                 ${APP_SRC}/CU_TASK_RESET.c 
                 ${APP_SRC}/CU_TASK_SDO.c
                 ${APP_SRC}/CU_COMMAND.c
-                ${APP_SRC}/main.c)
+                ${APP_SRC}/main.c
+)
+
+# attempt to generate version.h if info changed
+add_custom_target(
+   gen_version_headers
+   DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/__df_1   # depend on non-existent file to force target to build every time
+)
+
+add_custom_command(
+    OUTPUT ${CMAKE_CURRENT_SOURCE_DIR}/__df_1
+    COMMAND python ${PROJECT_SOURCE_DIR}/scripts/version.py
+)
 
 # remove stopping compilation due to warnings caused by the auto-generated file OC_OD.c
 set_source_files_properties(${OBJ_DICT_SRC}/CO_OD.c PROPERTIES COMPILE_FLAGS -w)
 
 add_executable(${APP_NAME} ${SOURCES})
+add_dependencies(${APP_NAME} gen_version_headers)
 
 target_compile_options(${APP_NAME} PUBLIC "-pthread")
 

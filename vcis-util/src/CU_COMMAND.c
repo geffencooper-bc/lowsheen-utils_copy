@@ -4,6 +4,7 @@
 #include "CU.h"
 #include <string.h>
 #include <stdlib.h> 
+#include "version.h"
 
 #define STR_HELPER(x) #x
 #define STR(x) STR_HELPER(x)
@@ -17,6 +18,7 @@ const char *argp_program_bug_address = "<your@email.address>";
 static char doc[] = "Your program description.";
 static char args_doc[] = "[FILENAME]...";
 static struct argp_option options[] = { 
+    { "version", 'v', 0, 0, "Application Version Information"},
     { "program", 'p', "PROGRAM", 0, "Select Program Number to Download (Default: " STR(DEFAULT_PROGRAM_ID) ")"},
     { "file", 'f', "FILE", 0, "File to Program Device"},
     { "interface", 'i', "INTERFACE", 0, "SocketCAN Interface (Default: " DEFAULT_SOCKET_CAN_INTERFACE ")"},
@@ -46,16 +48,13 @@ static error_t parse_opt(int key, char *arg, struct argp_state *state) {
         {
             cmd->programID = strtol(&arg[2], NULL, 16);
         }   
-        printf("Parsing Program ID: %d\r\n", cmd->programID);
-
         break;
     case 'f': 
         cmd->programFilename = arg; 
-        printf("Parsing Program Filename: %s\r\n", cmd->programFilename); 
         // add program task
         CU_TASK_addTask("program", 0);
         break;
-    case 'i': cmd->interfaceName = arg; printf("Parsing Interface Name: %s\r\n", cmd->interfaceName);   break;
+    case 'i': cmd->interfaceName = arg; break;
     case 'n': 
         if((strlen(arg) < 3) || (strncmp(arg, "0x", 2) != 0))
         {
@@ -65,7 +64,6 @@ static error_t parse_opt(int key, char *arg, struct argp_state *state) {
         {
             cmd->nodeID = strtol(&arg[2], NULL, 16);
         }   
-        printf("Parsing Node ID: %d\r\n", cmd->nodeID);
         break;
     case 'd': 
         // add task info task
@@ -84,9 +82,11 @@ static error_t parse_opt(int key, char *arg, struct argp_state *state) {
         {
             cmd->options  = strtol(&arg[2], NULL, 16);
         }  
-        printf("Parsing New State: %d\r\n", cmd->options);
         CU_TASK_addTask("state", 0);
         break;
+    case  'v':  // version information
+        printf("%s - %s - %s\r\n", VERSION_GIT_HASH, VERSION_GIT_TAG, VERSION_GIT_DATE_LOCAL);
+        exit(0);        
     case ARGP_KEY_ARG: return 0;
     default: return ARGP_ERR_UNKNOWN;
     }   

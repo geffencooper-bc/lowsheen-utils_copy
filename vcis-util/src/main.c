@@ -94,7 +94,7 @@ int main(int argc, char *argv[])
     CU_TASK_STATUS status;
     CU_TaskDetails task_details;
 
-    printf("canopen-util application\r\n");
+    printf("vcis-util application\r\n");
 
     CU_COMMAND_parseArgs(&task_details, argc, argv);
 

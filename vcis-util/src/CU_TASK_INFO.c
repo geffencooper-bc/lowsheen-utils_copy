@@ -16,9 +16,14 @@ static const CU_TASK_INFO_Entries scan_entries[] =
     {"Device Type", 0x1000, 0x00},
     {"Error Register", 0x1001, 0x00},
     {"Identity", 0x1018, 0x00},
-    {"Program Control", 0x1F51, 0x02},
-    {"Program Software Identification", 0x1F56, 0x02},
-    {"Flash Status Identification", 0x1F57, 0x02},
+    {"Traction Controller Version", 0x4E46, 0x00},
+    {"Steering Controller Version", 0x402F, 0x00},
+    {"Hours of Operation:", 0x4555, 0x00},
+
+/* status information only available during programming */
+    //{"Program Control", 0x1F51, 0x02},
+    //{"Program Software Identification", 0x1F56, 0x02},    
+
 };
 
 static const size_t scan_entries_size = sizeof(scan_entries) / sizeof(CU_TASK_INFO_Entries);
