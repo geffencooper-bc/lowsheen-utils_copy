@@ -46,7 +46,7 @@ void CU_TASK_addTask(const char *request_task_name, int32_t option)
         {
             if(taskEntriesRequested[i].state != CU_TASK_STATUS_PENDING)
             {
-                printf("Adding Task: %s\r\n", request_task_name);
+               // printf("Adding Task: %s\r\n", request_task_name);
                 taskEntriesRequested[i].state = CU_TASK_STATUS_PENDING; 
                 taskEntriesRequested[i].option = option;        
             }
