@@ -19,9 +19,24 @@ INCLUDE(CPack)
 
 # create a script that adds the lowsheen-utils directory to the PATH environment variable
 # using /etc/profile.d
-set(LOWSHEEN_UTILS_EXPORT_PATH_SCRIPT "${CMAKE_PROJECT_NAME}.sh")
-file(WRITE ${LOWSHEEN_UTILS_EXPORT_PATH_SCRIPT} "export PATH=$PATH:${LOWSHEEN_UTILS_PATH}")
+set(LOWSHEEN_UTILS_TOOLS_PATH_SCRIPT "${CMAKE_PROJECT_NAME}.sh")
+file(WRITE ${LOWSHEEN_UTILS_TOOLS_PATH_SCRIPT} "export PATH=$PATH:${LOWSHEEN_UTILS_PATH}")
 
-install(PROGRAMS ${LOWSHEEN_UTILS_EXPORT_PATH_SCRIPT}
+install(PROGRAMS ${LOWSHEEN_UTILS_TOOLS_PATH_SCRIPT}
     DESTINATION "/etc/profile.d/"
+)
+
+# create a script that automatically bring up can interface on the system
+# using /etc/network/interfaces.d
+set(LOWSHEEN_UTILS_IFC_SCRIPT "./scripts/${CMAKE_PROJECT_NAME}.socketcan")
+file(WRITE ${LOWSHEEN_UTILS_IFC_SCRIPT}
+        "auto can0\n\
+         iface can0 inet manual\n\
+                pre-up /sbin/ip link set can0 type can bitrate 250000\n\
+                up /sbin/ifconfig $IFACE up\n\
+                down /sbin/ifconfig $IFACE down\n"
+)
+
+install(PROGRAMS ${LOWSHEEN_UTILS_IFC_SCRIPT}
+    DESTINATION "/etc/network/interfaces.d/"
 )
