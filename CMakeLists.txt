@@ -29,13 +29,13 @@ install(PROGRAMS ${LOWSHEEN_UTILS_TOOLS_PATH_SCRIPT}
 # create a script that automatically bring up can interface on the system
 # using /etc/network/interfaces.d
 set(LOWSHEEN_UTILS_IFC_SCRIPT "./scripts/${CMAKE_PROJECT_NAME}.socketcan")
-file(WRITE ${LOWSHEEN_UTILS_IFC_SCRIPT}
-        "auto can0\n\
-         iface can0 inet manual\n\
-                pre-up /sbin/ip link set can0 type can bitrate 250000\n\
-                up /sbin/ifconfig $IFACE up\n\
-                down /sbin/ifconfig $IFACE down\n"
-)
+file(WRITE ${LOWSHEEN_UTILS_IFC_SCRIPT} "\
+auto can0\n\
+iface can0 inet manual\n\
+    pre-up /sbin/ip link set can0 type can bitrate 250000\n\
+    up /sbin/ifconfig $IFACE up\n\
+    down /sbin/ifconfig $IFACE down\n\
+")
 
 install(PROGRAMS ${LOWSHEEN_UTILS_IFC_SCRIPT}
     DESTINATION "/etc/network/interfaces.d/"
