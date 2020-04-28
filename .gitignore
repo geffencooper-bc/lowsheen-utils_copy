@@ -65,3 +65,7 @@ lowsheen-utils.sh
 /build
 CPackConfig.cmake
 CPackSourceConfig.cmake
+_CPack_Packages/
+install_manifest.txt
+*.deb
+vcis-util 
