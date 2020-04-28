@@ -92,7 +92,7 @@ CU_TASK_STATUS CU_TASK_PROGRAM_update(CU_TaskDetails *cmd, uint32_t time_diff_1m
     {
         case PROGRAM_STEP_REQ_SW_VERSION:
 
-            status = CU_TASK_SDO_uploadTask(cmd, time_diff_1ms, 0x49, 0x1F56, cmd->programID, (uint8_t *)&sdo_value, sizeof(sdo_value), &sdo_len, &abort_code);    
+            status = CU_TASK_SDO_uploadTask(cmd, time_diff_1ms, cmd->NodeID, 0x1F56, cmd->programID, (uint8_t *)&sdo_value, sizeof(sdo_value), &sdo_len, &abort_code);    
 
             if(status == CU_TASK_STATUS_DONE)
             {
@@ -108,7 +108,7 @@ CU_TASK_STATUS CU_TASK_PROGRAM_update(CU_TaskDetails *cmd, uint32_t time_diff_1m
 
             sdo_value = 0;
 
-            status = CU_TASK_SDO_downloadTask(cmd, time_diff_1ms, 0x49, 0x1F51, cmd->programID, (uint8_t *)&sdo_value, 0x02, &abort_code);    
+            status = CU_TASK_SDO_downloadTask(cmd, time_diff_1ms, cmd->NodeID, 0x1F51, cmd->programID, (uint8_t *)&sdo_value, 0x02, &abort_code);    
 
             if(status == CU_TASK_STATUS_DONE)
             {
@@ -123,7 +123,7 @@ CU_TASK_STATUS CU_TASK_PROGRAM_update(CU_TaskDetails *cmd, uint32_t time_diff_1m
 
             sdo_value = 3;
 
-            status = CU_TASK_SDO_downloadTask(cmd, time_diff_1ms, 0x49, 0x1F51, cmd->programID,  (uint8_t *)&sdo_value, 0x02, &abort_code);    
+            status = CU_TASK_SDO_downloadTask(cmd, time_diff_1ms, cmd->NodeID, 0x1F51, cmd->programID,  (uint8_t *)&sdo_value, 0x02, &abort_code);    
 
             if(status == CU_TASK_STATUS_DONE)
             {
@@ -136,7 +136,7 @@ CU_TASK_STATUS CU_TASK_PROGRAM_update(CU_TaskDetails *cmd, uint32_t time_diff_1m
 
         case PROGRAM_STEP_DOWNLOAD_PROGRAM:
 
-            status = CU_TASK_SDO_downloadTask(cmd, time_diff_1ms, 0x49, 0x1F50, cmd->programID, cmd->programData, cmd->programDataLen, &abort_code);
+            status = CU_TASK_SDO_downloadTask(cmd, time_diff_1ms, cmd->NodeID, 0x1F50, cmd->programID, cmd->programData, cmd->programDataLen, &abort_code);
 
             if(status == CU_TASK_STATUS_DONE)
             {
@@ -149,7 +149,7 @@ CU_TASK_STATUS CU_TASK_PROGRAM_update(CU_TaskDetails *cmd, uint32_t time_diff_1m
 
         case PROGRAM_STEP_FLASH_SUCCESSFUL:
 
-            status = CU_TASK_SDO_uploadTask(cmd, time_diff_1ms, 0x49, 0x1F57, cmd->programID,  (uint8_t *)&sdo_value, sizeof(sdo_value),  &sdo_len, &abort_code);    
+            status = CU_TASK_SDO_uploadTask(cmd, time_diff_1ms, cmd->NodeID, 0x1F57, cmd->programID,  (uint8_t *)&sdo_value, sizeof(sdo_value),  &sdo_len, &abort_code);    
 
             if(status == CU_TASK_STATUS_DONE)
             {
@@ -164,7 +164,7 @@ CU_TASK_STATUS CU_TASK_PROGRAM_update(CU_TaskDetails *cmd, uint32_t time_diff_1m
 
             sdo_value = 1;
 
-            status = CU_TASK_SDO_downloadTask(cmd, time_diff_1ms, 0x49, 0x1F51, cmd->programID, (uint8_t *)&sdo_value, 0x02, &abort_code);    
+            status = CU_TASK_SDO_downloadTask(cmd, time_diff_1ms, cmd->NodeID, 0x1F51, cmd->programID, (uint8_t *)&sdo_value, 0x02, &abort_code);    
 
             if(status == CU_TASK_STATUS_DONE)
             {
