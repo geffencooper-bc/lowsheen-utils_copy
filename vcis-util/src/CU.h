@@ -65,6 +65,9 @@ CU_TASK_STATUS CU_TASK_RESET_update(CU_TaskDetails *cmd, uint32_t time_diff_1ms)
 void CU_TASK_STATE_prepare(CU_TaskDetails *cmd);
 CU_TASK_STATUS CU_TASK_STATE_update(CU_TaskDetails *cmd, uint32_t time_diff_1ms);
 
+/* send test command */
+CU_TASK_STATUS CU_TASK_TEST_update(CU_TaskDetails *cmd, uint32_t time_diff_1ms);
+
 void CU_COMMAND_parseArgs(CU_TaskDetails *cmd, int argc, char *argv[]);
 
 uint8_t CU_TASK_setTimeout(CU_TaskDetails *cmd, float time_sec);

@@ -156,7 +156,7 @@ CU_TASK_STATUS CU_TASK_SDO_downloadTask(CU_TaskDetails *cmd, uint32_t time_diff_
                 case CU_TASK_STATUS_CONTINUE:
                     break;
                 default:
-                    // either complete, or error, either way, sdo process done
+                    // either complete, or error; either way sdo process done
                     cmd->sdo_process = CU_TASK_SDO_PROCESS_READY;
             }
 

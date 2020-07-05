@@ -19,7 +19,8 @@ static const CU_TASK_Entry taskEntries[] =
     {"info", CU_TASK_INFO_prepare, CU_TASK_INFO_update},
     {"program", CU_TASK_PROGRAM_prepare, CU_TASK_PROGRAM_update},
     {"reset", CU_TASK_RESET_prepare, CU_TASK_RESET_update},
-    {"state", CU_TASK_STATE_prepare, CU_TASK_STATE_update},
+    {"state", NULL, CU_TASK_STATE_update},
+    {"test", NULL, CU_TASK_TEST_update},
 } ;
 
 // size of entries
@@ -71,8 +72,11 @@ CU_TASK_STATUS CU_TASK_update(CU_TaskDetails *task_details, uint32_t time_diff_1
         // prepare task to run
         if(taskEntriesRequested[i].state == CU_TASK_STATUS_PENDING)
         {
-            taskEntries[i].initCallback(task_details);
-            taskEntriesRequested[i].state = CU_TASK_STATUS_CONTINUE;
+            if(taskEntries[i].initCallback != NULL)
+            {
+                taskEntries[i].initCallback(task_details);
+                taskEntriesRequested[i].state = CU_TASK_STATUS_CONTINUE;
+            }
             return CU_TASK_STATUS_CONTINUE;
         }
         // update task until complete, or an error occurs

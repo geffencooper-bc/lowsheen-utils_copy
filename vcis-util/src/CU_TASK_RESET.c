@@ -13,28 +13,22 @@
 CU_TASK_STATUS CU_TASK_RESET_update(CU_TaskDetails *cmd, uint32_t time_diff_1ms)
 {
     CO_CANtx_t tx_msg;   
+    /* 
+     * 3 MSB bits for SocketCAN
+     * 1 = Ext Identifier 
+     * 2 = RTR bit
+     * 3 = ? (used as signal "ACID CODE")
+     */
 
-    tx_msg.ident = (0x3 << 29);
-    tx_msg.DLC = 0x08;
-    tx_msg.data[0] = 0x0D;
-    tx_msg.data[1] = 0x0E;
-    tx_msg.data[2] = 0x0A;
-    tx_msg.data[3] = 0x0D;
-    tx_msg.data[4] = 0x0B;
-    tx_msg.data[5] = 0x0E;
-    tx_msg.data[6] = 0x0E;
-    tx_msg.data[7] = 0x0F;
-    tx_msg.CANdriverState = NULL;
+    tx_msg.ident = 0xAC1DC0DE;  // little endian
+    tx_msg.DLC = 0x02;
+    tx_msg.data[0] = 0x00;  // config mode
+    tx_msg.data[1] = 0x01;  // reset
 
     printf("Resetting Interface\r\n");
      
     return (CO_CANsend(CO->CANmodule[0], &tx_msg) == CO_ERROR_NO) ? CU_TASK_STATUS_DONE : CU_TASK_STATUS_ERROR;
 }
-
- void CU_TASK_STATE_prepare(CU_TaskDetails *cmd)
- {
-
- }
 
 CU_TASK_STATUS CU_TASK_STATE_update(CU_TaskDetails *cmd, uint32_t time_diff_1ms)
 {
@@ -43,4 +37,36 @@ CU_TASK_STATUS CU_TASK_STATE_update(CU_TaskDetails *cmd, uint32_t time_diff_1ms)
     CO_sendNMTcommand(CO, (uint8_t)cmd->options, cmd->nodeID);  // Send everyone to pre-operational
 
     return CU_TASK_STATUS_DONE;
+}
+
+CU_TASK_STATUS CU_TASK_TEST_update(CU_TaskDetails *cmd, uint32_t time_diff_1ms)
+{
+    CO_CANtx_t tx_msg;   
+
+    /* 
+     * 3 MSB bits for SocketCAN
+     * 1 = Ext Identifier 
+     * 2 = RTR bit
+     * 3 = ? (used as signal "ACID CODE")
+     *
+     * test execution:
+     * typedef enum {
+     *     TEST_EXCEPTION_USAGE_FAULT = 1,
+     *     TEST_EXCEPTION_BUS_FAULT = 2,
+     *     TEST_EXCEPTION_FPU_FAULT = 3,
+     *     TEST_EXCEPTION_MEM_FAULT = 4,
+     *     TEST_EXCEPTION_HARD_FAULT = 5,
+     *     TEST_EXCEPTION_WWDG = 6,
+     *     TEST_EXCEPTION_IWDG = 7,
+     * } TEST_EXCEPTION;
+     */
+
+    tx_msg.ident = 0xAC1DC0DE;  // little endian
+    tx_msg.DLC = 0x02;
+    tx_msg.data[0] = 0x01;  // test mode
+    tx_msg.data[1] = (uint8_t)cmd->options;  // test type
+
+    printf("Sending Test Command: 0x%02X\r\n", cmd->options);
+     
+    return (CO_CANsend(CO->CANmodule[0], &tx_msg) == CO_ERROR_NO) ? CU_TASK_STATUS_DONE : CU_TASK_STATUS_ERROR;
 }
