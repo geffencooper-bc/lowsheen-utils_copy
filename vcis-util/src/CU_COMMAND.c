@@ -35,20 +35,24 @@ struct arguments {
     bool isCaseInsensitive;
 };
 
+static int32_t parse_int(const char *str)
+{
+    if((strlen(str) < 3) || (strcmp(str, "0x") != 0))
+    {
+        return strtol(&str[0], NULL, 10);
+    }
+    else
+    {
+        return strtol(&str[2], NULL, 16);
+    }   
+}
 
 static error_t parse_opt(int key, char *arg, struct argp_state *state) {
     CU_TaskDetails *cmd = state->input;
 
     switch (key) {
     case 'p':
-        if((strlen(arg) < 3) || (strcmp(arg, "0x") != 0))
-        {
-            cmd->programID = strtol(&arg[0], NULL, 10);
-        }
-        else
-        {
-            cmd->programID = strtol(&arg[2], NULL, 16);
-        }   
+        cmd->programID = parse_int(arg);
         break;
     case 'f': 
         cmd->programFilename = arg; 
@@ -56,15 +60,8 @@ static error_t parse_opt(int key, char *arg, struct argp_state *state) {
         CU_TASK_addTask("program", 0);
         break;
     case 'i': cmd->interfaceName = arg; break;
-    case 'n': 
-        if((strlen(arg) < 3) || (strncmp(arg, "0x", 2) != 0))
-        {
-            cmd->nodeID = strtol(&arg[0], NULL, 10);
-        }
-        else
-        {
-            cmd->nodeID = strtol(&arg[2], NULL, 16);
-        }   
+    case 'n':  
+        cmd->nodeID = parse_int(arg);
         break;
     case 'd': 
         // add task info task
@@ -75,21 +72,15 @@ static error_t parse_opt(int key, char *arg, struct argp_state *state) {
         CU_TASK_addTask("reset", 0);
         break;
     case 's':
-        if((strlen(arg) < 3) || (strncmp(arg, "0x", 2) != 0))
-        {
-            cmd->options = strtol(&arg[0], NULL, 10);
-        }
-        else
-        {
-            cmd->options  = strtol(&arg[2], NULL, 16);
-        }  
+        cmd->options = parse_int(arg);
         CU_TASK_addTask("state", 0);
         break;
     case  'v':  // version information
         printf("%s - %s - %s\r\n", VERSION_GIT_HASH, VERSION_GIT_TAG, VERSION_GIT_DATE_LOCAL);
         exit(0);        
     case 't': 
-        // add task reset
+        // add task test
+        cmd->options = parse_int(arg);
         CU_TASK_addTask("test", 0);
         break;        
     case ARGP_KEY_ARG: return 0;

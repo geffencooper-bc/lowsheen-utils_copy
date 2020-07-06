@@ -75,8 +75,8 @@ CU_TASK_STATUS CU_TASK_update(CU_TaskDetails *task_details, uint32_t time_diff_1
             if(taskEntries[i].initCallback != NULL)
             {
                 taskEntries[i].initCallback(task_details);
-                taskEntriesRequested[i].state = CU_TASK_STATUS_CONTINUE;
             }
+            taskEntriesRequested[i].state = CU_TASK_STATUS_CONTINUE;
             return CU_TASK_STATUS_CONTINUE;
         }
         // update task until complete, or an error occurs
