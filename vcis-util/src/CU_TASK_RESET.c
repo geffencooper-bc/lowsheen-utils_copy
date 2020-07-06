@@ -24,6 +24,7 @@ CU_TASK_STATUS CU_TASK_RESET_update(CU_TaskDetails *cmd, uint32_t time_diff_1ms)
     tx_msg.DLC = 0x02;
     tx_msg.data[0] = 0x00;  // config mode
     tx_msg.data[1] = 0x01;  // reset
+    tx_msg.CANdriverState = NULL;
 
     printf("Resetting Interface\r\n");
      
@@ -61,10 +62,11 @@ CU_TASK_STATUS CU_TASK_TEST_update(CU_TaskDetails *cmd, uint32_t time_diff_1ms)
      * } TEST_EXCEPTION;
      */
 
-    tx_msg.ident = 0xAC1DC0DE;  // little endian
+    tx_msg.ident = 0x20000000;  // little endian
     tx_msg.DLC = 0x02;
     tx_msg.data[0] = 0x01;  // test mode
     tx_msg.data[1] = (uint8_t)cmd->options;  // test type
+    tx_msg.CANdriverState = NULL;
 
     printf("Sending Test Command: 0x%02X\r\n", cmd->options);
      
