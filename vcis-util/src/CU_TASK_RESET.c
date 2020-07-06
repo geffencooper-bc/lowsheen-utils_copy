@@ -62,7 +62,7 @@ CU_TASK_STATUS CU_TASK_TEST_update(CU_TaskDetails *cmd, uint32_t time_diff_1ms)
      * } TEST_EXCEPTION;
      */
 
-    tx_msg.ident = 0x20000000;  // little endian
+    tx_msg.ident = 0xAC1DC0DE;  // little endian
     tx_msg.DLC = 0x02;
     tx_msg.data[0] = 0x01;  // test mode
     tx_msg.data[1] = (uint8_t)cmd->options;  // test type
