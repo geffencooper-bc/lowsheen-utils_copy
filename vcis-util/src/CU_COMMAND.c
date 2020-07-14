@@ -37,13 +37,23 @@ struct arguments {
 
 static int32_t parse_int(const char *str)
 {
-    if((strlen(str) < 3) || (strcmp(str, "0x") != 0))
+    int32_t index;  // first non space index
+
+    for(index = 0; index < strlen(str); index++)
     {
-        return strtol(&str[0], NULL, 10);
+        if(str[index] != ' ')
+        {
+            break;
+        }
+    }
+
+    if(strncmp(&str[index], "0x", 2) != 0)
+    {
+        return strtol(&str[index], NULL, 10);
     }
     else
     {
-        return strtol(&str[2], NULL, 16);
+        return strtol(&str[index + 2], NULL, 16);
     }   
 }
 
