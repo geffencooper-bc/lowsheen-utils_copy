@@ -28,7 +28,7 @@ HexUtility::HexUtility(const string &hex_file_path)
 
 HexUtility::~HexUtility()
 {
-    cout << "\nclosing file";
+    printf("hex-utility destructor\n");
     hex_file.close();
 }
 
@@ -56,7 +56,6 @@ uint8_t HexUtility::get_next_8_bytes(uint8_t* data_bytes, uint8_t num_bytes)
         getline(hex_file, curr_line);
     }
     
-    //cout << curr_line << "\n";
     hex_record_type record_type = get_record_type(curr_line);
 
     if(record_type == END_OF_FILE || record_type == START_LINEAR_AR)

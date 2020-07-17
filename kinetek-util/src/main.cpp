@@ -4,7 +4,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdint.h>
-#include <iostream>
 #include <string>
 #include "CO_driver.h"
 #include "SocketCanHelper.h"

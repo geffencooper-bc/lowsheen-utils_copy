@@ -6,11 +6,12 @@ IAP::IAP()
     memset(data_size, 0, 4);
     memset(total_checksum, 0, 4);
     in_iap_mode = false;
-    sc = new SocketCanHelper;
+    //sc = new SocketCanHelper;
 }
 
 IAP::~IAP()
 {
+    printf("IAP Destructor\n");
     delete ut;
     delete sc;
 }

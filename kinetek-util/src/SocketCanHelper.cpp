@@ -7,8 +7,10 @@ SocketCanHelper::SocketCanHelper()
 
 SocketCanHelper::~SocketCanHelper()
 {
+    CO_CANmodule_disable(cm);
     delete [] tx_buff_arr;
     delete [] rx_buff_arr;
+    delete can_msg;
     delete cm;
 }
 
@@ -26,11 +28,11 @@ int SocketCanHelper::init_socketcan(const char* interface_name)
     unsigned int if_index = if_nametoindex(interface_name); // get ifindex from name
     uintptr_t can_interface = if_index;
 
-    cout << "if index: " << can_interface << endl;
+    printf("if index: %i", can_interface);
 
     // can module object init
     int err =  CO_CANmodule_init(cm, (void*)if_index, rx_buff_arr, 1, tx_buff_arr, 1, 250);
-    cout << "init module. Error: " << err << " Interface count: " << cm->CANinterfaceCount << " " << endl;
+    printf("Init CO_CANmodule. Error: %i     Interface Count: %i\n", err, cm->CANinterfaceCount);
     CO_CANsetNormalMode(cm);
 }
 

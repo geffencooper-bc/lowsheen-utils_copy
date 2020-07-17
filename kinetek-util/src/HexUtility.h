@@ -2,14 +2,12 @@
 #define HEX_UTIL_H
 
 #include <string>
-#include <iostream>
 #include <fstream>
 #include <sstream>
 #include <stdint.h>
 
 using std::string;
 using std::ifstream;
-using std::cout;
 // a utility class with helper functions to help read data from a hex file
 // it relies on reading from a hex file and keeping the current position
 

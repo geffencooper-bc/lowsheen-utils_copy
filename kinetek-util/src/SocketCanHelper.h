@@ -7,14 +7,9 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdint.h>
-#include <iostream>
-#include <string>
 #include "CO_driver.h"
 #include "CO_driver_target.h"
 
-using std::string;
-using std::cout;
-using std::endl;
 
 class SocketCanHelper
 {
