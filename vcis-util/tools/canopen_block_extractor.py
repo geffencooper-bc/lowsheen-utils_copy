@@ -16,6 +16,8 @@ from __future__ import division
 import argparse
 import os
 from enum import Enum
+from datetime import datetime
+
 
 class CANFrame(object):
     def __init__(self):
@@ -103,6 +105,53 @@ class CANopenBlockBinaryExtractor(object):
     def __init__(self, decoder):
         self.decoder = decoder
 
+
+        self.sdo_msgs = {}
+
+        self.sdo_msgs[0xC6] = "SDO Block Download Initiate Request (with CRC, Size Indicator)"
+        self.sdo_msgs[0xC4] = "SDO Block Download Initiate Request (with CRC)"
+        self.sdo_msgs[0xC2] = "SDO Block Download Initiate Request (with Size Indicator)"
+        self.sdo_msgs[0xA4] = "SDO Block Download Initiate Response"
+        self.sdo_msgs[0xA2] = "SDO Block Download Response"
+        self.sdo_msgs[0xC1] = "SDO Block Download End Request (8 bytes)"
+        self.sdo_msgs[0xC5] = "SDO Block Download End Request (7 bytes)"
+        self.sdo_msgs[0xC9] = "SDO Block Download End Request (6 bytes)"
+        self.sdo_msgs[0xCD] = "SDO Block Download End Request (5 bytes)"
+        self.sdo_msgs[0xD1] = "SDO Block Download End Request (4 bytes)"
+        self.sdo_msgs[0xD5] = "SDO Block Download End Request (3 bytes)"
+        self.sdo_msgs[0xD9] = "SDO Block Download End Request (2 bytes)"
+        self.sdo_msgs[0xDD] = "SDO Block Download End Request (1 bytes)"
+        self.sdo_msgs[0xA1] = "SDO Block Download End Response"
+        self.sdo_msgs[0x80] = "SDO Abort"
+        self.sdo_msgs[0x40] = "SDO Expedite Upload Request"
+        self.sdo_msgs[0x43] = "SDO Expedite Upload Response (4 bytes)"
+        self.sdo_msgs[0x45] = "SDO Expedite Upload Response (3 bytes)"
+        self.sdo_msgs[0x47] = "SDO Expedite Upload Response (2 bytes)"
+        self.sdo_msgs[0x4F] = "SDO Expedite Upload Response (1 bytes)"
+        self.sdo_msgs[0x23] = "SDO Expedite Download Request (4 bytes)"
+        self.sdo_msgs[0x27] = "SDO Expedite Download Request (3 bytes)"
+        self.sdo_msgs[0x2B] = "SDO Expedite Download Request (2 bytes)"
+        self.sdo_msgs[0x2F] = "SDO Expedite Download Request (1 bytes)"
+        self.sdo_msgs[0x60] = "SDO Expedite Download Response"
+
+
+
+    def decode_sdo_frame(self, frame, state):
+
+        msg_data = ""
+        for i in range(0, frame.dlc):
+            if i > 0:
+                msg_data += ", "
+            msg_data += "{:02X}".format(frame.data[i])
+
+        if state == SDOBlockDownloadStates.DOWNLOAD:
+            msg_name = "SDO Block Download"
+        else:
+            msg_name = self.sdo_msgs.get(frame.data[0], "Unknown: " + hex(frame.data[0]))
+
+        return msg_name + ": " + msg_data
+
+
     def extract_file(self, input_filename, node=0x49):
    
         client_sdo_index = 0
@@ -115,6 +164,7 @@ class CANopenBlockBinaryExtractor(object):
         binary_data = []
         end_transfer = False
         output_filename = None
+        flow_sequence = []
         blocks = 0
 
         for frame in self.decoder.decode(input_filename):
@@ -122,6 +172,7 @@ class CANopenBlockBinaryExtractor(object):
             # client
 
             if(frame.identifier == 0x600 + node):
+                flow_sequence.append(self.decode_sdo_frame(frame, state))
                 if(state == SDOBlockDownloadStates.INITIATE):      # Block Download Initiate
                     if((frame.data[0] & 0xC2) == 0xC2):
                         if(out_file is not None):
@@ -168,6 +219,7 @@ class CANopenBlockBinaryExtractor(object):
             #server
 
             elif(frame.identifier == 0x580 + node):
+                flow_sequence.append(self.decode_sdo_frame(frame, state))
                 if(frame.data[0] == 0x80):  # abort from server                    
                     print("Unexpected SDO Abort Found")
                     return                
@@ -204,8 +256,11 @@ class CANopenBlockBinaryExtractor(object):
                             sequence = 0
                 elif(state == SDOBlockDownloadStates.END_RESPONSE):
                     if(frame.data[0] == 0xA1):
-                        print("Writing Text Output File: {}".format(output_filename + ".txt"))    
-                        with open(output_filename + ".txt", "w") as f:
+
+                        final_filename = output_filename + "_" + datetime.now().strftime("%m%d%Y-%H%M%S")
+
+                        print("Writing Text Output File: {}".format(final_filename + ".txt"))    
+                        with open(final_filename + ".txt", "w") as f:
                             for i in range(0, len(binary_data)):
                                 f.write("{:02X} ".format(binary_data[i]))
 
@@ -213,11 +268,19 @@ class CANopenBlockBinaryExtractor(object):
                                 if((i + 1) % 7 == 0 and i != 0):
                                     f.write('\n')
 
-                        print("Writing Binary Output File: {}".format(output_filename + ".bin"))  
-                        with open(output_filename + ".bin", "wb") as f:
+                        print("Writing Decoded Output File: {}".format(final_filename + "_decoded.txt"))    
+                        with open(final_filename + "_decoded.txt", "w") as f:
+                            for s in flow_sequence:
+                                f.write(s + "\r\n")   
+
+
+                        print("Writing Binary Output File: {}".format(final_filename + ".bin"))  
+                        with open(final_filename + ".bin", "wb") as f:
                             f.write(bytearray(binary_data))                             
                         state == SDOBlockDownloadStates.INITIATE
                         
+                        flow_sequence = []
+
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='CANopen Block Download Extractor')
