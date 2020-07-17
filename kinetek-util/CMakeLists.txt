@@ -23,6 +23,8 @@ set(SOURCES     ${STACKDRV_SRC}/CO_driver.c
                # ${CANOPEN_SRC}/CANopen.c                          
                 ${APP_SRC}/main.cpp
                 ${APP_SRC}/SocketCanHelper.cpp
+                ${APP_SRC}/HexUtility.cpp
+                ${APP_SRC}/IAP.cpp
 )
 
 # attempt to generate version.h if info changed

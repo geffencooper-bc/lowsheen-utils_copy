@@ -8,6 +8,7 @@
 #include <string>
 #include "CO_driver.h"
 #include "SocketCanHelper.h"
+#include "IAP.h"
 using namespace std;
 
 // identifier passed with the callback function
@@ -24,11 +25,18 @@ void call_back(void* msg, const CO_CANrxMsg_t* can_msg)
 
 int main()
 {
-    SocketCanHelper sc;
-    sc.init_socketcan("can0");
-    uint8_t data[8] = {0x1D, 0xF1, 0x06, 0x00, 0x00, 0x00, 0x00, 0x00};
-    sc.send_frame(0x001, data, 5);
-    sc.get_frame(0x081, (void*)(id), call_back);
+    IAP iap;
+    iap.load_hex_file("/home/geffen.cooper/Desktop/kinetek_scripts/hex_file_copies/2.27_copy.hex");
+    iap.print();
+
+
+    // SocketCanHelper sc;
+    // sc.init_socketcan("can0");
+    // uint8_t data[8] = {0x1D, 0xF1, 0x06, 0x00, 0x00, 0x00, 0x00, 0x00};
+    // sc.send_frame(0x001, data, 5);
+    // sc.get_frame(0x081, (void*)(id), call_back);
+
+
     /*====================================
     // empty objects
     CO_CANmodule_t cm;
