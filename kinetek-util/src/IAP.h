@@ -15,8 +15,8 @@ class IAP
     void load_hex_file(string file_path);
     void print();
     void progress_bar();
-    void init_can(string channel_name);
-    bool put_in_iap_mode(bool force_mode=false);
+    void init_can(const char* channel_name);
+    bool put_in_iap_mode(bool forced_mode=false);
     bool check_if_in_iap_mode();
     void send_init_packets();
     bool upload_hex_file();
@@ -25,6 +25,7 @@ class IAP
     private:
     int data_size_bytes;
     bool in_iap_mode;
+    bool resend_msg;
     uint8_t last_line_data_size;
 
     uint8_t start_address[4];
@@ -34,6 +35,14 @@ class IAP
 
     SocketCanHelper* sc;
     HexUtility* ut;
+
+    friend void resp_call_back(void* msg, const CO_CANrxMsg_t* can_msg);
+};
+
+struct call_back_checker
+{
+    IAP* iap_obj;
+    iap_response expected;
 };
 
 #endif

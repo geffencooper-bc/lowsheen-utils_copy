@@ -27,6 +27,7 @@ int main()
     IAP iap;
     iap.load_hex_file("/home/geffen.cooper/Desktop/kinetek_scripts/hex_file_copies/2.27_copy.hex");
     iap.print();
+    iap.init_can("can0");
 
 
     // SocketCanHelper sc;

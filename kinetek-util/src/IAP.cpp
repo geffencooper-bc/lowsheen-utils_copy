@@ -1,4 +1,8 @@
 #include "IAP.h"
+#include "KinetekCodes.h"
+#include 
+
+using std::to_string;
 
 IAP::IAP()
 {
@@ -6,7 +10,8 @@ IAP::IAP()
     memset(data_size, 0, 4);
     memset(total_checksum, 0, 4);
     in_iap_mode = false;
-    //sc = new SocketCanHelper;
+    resend_msg = true;
+    sc = new SocketCanHelper;
 }
 
 IAP::~IAP()
@@ -57,3 +62,61 @@ void IAP::print()
     
 }
 
+void IAP::init_can(const char* channel_name)
+{
+    sc->init_socketcan(channel_name);
+}
+
+string decode_can_msg(const CO_CANrxMsg_t* can_msg)
+{
+    string can_id = to_string(can_msg->ident);
+    string data = "";
+    for(int i = 0; i < can_msg->DLC; i++)
+    {
+        data += to_string(can_msg->data[i]);
+    }
+    return (can_id + "|" + data);
+}
+
+void resp_call_back(void* cbc, const CO_CANrxMsg_t* can_msg)
+{
+    iap_response resp = lookup(decode_can_msg(can_msg), iap_response_table);
+    call_back_checker* cbc_obj = ((call_back_checker*)(cbc));
+    if(resp != cbc_obj->expected)
+    {
+        cbc_obj->iap_obj->resend_msg = true;
+    }
+    else
+    {
+        cbc_obj->iap_obj->resend_msg = false;
+    }
+    
+}
+
+bool IAP::put_in_iap_mode(bool forced_mode)
+{
+    #ifdef PRINT_DEBUG
+    printf("Putting in IAP mode\n");
+    #endif
+    if(!forced_mode)
+    {
+        call_back_checker cbc = {this, IN_IAP_MODE};
+        sc->send_frame(IAP_REQUEST, ENTER_IAP_MODE_FORCED, sizeof(ENTER_IAP_MODE_FORCED));
+        sc->get_frame(KINETEK_MESSAGE, &cbc, resp_call_back);
+
+    }
+    //    print("Putting in IAP mode")
+    //     if force_mode == False:
+    //         self.send_request_repeated(None, "HEART_BEAT",-1,-1, None)
+    //         self.send_request(self.ENTER_IAP_MODE_REQUEST_SELECTIVE, "ENTER_IAP_MODE_RESPONSE_SELECTIVE", 20)
+    //         self.send_request_repeated(None, "IN_IAP_MODE",-1,-1, None)
+    //         print("entered iap_mode")
+    //         return True
+    //     else:
+    //         self.send_request_repeated(self.ENTER_IAP_MODE_REQUEST_FORCED, "IN_IAP_MODE", -1, -1, None) # -1 ensures request sent indefinetely
+    //         # no need to check response because it will request will only return if successful
+    //         self.in_iap_mode = True
+    //         print("entered iap_mode")
+    //         return True
+            
+}

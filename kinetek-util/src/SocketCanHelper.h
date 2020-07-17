@@ -10,7 +10,6 @@
 #include "CO_driver.h"
 #include "CO_driver_target.h"
 
-
 class SocketCanHelper
 {
     public:
