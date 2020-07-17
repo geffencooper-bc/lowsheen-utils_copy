@@ -14,11 +14,11 @@ SocketCanHelper::~SocketCanHelper()
 
 int SocketCanHelper::init_socketcan(const char* interface_name)
 {
-    // empty objects
+    // CO_driver oriented around can_module object
     cm = new CO_CANmodule_t;
-    // CO_CANrxMsg_t can_msg;
+    can_msg = new CO_CANrxMsg_t;
 
-    // lists of transmit and receive buffers
+    // lists of transmit and receive buffers-->store callback function and void* object
     tx_buff_arr = new CO_CANtx_t[1];
     rx_buff_arr = new CO_CANrx_t[1];
     
@@ -39,8 +39,14 @@ int SocketCanHelper::send_frame(uint32_t can_id, uint8_t* data, uint8_t data_siz
     //printf("init tx buffer\n");
     CO_CANtx_t* tx1 = CO_CANtxBufferInit(cm, 0, can_id, 0, data_size, false);
 
-    printf("Sending Message\n");
+    //printf("Sending Message\n");
     memcpy(tx1->data, data, data_size);
 	int err1 = CO_CANsend(cm, tx1);
-	printf("err: %i", err1);
+	//printf("err: %i\n", err1);
+}
+
+int SocketCanHelper::get_frame(uint32_t can_id, void* obj, void (*call_back)(void *object, const CO_CANrxMsg_t *message))
+{
+    int err = CO_CANrxBufferInit(cm, 0, can_id, 0x7FF, 0, obj, call_back);
+    CO_CANrxWait(cm, -1, can_msg); 
 }

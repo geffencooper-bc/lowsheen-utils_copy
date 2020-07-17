@@ -16,15 +16,19 @@ int id = 21;
 // callback function passed into buffer init
 void call_back(void* msg, const CO_CANrxMsg_t* can_msg)
 {
-    printf("in call back. Obj: %i\t Id: %i    data[0]:%i\n", (uintptr_t)msg, can_msg->ident, can_msg->data[0]);
+    uint32_t data_bytes;
+    memcpy(&data_bytes, can_msg->data, 4);
+    printf("%08X\n", data_bytes);
+    printf("in call back. Obj: %i\t Id: %02X    data:%02X %02X %02X %02X %02X\n", (uintptr_t)msg, can_msg->ident, can_msg->data[0], can_msg->data[1], can_msg->data[2], can_msg->data[3], can_msg->data[4]);
 }
 
 int main()
 {
     SocketCanHelper sc;
     sc.init_socketcan("can0");
-    uint8_t data[8] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
-    sc.send_frame(0x001, data, 8);
+    uint8_t data[8] = {0x1D, 0xF1, 0x06, 0x00, 0x00, 0x00, 0x00, 0x00};
+    sc.send_frame(0x001, data, 5);
+    sc.get_frame(0x081, (void*)(id), call_back);
     /*====================================
     // empty objects
     CO_CANmodule_t cm;

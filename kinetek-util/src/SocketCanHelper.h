@@ -10,6 +10,7 @@
 #include <iostream>
 #include <string>
 #include "CO_driver.h"
+#include "CO_driver_target.h"
 
 using std::string;
 using std::cout;
@@ -26,7 +27,8 @@ class SocketCanHelper
     
     int send_frame(uint32_t can_id, uint8_t* data, uint8_t data_size);
 
-    int get_frame(uint32_t can_id, uint8_t* data, uint8_t data_size);
+    // the object is going to be the iap object which will have information about current state in iap process etc
+    int get_frame(uint32_t can_id, void* obj, void (*pFunct)(void *object, const CO_CANrxMsg_t *message));
 
     void print_frame();
 
@@ -34,6 +36,7 @@ class SocketCanHelper
     CO_CANmodule_t* cm;
     CO_CANtx_t* tx_buff_arr;
     CO_CANrx_t* rx_buff_arr;
+    CO_CANrxMsg_t* can_msg;
 };
 
 #endif
