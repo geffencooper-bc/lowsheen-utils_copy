@@ -111,8 +111,9 @@ class CANopenBlockBinaryExtractor(object):
         self.sdo_msgs[0xC6] = "SDO Block Download Initiate Request (with CRC, Size Indicator)"
         self.sdo_msgs[0xC4] = "SDO Block Download Initiate Request (with CRC)"
         self.sdo_msgs[0xC2] = "SDO Block Download Initiate Request (with Size Indicator)"
-        self.sdo_msgs[0xA4] = "SDO Block Download Initiate Response"
-        self.sdo_msgs[0xA2] = "SDO Block Download Response"
+        self.sdo_msgs[0xA4] = "SDO Block Download Initiate Response (with CRC)"
+        self.sdo_msgs[0xA0] = "SDO Block Download Initiate Response (without CRC)"        
+        self.sdo_msgs[0xA2] = "Block Download End Response"
         self.sdo_msgs[0xC1] = "SDO Block Download End Request (8 bytes)"
         self.sdo_msgs[0xC5] = "SDO Block Download End Request (7 bytes)"
         self.sdo_msgs[0xC9] = "SDO Block Download End Request (6 bytes)"
@@ -136,6 +137,7 @@ class CANopenBlockBinaryExtractor(object):
 
 
 
+
     def decode_sdo_frame(self, frame, state):
 
         msg_data = ""
@@ -149,14 +151,13 @@ class CANopenBlockBinaryExtractor(object):
         else:
             msg_name = self.sdo_msgs.get(frame.data[0], "Unknown: " + hex(frame.data[0]))
 
-        return msg_name + ": " + msg_data
+        return  msg_name + ": " + msg_data
 
 
     def extract_file(self, input_filename, node=0x49):
    
         client_sdo_index = 0
         client_sdo_sub_index = 0
-        out_file = None 
         state = SDOBlockDownloadStates.INITIATE
         sequence = 0    # wait for start of block
         sequence_max = 0
@@ -166,18 +167,16 @@ class CANopenBlockBinaryExtractor(object):
         output_filename = None
         flow_sequence = []
         blocks = 0
+        verify_crc = False
 
         for frame in self.decoder.decode(input_filename):
 
             # client
 
             if(frame.identifier == 0x600 + node):
-                flow_sequence.append(self.decode_sdo_frame(frame, state))
+                flow_sequence.append("Client: " + self.decode_sdo_frame(frame, state))
                 if(state == SDOBlockDownloadStates.INITIATE):      # Block Download Initiate
                     if((frame.data[0] & 0xC2) == 0xC2):
-                        if(out_file is not None):
-                            out_file.close()
-
                         client_sdo_index = frame.data[2] << 8 | frame.data[1]
                         client_sdo_sub_index = frame.data[3]
                         client_file_size = frame.data[7] << 24 | frame.data[6] << 16 | frame.data[5] << 8 | frame.data[4]
@@ -185,7 +184,7 @@ class CANopenBlockBinaryExtractor(object):
                         file_without_ext = os.path.splitext(input_filename)[0]
                         output_filename = file_without_ext + "_" + object_str
                         state = SDOBlockDownloadStates.INITIATE_REPONSE 
-
+                        binary_data = []                        
                         print("Found Block Download of {} size: {} KB ({} bytes)".format(object_str, int(client_file_size / 1024), client_file_size))
 
                 elif(state == SDOBlockDownloadStates.DOWNLOAD ):    # Block Download
@@ -216,16 +215,17 @@ class CANopenBlockBinaryExtractor(object):
                         state = SDOBlockDownloadStates.END_RESPONSE
                       #  print("END: Block End Requested. Ignore Last: {} byte(s)".format(last_bytes_no_data))
 
+
             #server
 
             elif(frame.identifier == 0x580 + node):
-                flow_sequence.append(self.decode_sdo_frame(frame, state))
+                flow_sequence.append("Server: " + self.decode_sdo_frame(frame, state))
                 if(frame.data[0] == 0x80):  # abort from server                    
                     print("Unexpected SDO Abort Found")
                     return                
                 if(state == SDOBlockDownloadStates.INITIATE_REPONSE):
            
-                    if(frame.data[0] == 0xA0):    # SDO Block Download Initiate Response
+                    if((frame.data[0] & 0xA0) == 0xA0):    # SDO Block Download Initiate Response
                         server_sdo_index = frame.data[2] << 8 | frame.data[1]
                         server_sdo_sub_index = frame.data[3]                    
                         sequence_max = frame.data[4]
@@ -241,7 +241,7 @@ class CANopenBlockBinaryExtractor(object):
                         sequence = 0
 
                 elif(state == SDOBlockDownloadStates.DOWNLOAD_RESPONSE):
-                    if(frame.data[0] == 0xA2): # Block Download End Response
+                    if((frame.data[0]) == 0xA2): # Block Download End Response
                         server_sequence = frame.data[1]
                         sequence_max = frame.data[2]
 
@@ -255,31 +255,32 @@ class CANopenBlockBinaryExtractor(object):
                             state = SDOBlockDownloadStates.DOWNLOAD
                             sequence = 0
                 elif(state == SDOBlockDownloadStates.END_RESPONSE):
-                    if(frame.data[0] == 0xA1):
+                    if((frame.data[0]) == 0xA1):
 
-                        final_filename = output_filename + "_" + datetime.now().strftime("%m%d%Y-%H%M%S")
+                        final_filename = output_filename # + "_" + datetime.now().strftime("%m%d%Y-%H%M%S")
 
-                        print("Writing Text Output File: {}".format(final_filename + ".txt"))    
-                        with open(final_filename + ".txt", "w") as f:
-                            for i in range(0, len(binary_data)):
-                                f.write("{:02X} ".format(binary_data[i]))
+                        # print("Writing Text Output File: {}".format(final_filename + ".txt"))    
+                        # with open(final_filename + ".txt", "w") as f:
+                        #     for i in range(0, len(binary_data)):
+                        #         f.write("{:02X} ".format(binary_data[i]))
 
-                                # segments come in 7 byte chunks, keep text file data aligned with input file
-                                if((i + 1) % 7 == 0 and i != 0):
-                                    f.write('\n')
+                        #         # segments come in 7 byte chunks, keep text file data aligned with input file
+                        #         if((i + 1) % 7 == 0 and i != 0):
+                        #             f.write('\n')
 
                         print("Writing Decoded Output File: {}".format(final_filename + "_decoded.txt"))    
                         with open(final_filename + "_decoded.txt", "w") as f:
+                            f.write("SDO Block Decoder. Node: {:02X}\r\n".format(node))
+
                             for s in flow_sequence:
                                 f.write(s + "\r\n")   
-
 
                         print("Writing Binary Output File: {}".format(final_filename + ".bin"))  
                         with open(final_filename + ".bin", "wb") as f:
                             f.write(bytearray(binary_data))                             
-                        state == SDOBlockDownloadStates.INITIATE
+                        state = SDOBlockDownloadStates.INITIATE
                         
-                        flow_sequence = []
+                        flow_sequence = []                     
 
 
 if __name__ == '__main__':
