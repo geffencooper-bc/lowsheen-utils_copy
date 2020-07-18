@@ -230,6 +230,11 @@ class CANopenBlockBinaryExtractor(object):
                         server_sdo_sub_index = frame.data[3]                    
                         sequence_max = frame.data[4]
 
+                        verify_crc = (frame.data[0] & 0xA4) == 0xA4): # check if crc verification is required
+
+                        if(verify_crc):
+                            print("CRC verification is requested")                            
+
                         if(server_sdo_index != client_sdo_index or server_sdo_sub_index != client_sdo_sub_index):
                             print("Index/SubIndex Mismatch SDO Block Download Initiate Response")
                             return
