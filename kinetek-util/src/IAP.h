@@ -25,7 +25,6 @@ class IAP
     private:
     int data_size_bytes;
     bool in_iap_mode;
-    bool resend_msg;
     uint8_t last_line_data_size;
 
     uint8_t start_address[4];
@@ -37,12 +36,6 @@ class IAP
     HexUtility* ut;
 
     friend void resp_call_back(void* msg, const CO_CANrxMsg_t* can_msg);
-};
-
-struct call_back_checker
-{
-    IAP* iap_obj;
-    iap_response expected;
 };
 
 #endif

@@ -57,7 +57,18 @@ int SocketCanHelper::send_frame(uint32_t can_id, uint8_t* data, uint8_t data_siz
     #endif
 }
 
-int SocketCanHelper::get_frame(uint32_t can_id, void* obj, void (*call_back)(void *object, const CO_CANrxMsg_t *message))
+string SocketCanHelper::decode_can_msg(const CO_CANrxMsg_t* can_msg)
+{
+    string can_id = to_string(can_msg->ident);
+    string data = "";
+    for(int i = 0; i < can_msg->DLC; i++)
+    {
+        data += to_string(can_msg->data[i]);
+    }
+    return (can_id + "|" + data);
+}
+
+string SocketCanHelper::get_frame(uint32_t can_id, void* obj, void (*call_back)(void *object, const CO_CANrxMsg_t *message))
 {
     #ifdef PRINT_DEBUG
     printf("Getting Message\n");
@@ -67,5 +78,7 @@ int SocketCanHelper::get_frame(uint32_t can_id, void* obj, void (*call_back)(voi
     printf("Error: %i", err);
     #endif
     CO_CANrxWait(cm, -1, can_msg); 
-    return err;
+    string dec = decode_can_msg(can_msg);
+    printf("%s\n", dec.c_str());
+    return dec;
 }
