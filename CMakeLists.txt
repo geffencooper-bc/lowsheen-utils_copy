@@ -8,7 +8,7 @@ project(lowsheen-utils)
 set(LOWSHEEN_UTILS_PATH /usr/local/bin)
 
 set(CMAKE_C_FLAGS ${CMAKE_C_FLAGS} "-Wall -Werror")
-set(CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS})
+set(CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS} "-std=c++11")
 
 # Project Applications
 add_subdirectory(vcis-util)
