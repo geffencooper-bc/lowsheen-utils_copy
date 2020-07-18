@@ -48,37 +48,30 @@ int SocketCanHelper::send_frame(uint32_t can_id, uint8_t* data, uint8_t data_siz
     CO_CANtx_t* tx1 = CO_CANtxBufferInit(cm, 0, can_id, 0, data_size, false);
 
     #ifdef PRINT_DEBUG
-    printf("Sending Message\n");
+    printf("Sending Message-->");
     #endif
     memcpy(tx1->data, data, data_size);
 	int err1 = CO_CANsend(cm, tx1);
     #ifdef PRINT_DEBUG
-	printf("err: %i\n", err1);
+	printf("Error: %i\n", err1);
     #endif
 }
 
-string SocketCanHelper::decode_can_msg(const CO_CANrxMsg_t* can_msg)
-{
-    string can_id = to_string(can_msg->ident);
-    string data = "";
-    for(int i = 0; i < can_msg->DLC; i++)
-    {
-        data += to_string(can_msg->data[i]);
-    }
-    return (can_id + "|" + data);
-}
-
-string SocketCanHelper::get_frame(uint32_t can_id, void* obj, void (*call_back)(void *object, const CO_CANrxMsg_t *message))
+CO_CANrxMsg_t * SocketCanHelper::get_frame(uint32_t can_id, void* obj, void (*call_back)(void *object, const CO_CANrxMsg_t *message))
 {
     #ifdef PRINT_DEBUG
-    printf("Getting Message\n");
+    printf("Getting Message-->");
     #endif
     int err = CO_CANrxBufferInit(cm, 0, can_id, 0x7FF, 0, obj, call_back);
     #ifdef PRINT_DEBUG
-    printf("Error: %i", err);
+    printf("Error: %i\t", err);
     #endif
     CO_CANrxWait(cm, -1, can_msg); 
-    string dec = decode_can_msg(can_msg);
-    printf("%s\n", dec.c_str());
-    return dec;
+    printf("Id: %02X\t", can_msg->ident);
+    for(uint8_t i = 0; i < can_msg->DLC; i++)
+    {
+        printf("%02X ", can_msg->data[i]);
+    }
+    printf("\n");
+    return can_msg;
 }

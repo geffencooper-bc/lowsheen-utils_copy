@@ -1,5 +1,6 @@
 #include "IAP.h"
 #include "KinetekCodes.h"
+#include <unistd.h>
 
 using std::to_string;
 
@@ -77,11 +78,17 @@ bool IAP::put_in_iap_mode(bool forced_mode)
     #endif
     if(forced_mode)
     {
-        sc->send_frame(IAP_REQUEST, ENTER_IAP_MODE_FORCED, sizeof(ENTER_IAP_MODE_FORCED));
-        string resp = sc->get_frame(KINETEK_MESSAGE, this, resp_call_back);
-        while(lookup(resp, iap_response_table) != IN_IAP_MODE)
+        sc->send_frame(IAP_REQUEST_ID, ENTER_IAP_MODE_FORCED, sizeof(ENTER_IAP_MODE_FORCED));
+        CO_CANrxMsg_t * resp = sc->get_frame(KINETEK_MESSAGE_ID, this, resp_call_back);
+        while(true)//get_response_type(resp->ident, resp->data, resp->DLC) != IN_IAP_MODE)
         {
-            resp = sc->get_frame(KINETEK_MESSAGE, this, resp_call_back);
+            sc->send_frame(IAP_REQUEST_ID, ENTER_IAP_MODE_FORCED, sizeof(ENTER_IAP_MODE_FORCED));
+            //usleep(1000);
+            sc->send_frame(IAP_REQUEST_ID, ENTER_IAP_MODE_FORCED, sizeof(ENTER_IAP_MODE_FORCED));
+            sc->send_frame(IAP_REQUEST_ID, ENTER_IAP_MODE_FORCED, sizeof(ENTER_IAP_MODE_FORCED));
+            sc->send_frame(IAP_REQUEST_ID, ENTER_IAP_MODE_FORCED, sizeof(ENTER_IAP_MODE_FORCED));
+            sc->send_frame(IAP_REQUEST_ID, ENTER_IAP_MODE_FORCED, sizeof(ENTER_IAP_MODE_FORCED));
+            resp = sc->get_frame(KINETEK_MESSAGE_ID, this, resp_call_back);
         }
         printf("\n\n======IN IAP MODE=========\n\n");
         return true;
