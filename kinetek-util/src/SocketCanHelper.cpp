@@ -4,10 +4,10 @@ SocketCanHelper::SocketCanHelper()
 {
     new_value = new itimerspec;
     now = new timespec;
-    new_value->it_value.tv_sec = now->tv_sec + 1;
-    new_value->it_value.tv_nsec = now->tv_nsec;
-    new_value->it_interval.tv_sec = 1;
-    new_value->it_interval.tv_nsec = 0;
+    new_value->it_value.tv_sec = now->tv_sec + 0;
+    new_value->it_value.tv_nsec = now->tv_nsec + 5000000;
+    new_value->it_interval.tv_sec = 0;
+    new_value->it_interval.tv_nsec = 5000000;
     timer_fd = timerfd_create(CLOCK_REALTIME, 0);
     int err = timerfd_settime(timer_fd, 0, new_value, NULL);
     int err2 = clock_gettime(CLOCK_REALTIME, now);
