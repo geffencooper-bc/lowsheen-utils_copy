@@ -30,7 +30,7 @@ enum kt_can_id
 enum iap_response
 {
     IN_IAP_MODE = 2,
-    ENTER_IAP_MODE_RESPONSE_SELECTIVE,
+    ENTER_IAP_MODE_SELECTIVE_RESPONSE,
     RECEIVED_32_BYTES,
     SEND_BYTES_RESPONSE,
     FW_REVISION_RESPONSE,
@@ -188,7 +188,7 @@ iap_response get_response_type(uint32_t can_id, uint8_t* data, uint8_t num_bytes
     {
         if(array_compare(ENTER_IAP_MODE_SELECTIVE_RESPONSE_DATA, sizeof(ENTER_IAP_MODE_SELECTIVE_RESPONSE_DATA), data, num_bytes))
         {
-            return ENTER_IAP_MODE_RESPONSE_SELECTIVE;
+            return ENTER_IAP_MODE_SELECTIVE_RESPONSE;
         }
     }
 }

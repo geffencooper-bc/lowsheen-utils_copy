@@ -79,11 +79,15 @@ bool IAP::put_in_iap_mode(bool forced_mode)
     {
         sc->send_frame(KINETEK_COMMAND_ID, ENTER_IAP_MODE_SELECTIVE, sizeof(ENTER_IAP_MODE_SELECTIVE));
         CO_CANrxMsg_t * resp = sc->get_frame(KINETEK_RESPONSE_ID, this, resp_call_back);
-        while(get_response_type(resp->ident, resp->data, resp->DLC) != ENTER_IAP_MODE_RESPONSE_SELECTIVE)
-        {
-            //sc->send_frame(IAP_REQUEST_ID, ENTER_IAP_MODE_FORCED, sizeof(ENTER_IAP_MODE_FORCED));
-            resp = sc->get_frame(KINETEK_RESPONSE_ID, this, resp_call_back);
-        }
+        sc->send_frame(IAP_REQUEST_ID, ENTER_IAP_MODE_FORCED, sizeof(ENTER_IAP_MODE_FORCED));
+        resp = sc->get_frame(KINETEK_RESPONSE_ID, this, resp_call_back);
+        sc->send_frame(IAP_REQUEST_ID, ENTER_IAP_MODE_FORCED, sizeof(ENTER_IAP_MODE_FORCED));
+        resp = sc->get_frame(KINETEK_RESPONSE_ID, this, resp_call_back);
+        // while(get_response_type(resp->ident, resp->data, resp->DLC) != ENTER_IAP_MODE_SELECTIVE_RESPONSE)
+        // {
+        //     sc->send_frame(IAP_REQUEST_ID, ENTER_IAP_MODE_FORCED, sizeof(ENTER_IAP_MODE_FORCED));
+        //     resp = sc->get_frame(KINETEK_RESPONSE_ID, this, resp_call_back);
+        // }
         printf("\n\n======IN IAP MODE=========\n\n");
         return true;
 

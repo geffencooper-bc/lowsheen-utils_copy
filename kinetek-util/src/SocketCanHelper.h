@@ -10,6 +10,9 @@
 #include "CO_driver.h"
 #include "CO_driver_target.h"
 #include <string>
+#include <sys/timerfd.h>
+#include <time.h>
+#include <unistd.h>
 using std::string;
 using std::to_string;
 
@@ -34,6 +37,11 @@ class SocketCanHelper
     CO_CANtx_t* tx_buff_arr;
     CO_CANrx_t* rx_buff_arr;
     CO_CANrxMsg_t* can_msg;
+
+    // make into pointers later
+    itimerspec* new_value;
+    int timer_fd;
+    timespec* now;
 };
 
 #endif

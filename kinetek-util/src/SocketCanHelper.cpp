@@ -2,7 +2,16 @@
 #define PRINT_DEBUG
 SocketCanHelper::SocketCanHelper()
 {
-
+    new_value = new itimerspec;
+    now = new timespec;
+    new_value->it_value.tv_sec = now->tv_sec + 1;
+    new_value->it_value.tv_nsec = now->tv_nsec;
+    new_value->it_interval.tv_sec = 1;
+    new_value->it_interval.tv_nsec = 0;
+    timer_fd = timerfd_create(CLOCK_REALTIME, 0);
+    int err = timerfd_settime(timer_fd, 0, new_value, NULL);
+    int err2 = clock_gettime(CLOCK_REALTIME, now);
+    printf("Errors: %i, %i, %i\n", timer_fd, err, err2);
 }
 
 SocketCanHelper::~SocketCanHelper()
@@ -12,6 +21,8 @@ SocketCanHelper::~SocketCanHelper()
     delete [] rx_buff_arr;
     delete can_msg;
     delete cm;
+    delete new_value;
+    delete now;
 }
 
 int SocketCanHelper::init_socketcan(const char* interface_name)
@@ -59,6 +70,7 @@ int SocketCanHelper::send_frame(uint32_t can_id, uint8_t* data, uint8_t data_siz
 
 CO_CANrxMsg_t * SocketCanHelper::get_frame(uint32_t can_id, void* obj, void (*call_back)(void *object, const CO_CANrxMsg_t *message))
 {
+    timerfd_settime(timer_fd, 0, new_value, NULL);
     #ifdef PRINT_DEBUG
     printf("Getting Message-->");
     #endif
@@ -66,7 +78,7 @@ CO_CANrxMsg_t * SocketCanHelper::get_frame(uint32_t can_id, void* obj, void (*ca
     #ifdef PRINT_DEBUG
     printf("Error: %i\t", err);
     #endif
-    CO_CANrxWait(cm, -1, can_msg); 
+    CO_CANrxWait(cm, timer_fd, can_msg); 
     printf("Id: %02X\t", can_msg->ident);
     for(uint8_t i = 0; i < can_msg->DLC; i++)
     {

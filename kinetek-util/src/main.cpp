@@ -8,6 +8,9 @@
 #include "CO_driver.h"
 #include "SocketCanHelper.h"
 #include "IAP.h"
+#include <sys/timerfd.h>
+#include <sys/time.h>
+
 using namespace std;
 
 // identifier passed with the callback function
