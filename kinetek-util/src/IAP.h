@@ -14,7 +14,8 @@ enum status_code
     END_OF_FILE,
     PACKET_RESENT_FAIL,
     TOTAL_CHECKSUM_FAIL,
-    NO_HEART_BEAT
+    NO_HEART_BEAT,
+    END_OF_FILE_FAIL
 };
 
 class IAP

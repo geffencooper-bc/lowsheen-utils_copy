@@ -73,6 +73,7 @@ uint8_t HexUtility::get_next_8_bytes(uint8_t* data_bytes, uint8_t num_bytes)
     if(get_record_data_length(curr_line) < 8)
     {
         get_record_data_bytes(curr_line, data_bytes, num_bytes); // will get the whole line by default
+        return(get_record_data_length(curr_line));
     }
 
     else if(is_first_8)
@@ -86,6 +87,7 @@ uint8_t HexUtility::get_next_8_bytes(uint8_t* data_bytes, uint8_t num_bytes)
         is_first_8 = true;
         get_record_data_bytes(curr_line, data_bytes, num_bytes, 8, 8);
     }
+    return 8;
 }
 
 
