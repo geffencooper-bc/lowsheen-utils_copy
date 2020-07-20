@@ -148,3 +148,180 @@ void IAP::send_init_packets()
     }
     printf("SENT DATA SIZE\n =========DONE WITH INIT PACKETS\n");
 }
+
+status_code IAP::upload_hex_file()
+{
+    printf("\n ======== Uploading hex file =======\n");
+    page_count = 0;
+    packet_count = 0;
+    num_bytes_uploaded = 0;
+    int curr_page_cs = 0;
+
+    while(true) // keep sending 32 byte packets until reached end of file or fail
+    {
+        // progress bar
+
+        // every 32 pages there is a page checksum
+        if(packet_count > 0 && packet_count % 32 == 0)
+        {
+            printf("\n======END OF PAGE %i======\n", page_count+1);
+            // make the page_cs frame and send it
+            uint8_t page_cs[4];
+            ut->num_to_byte_list(curr_page_cs, page_cs, 4);
+            memcpy(SEND_PAGE_CHECKSUM, page_cs, 4);
+            SEND_PAGE_CHECKSUM[6] = page_count+1;
+
+            // send the page checksum frame
+            sc->send_frame(IAP_REQUEST_ID, SEND_PAGE_CHECKSUM, sizeof(SEND_PAGE_CHECKSUM));
+            CO_CANrxMsg_t * resp = sc->get_frame(IAP_RESPONSE_ID, this, resp_call_back);
+            if(get_response_type(resp->ident, resp->data, resp->DLC) != CALCULATE_PAGE_CHECKSUM_RESPONSE)
+            {
+                return PAGE_CHECKSUM_FAIL;
+            }
+            page_count +=1;
+        }
+
+        // if not the end of a page, then send the next packet
+        status_code status = send_hex_packet();
+        if(status == PACKET_SENT_SUCCESS)
+        {
+            packet_count +=1;
+        }
+        //if it fails then resend the packet
+        else if(status == PACKET_SENT_FAIL)
+        {
+            status = send_hex_packet(true);
+            if(status == PACKET_SENT_FAIL)
+            {
+                return PACKET_RESENT_FAIL;
+            }
+            // increment bytes
+            packet_count += 1;
+            continue;
+        }
+        // if reached end of file then take care of the last page checksum, then send end of hex file, total checksum, heartbeat
+        else if(status == END_OF_FILE)
+        {
+            uint8_t page_cs[4];
+            ut->num_to_byte_list(curr_page_cs, page_cs, 4);
+            memcpy(SEND_PAGE_CHECKSUM, page_cs, 4);
+            SEND_PAGE_CHECKSUM[6] = page_count+1;
+            
+            SEND_END_OF_FILE[1] = last_line_data_size;
+            sc->send_frame(IAP_REQUEST_ID, SEND_END_OF_FILE, sizeof(SEND_END_OF_FILE));
+            CO_CANrxMsg_t * resp = sc->get_frame(IAP_RESPONSE_ID, this, resp_call_back);
+            while(get_response_type(resp->ident, resp->data, resp->DLC) != END_OF_HEX_FILE_RESPONSE)
+            {
+                sc->send_frame(IAP_REQUEST_ID, SEND_END_OF_FILE, sizeof(SEND_END_OF_FILE));
+                resp = sc->get_frame(IAP_RESPONSE_ID, this, resp_call_back);
+            }
+
+            sc->send_frame(IAP_REQUEST_ID, SEND_PAGE_CHECKSUM, sizeof(SEND_PAGE_CHECKSUM));
+            resp = sc->get_frame(IAP_RESPONSE_ID, this, resp_call_back);
+            if(get_response_type(resp->ident, resp->data, resp->DLC) != CALCULATE_PAGE_CHECKSUM_RESPONSE)
+            {
+                return PAGE_CHECKSUM_FAIL;
+            }
+
+            sc->send_frame(IAP_REQUEST_ID, TOTAL_CHECKSUM_REQUEST, sizeof(TOTAL_CHECKSUM_REQUEST));
+            resp = sc->get_frame(IAP_RESPONSE_ID, this, resp_call_back);
+            if(get_response_type(resp->ident, resp->data, resp->DLC) != CALCULATE_TOTAL_CHECKSUM_RESPONSE)
+            {
+                return TOTAL_CHECKSUM_FAIL;
+            }
+
+            resp = sc->get_frame(HEART_BEAT_ID, this, resp_call_back);
+            if(get_response_type(resp->ident, resp->data, resp->DLC) != HEART_BEAT)
+            {
+                return NO_HEART_BEAT;
+            }
+        }
+    }
+
+}
+
+status_code IAP::send_hex_packet(bool is_retry)
+{
+    if(is_retry)
+    {
+        kt_can_id curr_frame_id = RESEND_FRAME_1_ID;
+        uint8_t data[8];
+        sc->send_frame(RESEND_FRAME_1_ID, current_packet, 8);
+        sc->send_frame(RESEND_FRAME_2_ID, current_packet+8, 8);
+        sc->send_frame(RESEND_FRAME_3_ID, current_packet+16, 8);
+        sc->send_frame(RESEND_FRAME_4_ID, current_packet+24, 8);
+        CO_CANrxMsg_t * resp = sc->get_frame(IAP_RESPONSE_ID, this, resp_call_back);
+        if(get_response_type(resp->ident, resp->data, resp->DLC) != RECEIVED_32_BYTES)
+        {
+            return PACKET_RESENT_FAIL; // need to resend frames
+        }
+        // increment num bytes uploaded, need to figure out when last line not full
+        return PACKET_SENT_SUCCESS;
+    }
+
+    else
+    {
+        int frame_count = 0;
+        uint8_t data[8];
+        int err;
+        kt_can_id curr_frame_id = SEND_FRAME_1_ID;
+        while(true)
+        {
+            
+            if(num_bytes_uploaded = data_size_bytes)
+            {
+                return true;
+            }
+            err = ut->get_next_8_bytes(data, 8);
+            if(true)//last line)
+            {
+
+            }
+            memcpy(current_packet + 8*frame_count, data, 8);
+            if(err == -1)
+            {
+                return true;
+            }
+            
+            switch(curr_frame_id)
+            {
+                case SEND_FRAME_1_ID:
+                {
+                    sc->send_frame(SEND_FRAME_1_ID, data, 8);
+                    curr_frame_id = SEND_FRAME_2_ID;
+                    frame_count +=1;
+                    break;
+                }
+                case SEND_FRAME_2_ID:
+                {
+                    sc->send_frame(SEND_FRAME_2_ID, data, 8);
+                    curr_frame_id = SEND_FRAME_3_ID;
+                    frame_count +=1;
+                    break;
+                }
+                case SEND_FRAME_3_ID:
+                {
+                    sc->send_frame(SEND_FRAME_3_ID, data, 8);
+                    curr_frame_id = SEND_FRAME_4_ID;
+                    frame_count +=1;
+                    break;
+                }
+                case SEND_FRAME_4_ID:
+                {
+                    sc->send_frame(SEND_FRAME_4_ID, data, 8);
+                    CO_CANrxMsg_t * resp = sc->get_frame(IAP_RESPONSE_ID, this, resp_call_back);
+                    if(get_response_type(resp->ident, resp->data, resp->DLC) != RECEIVED_32_BYTES)
+                    {
+                        return false; // need to resend frames
+                    }
+                    // increment num bytes uploaded, need to figure out when last line not full
+                    return true;
+                    curr_frame_id = SEND_FRAME_1_ID;
+                    frame_count = 0;
+                }
+            }
+
+        }
+    }
+    
+}

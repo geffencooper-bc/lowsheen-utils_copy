@@ -66,6 +66,8 @@ class HexUtility
     // returns how many data bytes there are if < 8
     uint8_t get_next_8_bytes(uint8_t* data_bytes, uint8_t num_bytes);
     
+    void num_to_byte_list(int num, uint8_t* bytes, uint8_t num_bytes);
+
     private:
     ifstream hex_file; // file is open for object lifetime
     string curr_line;  // file will be read line by line
@@ -90,8 +92,7 @@ class HexUtility
 
     // converts a string of bytes "AABBCCDD" to an array of bytes [0xAA, 0xBB, 0xCC, 0xDD]
     int data_string_to_byte_list(const string &hex_data, uint8_t* data_bytes, uint8_t num_data_bytes);
-    int load_hex_file_data();
-    void num_to_byte_list(int num, uint8_t* bytes, uint8_t num_bytes);    
+    int load_hex_file_data();    
     uint8_t calc_hex_checksum(const string &hex_record);
 };
 
