@@ -1,6 +1,7 @@
 #include "IAP.h"
 #include "KinetekCodes.h"
 
+#define PRINT_DEBUG
 using std::to_string;
 
 IAP::IAP()
@@ -79,17 +80,13 @@ bool IAP::put_in_iap_mode(bool forced_mode)
     {
         sc->send_frame(KINETEK_COMMAND_ID, ENTER_IAP_MODE_SELECTIVE, sizeof(ENTER_IAP_MODE_SELECTIVE));
         CO_CANrxMsg_t * resp = sc->get_frame(KINETEK_RESPONSE_ID, this, resp_call_back);
-        // while(get_response_type(resp->ident, resp->data, resp->DLC) != ENTER_IAP_MODE_SELECTIVE_RESPONSE)
-        // {
-        //     sc->send_frame(IAP_REQUEST_ID, ENTER_IAP_MODE_FORCED, sizeof(ENTER_IAP_MODE_FORCED));
-        //     resp = sc->get_frame(KINETEK_RESPONSE_ID, this, resp_call_back);
-        // }
+        // check if in iap mode, figure out how to set timeout diff than forced
         printf("\n\n======IN IAP MODE=========\n\n");
         return true;
     }
     else
     {
-         sc->send_frame(IAP_REQUEST_ID, ENTER_IAP_MODE_FORCED, sizeof(ENTER_IAP_MODE_FORCED));
+        sc->send_frame(IAP_REQUEST_ID, ENTER_IAP_MODE_FORCED, sizeof(ENTER_IAP_MODE_FORCED));
         CO_CANrxMsg_t * resp = sc->get_frame(KINETEK_MESSAGE_ID, this, resp_call_back);
         while(get_response_type(resp->ident, resp->data, resp->DLC) != IN_IAP_MODE)
         {
@@ -98,19 +95,56 @@ bool IAP::put_in_iap_mode(bool forced_mode)
         }
         printf("\n\n======IN IAP MODE=========\n\n");
         return true;
+    }       
+}
+
+void IAP::send_init_packets()
+{
+    sc->send_frame(FW_REVISION_REQUEST_ID, FW_REVISION_REQUEST, sizeof(FW_REVISION_REQUEST));
+    CO_CANrxMsg_t * resp = sc->get_frame(FW_REVISION_RESPONSE_ID, this, resp_call_back);
+    while(get_response_type(resp->ident, resp->data, resp->DLC) != FW_REVISION_RESPONSE)
+    {
+        sc->send_frame(FW_REVISION_REQUEST_ID, FW_REVISION_REQUEST, sizeof(FW_REVISION_REQUEST));
+        resp = sc->get_frame(FW_REVISION_RESPONSE_ID, this, resp_call_back);
     }
-    //    print("Putting in IAP mode")
-    //     if force_mode == False:
-    //         self.send_request_repeated(None, "HEART_BEAT",-1,-1, None)
-    //         self.send_request(self.ENTER_IAP_MODE_REQUEST_SELECTIVE, "ENTER_IAP_MODE_RESPONSE_SELECTIVE", 20)
-    //         self.send_request_repeated(None, "IN_IAP_MODE",-1,-1, None)
-    //         print("entered iap_mode")
-    //         return True
-    //     else:
-    //         self.send_request_repeated(self.ENTER_IAP_MODE_REQUEST_FORCED, "IN_IAP_MODE", -1, -1, None) # -1 ensures request sent indefinetely
-    //         # no need to check response because it will request will only return if successful
-    //         self.in_iap_mode = True
-    //         print("entered iap_mode")
-    //         return True
-            
+    printf("GOT FW REVISION RESPONSE\n");
+
+    sc->send_frame(IAP_REQUEST_ID, SEND_BYTES, sizeof(SEND_BYTES));
+    resp = sc->get_frame(IAP_RESPONSE_ID, this, resp_call_back);
+    while(get_response_type(resp->ident, resp->data, resp->DLC) != SEND_BYTES_RESPONSE)
+    {
+        sc->send_frame(IAP_REQUEST_ID, SEND_BYTES, sizeof(SEND_BYTES));
+        resp = sc->get_frame(SEND_BYTES_RESPONSE, this, resp_call_back);
+    }
+    printf("CAN START SENDING BYTES\n");
+
+    memcpy(SEND_START_ADDRESS + 1, start_address, 4);
+    sc->send_frame(IAP_REQUEST_ID, SEND_START_ADDRESS, sizeof(SEND_START_ADDRESS));
+    resp = sc->get_frame(IAP_RESPONSE_ID, this, resp_call_back);
+    while(get_response_type(resp->ident, resp->data, resp->DLC) != SEND_START_ADDRESS_RESPONSE)
+    {
+        sc->send_frame(IAP_REQUEST_ID, SEND_START_ADDRESS, sizeof(SEND_START_ADDRESS));
+        resp = sc->get_frame(IAP_RESPONSE_ID, this, resp_call_back);
+    }
+    printf("SENT START ADDRESS\n");
+
+    memcpy(SEND_CHECKSUM_DATA + 1, total_checksum, 4);
+    sc->send_frame(IAP_REQUEST_ID, SEND_CHECKSUM_DATA, sizeof(SEND_CHECKSUM_DATA));
+    resp = sc->get_frame(IAP_RESPONSE_ID, this, resp_call_back);
+    while(get_response_type(resp->ident, resp->data, resp->DLC) != SEND_CHECKSUM_DATA_RESPONSE)
+    {
+        sc->send_frame(IAP_REQUEST_ID, SEND_CHECKSUM_DATA, sizeof(SEND_CHECKSUM_DATA));
+        resp = sc->get_frame(IAP_RESPONSE_ID, this, resp_call_back);
+    }
+    printf("GOT CHECKSUM DATA RESPONSE\n");
+
+    memcpy(SEND_DATA_SIZE + 1, data_size, 4);
+    sc->send_frame(IAP_REQUEST_ID, SEND_DATA_SIZE, sizeof(SEND_DATA_SIZE));
+    resp = sc->get_frame(IAP_RESPONSE_ID, this, resp_call_back);
+    while(get_response_type(resp->ident, resp->data, resp->DLC) != SEND_DATA_SIZE_RESPONSE)
+    {
+        sc->send_frame(IAP_REQUEST_ID, SEND_DATA_SIZE, sizeof(SEND_DATA_SIZE));
+        resp = sc->get_frame(IAP_RESPONSE_ID, this, resp_call_back);
+    }
+    printf("SENT DATA SIZE\n =========DONE WITH INIT PACKETS\n");
 }

@@ -54,7 +54,7 @@ int SocketCanHelper::init_socketcan(const char* interface_name)
 int SocketCanHelper::send_frame(uint32_t can_id, uint8_t* data, uint8_t data_size)
 {
     #ifdef PRINT_DEBUG
-    printf("init tx buffer\n");
+    //printf("init tx buffer\n");
     #endif
     CO_CANtx_t* tx1 = CO_CANtxBufferInit(cm, 0, can_id, 0, data_size, false);
 
@@ -64,7 +64,13 @@ int SocketCanHelper::send_frame(uint32_t can_id, uint8_t* data, uint8_t data_siz
     memcpy(tx1->data, data, data_size);
 	int err1 = CO_CANsend(cm, tx1);
     #ifdef PRINT_DEBUG
-	printf("Error: %i\n", err1);
+	printf("Error: %i\t", err1);
+    printf("Id: %02X\t", can_id);
+    for(uint8_t i = 0; i < data_size; i++)
+    {
+        printf("%02X ", data[i]);
+    }
+    printf("\n");
     #endif
 }
 

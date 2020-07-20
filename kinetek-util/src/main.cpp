@@ -31,7 +31,8 @@ int main()
     iap.load_hex_file("/home/geffen.cooper/Desktop/kinetek_scripts/hex_file_copies/2.27_copy.hex");
     iap.print();
     iap.init_can("can0");
-    iap.put_in_iap_mode(true);
+    iap.put_in_iap_mode(false);
+    iap.send_init_packets();
 
 
     // SocketCanHelper sc;
