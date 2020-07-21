@@ -42,7 +42,7 @@ class IAP
     void print();
 
     // shows upload status in terminal
-    void progress_bar();
+    void progress_bar(int current, int total, int bar_length = 20);
 
     // sets up socket can helper object, channel name is usually "can0"
     void init_can(const char* channel_name);

@@ -87,7 +87,7 @@ int HexUtility::get_next_8_bytes(uint8_t* data_bytes, uint8_t num_bytes)
         {
             sum += data_bytes[i];
         }
-        printf("=======RETURNING LAST LINE SUM=======\n");
+        // printf("=======RETURNING LAST LINE SUM=======\n");
         getline(hex_file, curr_line);
         return sum;
     }

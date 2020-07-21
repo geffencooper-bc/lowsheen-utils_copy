@@ -4,18 +4,16 @@
 
 SocketCanHelper::SocketCanHelper()
 {
-    // set up a timer for the receive message timeout
-    time_out = new itimerspec;
-
-    time_out->it_interval.tv_sec = 0;
-    time_out->it_interval.tv_nsec = 5000000; // 5ms by default
-
+    new_value = new itimerspec;
+    now = new timespec;
+    new_value->it_value.tv_sec = now->tv_sec + 0;
+    new_value->it_value.tv_nsec = now->tv_nsec + 5000000;
+    new_value->it_interval.tv_sec = 0;
+    new_value->it_interval.tv_nsec = 5000000;
     timer_fd = timerfd_create(CLOCK_REALTIME, 0);
-    int err = timerfd_settime(timer_fd, 0, time_out, NULL);
-
-    #ifdef PRINT_LOG
-    printf("Timer Errors: %i, %i\n", timer_fd, err);
-    #endif
+    int err = timerfd_settime(timer_fd, 0, new_value, NULL);
+    int err2 = clock_gettime(CLOCK_REALTIME, now);
+    printf("Errors: %i, %i, %i\n", timer_fd, err, err2);
 }
 
 SocketCanHelper::~SocketCanHelper()
@@ -25,7 +23,8 @@ SocketCanHelper::~SocketCanHelper()
     delete [] rx_buff_arr;
     delete can_msg;
     delete cm;
-    delete time_out;
+    delete new_value;
+    delete now;
 }
 
 int SocketCanHelper::init_socketcan(const char* interface_name)
@@ -99,10 +98,10 @@ int SocketCanHelper::send_frame(uint32_t can_id, uint8_t* data, uint8_t data_siz
 CO_CANrxMsg_t * SocketCanHelper::get_frame(uint32_t can_id, void* obj, void (*call_back)(void *object, const CO_CANrxMsg_t *message), int wait_time)
 {
     // setup desired time_out, 5ms by default
-    time_out->it_interval.tv_nsec = wait_time*1000000;
+    new_value->it_interval.tv_nsec = wait_time*1000000;
 
     // reset the timer for the receive message
-    timerfd_settime(timer_fd, 0, time_out, NULL);
+    timerfd_settime(timer_fd, 0, new_value, NULL);
 
     #ifdef PRINT_LOG
     printf("Getting Message-->");

@@ -2,6 +2,7 @@
 #include "KinetekCodes.h"
 
 #define PRINT_LOG
+// #define PROGRESS_BAR
 using std::to_string;
 
 IAP::IAP()
@@ -68,9 +69,23 @@ void IAP::init_can(const char* channel_name)
     sc->init_socketcan(channel_name);
 }
 
-void IAP::progress_bar()
+void IAP::progress_bar(int current, int total, int bar_length)
 {
-    
+	float percent = (current*100)/total;
+  string arrow = "";
+  string spaces = "";
+  int i;
+  for(i = 0; i < (percent/100)*bar_length-1; i++)
+  {
+    arrow += "-";
+  }
+  arrow += ">";
+  for(int j = 0; j < bar_length-i; j++)
+  {
+    spaces += " ";
+  }
+
+  printf("  Progress [%s%s] %f %% \r", arrow.c_str(), spaces.c_str(), percent);
 }
 
 void resp_call_back(void* obj, const CO_CANrxMsg_t* can_msg)
@@ -96,6 +111,16 @@ status_code IAP::put_in_iap_mode(bool forced_mode)
             #endif
             return IAP_MODE_FAIL;
         }
+
+        resp = sc->get_frame(KINETEK_MESSAGE_ID, this, resp_call_back, 10);
+        while(get_response_type(resp->ident, resp->data, resp->DLC) != IN_IAP_MODE)
+        {
+            resp = sc->get_frame(KINETEK_MESSAGE_ID, this, resp_call_back);
+            #ifdef PRINT_LOG
+            //printf("IAP mode time out\n");
+            #endif
+            //return IAP_MODE_FAIL;
+        }
     }
     // forced mode
     else
@@ -105,7 +130,7 @@ status_code IAP::put_in_iap_mode(bool forced_mode)
         CO_CANrxMsg_t * resp = sc->get_frame(KINETEK_MESSAGE_ID, this, resp_call_back, 5);
         while(get_response_type(resp->ident, resp->data, resp->DLC) != IN_IAP_MODE)
         {
-            if(count > 500)
+            if(count > 5000)
             {
                 #ifdef PRINT_LOG
                 printf("IAP mode time out\n");
@@ -171,7 +196,7 @@ status_code IAP::send_init_packets()
     }
     #ifdef PRINT_LOG
     printf("GOT CHECKSUM DATA RESPONSE\n");
-    #endif;
+    #endif
 
     // finally send the data size
     memcpy(SEND_DATA_SIZE_DATA + 1, data_size, 4); // copy in data size bytes into message
@@ -195,7 +220,9 @@ status_code IAP::upload_hex_file()
     
     while(true) // keep sending packets until reached end of file or fail and function returns
     {
-        // progress bar
+        #ifdef PROGRESS_BAR
+        progress_bar(num_bytes_uploaded, data_size_bytes);
+        #endif
 
         // reached the end of a page
         if(packet_count > 0 && packet_count % 32 == 0)
@@ -235,7 +262,9 @@ status_code IAP::upload_hex_file()
                 return PACKET_RESENT_FAIL;
             }
             num_bytes_uploaded += 32;
+            #ifdef PRINT_LOG
             printf("BYTES UPLOADED: %i\n", num_bytes_uploaded);
+            #endif
             packet_count += 1;
             continue;
         }
@@ -243,26 +272,36 @@ status_code IAP::upload_hex_file()
         else if(status == END_OF_FILE_CODE)
         {   
             // send end of file notification with the number of bytes of the last data line (account for filler when doing checksum)
-            SEND_END_OF_FILE[1] = last_line_data_size;
-            sc->send_frame(IAP_REQUEST_ID, SEND_END_OF_FILE, sizeof(SEND_END_OF_FILE));
-            CO_CANrxMsg_t * resp = sc->get_frame(IAP_RESPONSE_ID, this, resp_call_back);
+            SEND_END_OF_FILE_DATA[1] = last_line_data_size;
+            sc->send_frame(IAP_REQUEST_ID, SEND_END_OF_FILE_DATA, sizeof(SEND_END_OF_FILE_DATA));
+            CO_CANrxMsg_t * resp = sc->get_frame(IAP_RESPONSE_ID, this, resp_call_back, 20);
+            int count = 0;
             while(get_response_type(resp->ident, resp->data, resp->DLC) != END_OF_HEX_FILE_RESPONSE)
             {
-                sc->send_frame(IAP_REQUEST_ID, SEND_END_OF_FILE, sizeof(SEND_END_OF_FILE));
-                resp = sc->get_frame(IAP_RESPONSE_ID, this, resp_call_back);
+                if(count > 30)
+                {
+                    return END_OF_FILE_FAIL;
+                }
+                resp = sc->get_frame(IAP_RESPONSE_ID, this, resp_call_back, 20);
+                count ++;
             }
 
             // make last page checksum data
-            ut->num_to_byte_list(curr_page_cs, SEND_PAGE_CHECKSUM + 1, 4);
-            SEND_PAGE_CHECKSUM[6] = page_count+1;
+            ut->num_to_byte_list(curr_page_cs, SEND_PAGE_CHECKSUM_DATA + 1, 4);
+            SEND_PAGE_CHECKSUM_DATA[6] = page_count+1;
 
             // send last page checksum
-            sc->send_frame(IAP_REQUEST_ID, SEND_PAGE_CHECKSUM, sizeof(SEND_PAGE_CHECKSUM));
-            resp = sc->get_frame(IAP_RESPONSE_ID, this, resp_call_back);
+            sc->send_frame(IAP_REQUEST_ID, SEND_PAGE_CHECKSUM_DATA, sizeof(SEND_PAGE_CHECKSUM_DATA));
+            resp = sc->get_frame(IAP_RESPONSE_ID, this, resp_call_back, 100);
+            count = 0;
             while(get_response_type(resp->ident, resp->data, resp->DLC) != CALCULATE_PAGE_CHECKSUM_RESPONSE)
             {
-                sc->send_frame(IAP_REQUEST_ID, SEND_PAGE_CHECKSUM, sizeof(SEND_PAGE_CHECKSUM));
-                resp = sc->get_frame(IAP_RESPONSE_ID, this, resp_call_back);
+                if(count > 30)
+                {
+                    return PAGE_CHECKSUM_FAIL;
+                }
+                resp = sc->get_frame(IAP_RESPONSE_ID, this, resp_call_back, 20);
+                count++;
             }
 
             // send total checksum
@@ -272,13 +311,18 @@ status_code IAP::upload_hex_file()
                 total_checksum[i] = total_checksum[4-i-1];
                 total_checksum[4-i-1] = tmp;
             }
-            memcpy(TOTAL_CHECKSUM_REQUEST+1, total_checksum,4);
-            sc->send_frame(IAP_REQUEST_ID, TOTAL_CHECKSUM_REQUEST, sizeof(TOTAL_CHECKSUM_REQUEST));
-            resp = sc->get_frame(IAP_RESPONSE_ID, this, resp_call_back);
+            memcpy(TOTAL_CHECKSUM_DATA+1, total_checksum,4);
+            sc->send_frame(IAP_REQUEST_ID, TOTAL_CHECKSUM_DATA, sizeof(TOTAL_CHECKSUM_DATA));
+            resp = sc->get_frame(IAP_RESPONSE_ID, this, resp_call_back,20);
+            count = 0;
             while(get_response_type(resp->ident, resp->data, resp->DLC) != CALCULATE_TOTAL_CHECKSUM_RESPONSE)
             {
-                sc->send_frame(IAP_REQUEST_ID, TOTAL_CHECKSUM_REQUEST, sizeof(TOTAL_CHECKSUM_REQUEST));
-                resp = sc->get_frame(IAP_RESPONSE_ID, this, resp_call_back);
+                if(count > 30)
+                {
+                    return TOTAL_CHECKSUM_FAIL;
+                }
+                resp = sc->get_frame(IAP_RESPONSE_ID, this, resp_call_back,20);
+                count++;
             }
 
             // check for a heartbeat
@@ -331,7 +375,7 @@ status_code IAP::send_hex_packet(bool is_retry)
             {
                 curr_page_cs += sum;
             }
-           //printf("CURRENT PAGE CHECKSUM: %i", curr_page_cs);
+            //printf("CURRENT PAGE CHECKSUM: %i", curr_page_cs);
 
             // copy these next 8 bytes into the current packet
             memcpy(current_packet + 8*frame_count, data, 8);
@@ -340,17 +384,22 @@ status_code IAP::send_hex_packet(bool is_retry)
             {
                 num_bytes_uploaded += last_line_data_size;
                 if(curr_frame_id == SEND_FRAME_1_ID) // if the frame id is 1, that means that last packet was completed, so no filler necessary
-                {
+                { 
+                    #ifdef PRINT_LOG
                     printf("\n\n\n====NO FILLER====\n\n\n");
+                    #endif
                     return END_OF_FILE_CODE;
                 }
                 // otherwise need to add filler frames
+                #ifdef PRINT_LOG
                 printf("\n\n\n====FILLER====\n\n\n");
+                #endif
                 memset(current_packet + 8*frame_count+1, 0xFF, sizeof(current_packet) - 8*frame_count);
                 for(int i = 0; i < 32; i++)
                 {
                     printf("%02X", current_packet[i]);
                 }
+                printf("\n");
                 while(true)
                 {
                     switch(curr_frame_id)
@@ -381,14 +430,16 @@ status_code IAP::send_hex_packet(bool is_retry)
                             {
                                 return PACKET_SENT_FAIL;
                             }
+                            #ifdef PRINT_LOG
                             printf("BYTES UPLOADED: %i\n", num_bytes_uploaded);
+                            #endif
                             return END_OF_FILE_CODE;
                         }
                     }
                 }
             }
             
-            // nor the last line, just a normal frame
+            // not the last line, just a normal frame
             switch(curr_frame_id)
             {
                 case SEND_FRAME_1_ID:
@@ -421,7 +472,9 @@ status_code IAP::send_hex_packet(bool is_retry)
                         return PACKET_SENT_FAIL;
                     }
                     num_bytes_uploaded += 32;
+                    #ifdef PRINT_LOG
                     printf("BYTES UPLOADED: %i\n", num_bytes_uploaded);
+                    #endif
                     return PACKET_SENT_SUCCESS;
                 }
             }

@@ -37,7 +37,8 @@ class SocketCanHelper
     CO_CANrxMsg_t* can_msg;
 
     // timer variables
-    itimerspec* time_out;
+    itimerspec* new_value;
+    timespec* now;
     int timer_fd;
 };
 

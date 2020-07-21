@@ -31,9 +31,20 @@ int main()
     iap.load_hex_file("/home/geffen.cooper/Desktop/kinetek_scripts/hex_file_copies/2.28_copy.hex");
     iap.print();
     iap.init_can("can0");
-    iap.put_in_iap_mode(false);
-   // iap.send_init_packets();
-   // printf("Error: %i", iap.upload_hex_file());
+    iap.put_in_iap_mode(true);
+    iap.send_init_packets();
+    int err = iap.upload_hex_file();
+    if(err != 16)
+    {
+        printf("\nError: %i\n", err);
+    }
+    else
+    {
+        printf("\n\n====== SUCCSESS =======\n");
+    }
+    
+    
+    
 
     // SocketCanHelper sc;
     // sc.init_socketcan("can0");
