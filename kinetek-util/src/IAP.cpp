@@ -1,8 +1,8 @@
 #include "IAP.h"
 #include "KinetekCodes.h"
 
-#define PRINT_LOG
-// #define PROGRESS_BAR
+//#define PRINT_LOG
+#define PROGRESS_BAR
 using std::to_string;
 
 IAP::IAP()
@@ -395,10 +395,12 @@ status_code IAP::send_hex_packet(bool is_retry)
                 printf("\n\n\n====FILLER====\n\n\n");
                 #endif
                 memset(current_packet + 8*frame_count+1, 0xFF, sizeof(current_packet) - 8*frame_count);
+                #ifdef PRINT_LOG
                 for(int i = 0; i < 32; i++)
                 {
                     printf("%02X", current_packet[i]);
                 }
+                #endif
                 printf("\n");
                 while(true)
                 {

@@ -28,7 +28,7 @@ void call_back(void* msg, const CO_CANrxMsg_t* can_msg)
 int main()
 {
     IAP iap;
-    iap.load_hex_file("/home/geffen.cooper/Desktop/kinetek_scripts/hex_file_copies/2.28_copy.hex");
+    iap.load_hex_file("/home/geffen.cooper/Desktop/kinetek_scripts/hex_file_copies/2.27_copy.hex");
     iap.print();
     iap.init_can("can0");
     iap.put_in_iap_mode();
