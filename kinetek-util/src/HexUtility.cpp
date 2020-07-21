@@ -49,7 +49,7 @@ int HexUtility::get_start_address(uint8_t* start_address_bytes, uint8_t num_byte
     return start_address;
 }
 
-uint8_t HexUtility::get_next_8_bytes(uint8_t* data_bytes, uint8_t num_bytes)
+int HexUtility::get_next_8_bytes(uint8_t* data_bytes, uint8_t num_bytes)
 {
     if(is_first_8)
     {
@@ -73,21 +73,38 @@ uint8_t HexUtility::get_next_8_bytes(uint8_t* data_bytes, uint8_t num_bytes)
     if(get_record_data_length(curr_line) < 8)
     {
         get_record_data_bytes(curr_line, data_bytes, num_bytes); // will get the whole line by default
-        return(get_record_data_length(curr_line));
+
+        // filll in this last frame with 0xFF
+        int last_frame_filler_amount = 8 - get_record_data_length(curr_line);
+        for(int i = get_record_data_length(curr_line); i < 8; i++)
+        {
+            data_bytes[i] = 0xFF;
+        }
+
+        // find the sum of the data portion
+        int sum = 0;
+        for(int i = 0; i < get_record_data_length(curr_line); i++)
+        {
+            sum += data_bytes[i];
+        }
+        printf("=======RETURNING LAST LINE SUM=======\n");
+        getline(hex_file, curr_line);
+        return sum;
     }
 
     else if(is_first_8)
     {
         is_first_8 = false;
-        get_record_data_bytes(curr_line, data_bytes, num_bytes, 0, 8);
+        int sum = get_record_data_bytes(curr_line, data_bytes, num_bytes, 0, 8);
+        return sum;
     }
 
     else
     {
         is_first_8 = true;
-        get_record_data_bytes(curr_line, data_bytes, num_bytes, 8, 8);
+        int sum = get_record_data_bytes(curr_line, data_bytes, num_bytes, 8, 8);
+        return sum;
     }
-    return 8;
 }
 
 
@@ -121,8 +138,10 @@ int HexUtility::data_string_to_byte_list(const string &hex_data, uint8_t* data_b
     for(int i = 0; i < hex_data.size(); i+=2)
     {
         data_bytes[i/2] = stoi(hex_data.substr(i,2), 0, 16);
+        //printf("DATA[%i]: %02X", i, data_bytes[i/2]);
         sum_bytes += data_bytes[i/2];
     }
+    //printf("\t\tsum: %i\n\n", sum_bytes);
     return sum_bytes;
 }
 
@@ -143,11 +162,13 @@ int HexUtility::get_record_data_bytes(const string &hex_record, uint8_t* data_by
     // if asking for too many bytes or default, then just grab the whole line (16 bytes)
     if( (num_bytes == -1) || (data.size() < 2*num_bytes) )
     {
-        return data_string_to_byte_list(data, data_bytes, num_data_bytes);
+        int sum = data_string_to_byte_list(data, data_bytes, num_data_bytes);
+        return sum;
     }
     else
     {
-       return data_string_to_byte_list(hex_record.substr(RECORD_DATA_START_I+start, 2*num_bytes), data_bytes, num_data_bytes);
+        int sum = data_string_to_byte_list(hex_record.substr(RECORD_DATA_START_I+start, 2*num_bytes), data_bytes, num_data_bytes);
+       return sum;
     }
 }
 

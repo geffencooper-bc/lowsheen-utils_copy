@@ -63,8 +63,8 @@ class HexUtility
     // pass in a 4 byte buffer to be filled with address bytes, also gets returned as an int
     int get_start_address(uint8_t* start_address_bytes, uint8_t num_bytes);
 
-    // returns how many data bytes there are if < 8
-    uint8_t get_next_8_bytes(uint8_t* data_bytes, uint8_t num_bytes);
+    // returns sum of bytes
+    int get_next_8_bytes(uint8_t* data_bytes, uint8_t num_bytes);
     
     void num_to_byte_list(int num, uint8_t* bytes, uint8_t num_bytes);
 

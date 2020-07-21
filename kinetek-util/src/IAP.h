@@ -11,7 +11,7 @@ enum status_code
     PACKET_SENT_SUCCESS = 0,
     PACKET_SENT_FAIL,
     PAGE_CHECKSUM_FAIL,
-    END_OF_FILE,
+    END_OF_FILE_CODE,
     PACKET_RESENT_FAIL,
     TOTAL_CHECKSUM_FAIL,
     NO_HEART_BEAT,
@@ -43,6 +43,7 @@ class IAP
     int packet_count;
     uint8_t current_packet[32];
     int num_bytes_uploaded;
+    int curr_page_cs;
 
     uint8_t start_address[4];
     uint8_t data_size[4];
