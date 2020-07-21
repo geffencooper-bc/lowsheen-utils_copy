@@ -201,9 +201,10 @@ status_code IAP::upload_hex_file()
             SEND_END_OF_FILE[1] = last_line_data_size;
             sc->send_frame(IAP_REQUEST_ID, SEND_END_OF_FILE, sizeof(SEND_END_OF_FILE));
             CO_CANrxMsg_t * resp = sc->get_frame(IAP_RESPONSE_ID, this, resp_call_back);
-            if(get_response_type(resp->ident, resp->data, resp->DLC) != END_OF_HEX_FILE_RESPONSE)
+            while(get_response_type(resp->ident, resp->data, resp->DLC) != END_OF_HEX_FILE_RESPONSE)
             {
-                return END_OF_FILE_FAIL;
+                sc->send_frame(IAP_REQUEST_ID, SEND_END_OF_FILE, sizeof(SEND_END_OF_FILE));
+                resp = sc->get_frame(IAP_RESPONSE_ID, this, resp_call_back);
             }
 
             // make last page checksum data
@@ -237,10 +238,11 @@ status_code IAP::upload_hex_file()
 
             // check for a heartbeat
             resp = sc->get_frame(HEART_BEAT_ID, this, resp_call_back);
-            if(get_response_type(resp->ident, resp->data, resp->DLC) != HEART_BEAT)
+            while(get_response_type(resp->ident, resp->data, resp->DLC) != HEART_BEAT)
             {
-                return NO_HEART_BEAT;
+                resp = sc->get_frame(HEART_BEAT_ID, this, resp_call_back);
             }
+            return UPLOAD_COMPLETE;
         }
     }
 }
