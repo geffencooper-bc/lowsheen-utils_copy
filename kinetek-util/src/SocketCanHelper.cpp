@@ -1,17 +1,21 @@
 #include "SocketCanHelper.h"
-#define PRINT_DEBUG
+
+#define PRINT_LOG
+
 SocketCanHelper::SocketCanHelper()
 {
-    new_value = new itimerspec;
-    now = new timespec;
-    new_value->it_value.tv_sec = now->tv_sec + 0;
-    new_value->it_value.tv_nsec = now->tv_nsec + 5000000;
-    new_value->it_interval.tv_sec = 0;
-    new_value->it_interval.tv_nsec = 5000000;
+    // set up a timer for the receive message timeout
+    time_out = new itimerspec;
+
+    time_out->it_interval.tv_sec = 0;
+    time_out->it_interval.tv_nsec = 5000000; // 5ms by default
+
     timer_fd = timerfd_create(CLOCK_REALTIME, 0);
-    int err = timerfd_settime(timer_fd, 0, new_value, NULL);
-    int err2 = clock_gettime(CLOCK_REALTIME, now);
-    printf("Errors: %i, %i, %i\n", timer_fd, err, err2);
+    int err = timerfd_settime(timer_fd, 0, time_out, NULL);
+
+    #ifdef PRINT_LOG
+    printf("Timer Errors: %i, %i\n", timer_fd, err);
+    #endif
 }
 
 SocketCanHelper::~SocketCanHelper()
@@ -21,13 +25,12 @@ SocketCanHelper::~SocketCanHelper()
     delete [] rx_buff_arr;
     delete can_msg;
     delete cm;
-    delete new_value;
-    delete now;
+    delete time_out;
 }
 
 int SocketCanHelper::init_socketcan(const char* interface_name)
 {
-    // CO_driver oriented around can_module object
+    // CO_driver oriented around can_module object which facilitates Tx/Rx can messages
     cm = new CO_CANmodule_t;
     can_msg = new CO_CANrxMsg_t;
 
@@ -35,36 +38,55 @@ int SocketCanHelper::init_socketcan(const char* interface_name)
     tx_buff_arr = new CO_CANtx_t[1];
     rx_buff_arr = new CO_CANrx_t[1];
     
-    // interface init, make sure to do ip link before this
-    unsigned int if_index = if_nametoindex(interface_name); // get ifindex from name
+    // interface init (can0), will not work unless initialize using ip link setup command
+    unsigned int if_index = if_nametoindex(interface_name);
+    if(if_index < 0)
+    {
+        #ifdef PRINT_LOG
+        printf("If Index Error\n");
+        #endif
+        return if_index;
+    }
+
     uintptr_t can_interface = if_index;
 
-    #ifdef PRINT_DEBUG
+    #ifdef PRINT_LOG
     printf("if index: %i\n", can_interface);
     #endif
 
     // can module object init
     int err =  CO_CANmodule_init(cm, (void*)if_index, rx_buff_arr, 1, tx_buff_arr, 1, 250);
-    #ifdef PRINT_DEBUG
+    #ifdef PRINT_LOG
     printf("Init CO_CANmodule. Error: %i     Interface Count: %i\n", err, cm->CANinterfaceCount);
     #endif
+
+    // sets up receive filters
     CO_CANsetNormalMode(cm);
 }
 
 int SocketCanHelper::send_frame(uint32_t can_id, uint8_t* data, uint8_t data_size)
 {
-    #ifdef PRINT_DEBUG
-    //printf("init tx buffer\n");
-    #endif
     CO_CANtx_t* tx1 = CO_CANtxBufferInit(cm, 0, can_id, 0, data_size, false);
 
-    #ifdef PRINT_DEBUG
+    #ifdef PRINT_LOG
     printf("Sending Message-->");
     #endif
+
+    // copy the message data into the transmit buffer
     memcpy(tx1->data, data, data_size);
-	int err1 = CO_CANsend(cm, tx1);
-    #ifdef PRINT_DEBUG
-	printf("Error: %i\t", err1);
+
+    // send the message
+	int err = CO_CANsend(cm, tx1);
+
+    if(err < 0)
+    {
+        #ifdef PRINT_LOG
+	    printf("Transmit Error: %i\t", err);
+        #endif
+        return err;
+    }
+    
+    #ifdef PRINT_LOG
     printf("Id: %02X\t", can_id);
     for(uint8_t i = 0; i < data_size; i++)
     {
@@ -74,22 +96,39 @@ int SocketCanHelper::send_frame(uint32_t can_id, uint8_t* data, uint8_t data_siz
     #endif
 }
 
-CO_CANrxMsg_t * SocketCanHelper::get_frame(uint32_t can_id, void* obj, void (*call_back)(void *object, const CO_CANrxMsg_t *message))
+CO_CANrxMsg_t * SocketCanHelper::get_frame(uint32_t can_id, void* obj, void (*call_back)(void *object, const CO_CANrxMsg_t *message), int wait_time)
 {
-    timerfd_settime(timer_fd, 0, new_value, NULL);
-    #ifdef PRINT_DEBUG
+    // setup desired time_out, 5ms by default
+    time_out->it_interval.tv_nsec = wait_time*1000000;
+
+    // reset the timer for the receive message
+    timerfd_settime(timer_fd, 0, time_out, NULL);
+
+    #ifdef PRINT_LOG
     printf("Getting Message-->");
     #endif
+
     int err = CO_CANrxBufferInit(cm, 0, can_id, 0x7FF, 0, obj, call_back);
-    #ifdef PRINT_DEBUG
-    printf("Error: %i\t", err);
-    #endif
+
+    if(err < 0)
+    {
+        #ifdef PRINT_LOG
+        printf("Receive Error: %i\t", err);
+        #endif
+        return NULL;
+    }
+    
+    // waits until receive specified can_id until timer ends, blocking function
     CO_CANrxWait(cm, timer_fd, can_msg); 
+
+    #ifdef PRINT_LOG
     printf("Id: %02X\t", can_msg->ident);
     for(uint8_t i = 0; i < can_msg->DLC; i++)
     {
         printf("%02X ", can_msg->data[i]);
     }
     printf("\n");
+    #endif
+
     return can_msg;
 }

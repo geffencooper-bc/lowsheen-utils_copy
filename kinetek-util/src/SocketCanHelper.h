@@ -9,39 +9,36 @@
 #include <stdint.h>
 #include "CO_driver.h"
 #include "CO_driver_target.h"
-#include <string>
 #include <sys/timerfd.h>
 #include <time.h>
 #include <unistd.h>
-using std::string;
-using std::to_string;
 
 class SocketCanHelper
 {
     public:
+    // sets up timer for receiving messages
     SocketCanHelper();
 
     ~SocketCanHelper();
 
-    int init_socketcan(const char* interface_name); //"can0"
+    // initializes CO_driver objects and connects to an interface, ex: "can0"
+    int init_socketcan(const char* interface_name);
     
     int send_frame(uint32_t can_id, uint8_t* data, uint8_t data_size);
 
-    // the object is going to be the iap object which will have information about current state in iap process etc
-    CO_CANrxMsg_t * get_frame(uint32_t can_id, void* obj, void (*pFunct)(void *object, const CO_CANrxMsg_t *message));
-
-    void print_frame();
+    // receiving a message requires an identifier object and a callback function which gets the identifier. wait_time is in ms
+    CO_CANrxMsg_t * get_frame(uint32_t can_id, void* obj, void (*pFunct)(void *object, const CO_CANrxMsg_t *message), int wait_time=5);
 
     private:
+    // objects rerquiireied to use CO_driver
     CO_CANmodule_t* cm;
     CO_CANtx_t* tx_buff_arr;
     CO_CANrx_t* rx_buff_arr;
     CO_CANrxMsg_t* can_msg;
 
-    // make into pointers later
-    itimerspec* new_value;
+    // timer variables
+    itimerspec* time_out;
     int timer_fd;
-    timespec* now;
 };
 
 #endif

@@ -1,15 +1,24 @@
 #include "IAP.h"
 #include "KinetekCodes.h"
 
-#define PRINT_DEBUG
+#define PRINT_LOG
 using std::to_string;
 
 IAP::IAP()
 {
+    data_size_bytes = 0;
+    last_line_data_size = 0;
     memset(start_address, 0, 4);
     memset(data_size, 0, 4);
     memset(total_checksum, 0, 4);
+
+    packet_count = 0;
+    page_count = 0;
+    num_bytes_uploaded = 0;
+    curr_page_cs = 0;
     in_iap_mode = false;
+    memset(current_packet, 0, 32);
+
     sc = new SocketCanHelper;
 }
 
@@ -59,97 +68,131 @@ void IAP::init_can(const char* channel_name)
     sc->init_socketcan(channel_name);
 }
 
+void IAP::progress_bar()
+{
+    
+}
+
 void resp_call_back(void* obj, const CO_CANrxMsg_t* can_msg)
 {
     
 }
 
-bool IAP::put_in_iap_mode(bool forced_mode)
+status_code IAP::put_in_iap_mode(bool forced_mode)
 {
-    #ifdef PRINT_DEBUG
+    #ifdef PRINT_LOG
     printf("Putting in IAP mode\n");
     #endif
+
+    // selective mode
     if(!forced_mode)
     {
-        sc->send_frame(KINETEK_COMMAND_ID, ENTER_IAP_MODE_SELECTIVE, sizeof(ENTER_IAP_MODE_SELECTIVE));
-        CO_CANrxMsg_t * resp = sc->get_frame(KINETEK_RESPONSE_ID, this, resp_call_back);
-        // check if in iap mode, figure out how to set timeout diff than forced
-        printf("\n\n======IN IAP MODE=========\n\n");
-        return true;
+        sc->send_frame(KINETEK_COMMAND_ID, ENTER_IAP_MODE_SELECTIVE_DATA, sizeof(ENTER_IAP_MODE_SELECTIVE_DATA));
+        CO_CANrxMsg_t * resp = sc->get_frame(KINETEK_RESPONSE_ID, this, resp_call_back, 10);
+        if(get_response_type(resp->ident, resp->data, resp->DLC) != ENTER_IAP_MODE_SELECTIVE_RESPONSE)
+        {
+            #ifdef PRINT_LOG
+            printf("IAP mode time out\n");
+            #endif
+            return IAP_MODE_FAIL;
+        }
     }
+    // forced mode
     else
     {
-        sc->send_frame(IAP_REQUEST_ID, ENTER_IAP_MODE_FORCED, sizeof(ENTER_IAP_MODE_FORCED));
-        CO_CANrxMsg_t * resp = sc->get_frame(KINETEK_MESSAGE_ID, this, resp_call_back);
+        int count = 0;
+        sc->send_frame(IAP_REQUEST_ID, ENTER_IAP_MODE_FORCED_DATA, sizeof(ENTER_IAP_MODE_FORCED_DATA));
+        CO_CANrxMsg_t * resp = sc->get_frame(KINETEK_MESSAGE_ID, this, resp_call_back, 5);
         while(get_response_type(resp->ident, resp->data, resp->DLC) != IN_IAP_MODE)
         {
-            sc->send_frame(IAP_REQUEST_ID, ENTER_IAP_MODE_FORCED, sizeof(ENTER_IAP_MODE_FORCED));
+            if(count > 500)
+            {
+                #ifdef PRINT_LOG
+                printf("IAP mode time out\n");
+                #endif
+                return IAP_MODE_FAIL;
+            }
+            sc->send_frame(IAP_REQUEST_ID, ENTER_IAP_MODE_FORCED_DATA, sizeof(ENTER_IAP_MODE_FORCED_DATA));
             resp = sc->get_frame(KINETEK_MESSAGE_ID, this, resp_call_back);
+            count++;
         }
-        printf("\n\n======IN IAP MODE=========\n\n");
-        return true;
-    }       
+    }     
+
+    #ifdef PRINT_LOG
+    printf("\n\n======IN IAP MODE=========\n\n");
+    #endif
+    
+    return IAP_MODE_SUCCESS;  
 }
 
-void IAP::send_init_packets()
+status_code IAP::send_init_packets()
 {
-    sc->send_frame(FW_REVISION_REQUEST_ID, FW_REVISION_REQUEST, sizeof(FW_REVISION_REQUEST));
-    CO_CANrxMsg_t * resp = sc->get_frame(FW_REVISION_RESPONSE_ID, this, resp_call_back);
-    while(get_response_type(resp->ident, resp->data, resp->DLC) != FW_REVISION_RESPONSE)
+    // first send the fw revision request
+    sc->send_frame(FW_REVISION_REQUEST_ID, FW_REVISION_REQUEST_DATA, sizeof(FW_REVISION_REQUEST_DATA));
+    CO_CANrxMsg_t * resp = sc->get_frame(FW_REVISION_RESPONSE_ID, this, resp_call_back, 20);
+    if(get_response_type(resp->ident, resp->data, resp->DLC) != FW_REVISION_RESPONSE)
     {
-        sc->send_frame(FW_REVISION_REQUEST_ID, FW_REVISION_REQUEST, sizeof(FW_REVISION_REQUEST));
-        resp = sc->get_frame(FW_REVISION_RESPONSE_ID, this, resp_call_back);
+        return FW_REVISION_REQUEST_FAIL;
     }
+    #ifdef PRINT_LOG
     printf("GOT FW REVISION RESPONSE\n");
+    #endif
 
-    sc->send_frame(IAP_REQUEST_ID, SEND_BYTES, sizeof(SEND_BYTES));
-    resp = sc->get_frame(IAP_RESPONSE_ID, this, resp_call_back);
-    while(get_response_type(resp->ident, resp->data, resp->DLC) != SEND_BYTES_RESPONSE)
+    // next send  a request to sent bytes
+    sc->send_frame(IAP_REQUEST_ID, SEND_BYTES_DATA, sizeof(SEND_BYTES_DATA));
+    resp = sc->get_frame(IAP_RESPONSE_ID, this, resp_call_back, 20);
+    if(get_response_type(resp->ident, resp->data, resp->DLC) != SEND_BYTES_RESPONSE)
     {
-        sc->send_frame(IAP_REQUEST_ID, SEND_BYTES, sizeof(SEND_BYTES));
-        resp = sc->get_frame(IAP_RESPONSE_ID, this, resp_call_back);
+        return SEND_BYTES_FAIL;
     }
+    #ifdef PRINT_LOG
     printf("CAN START SENDING BYTES\n");
+    #endif
 
-    memcpy(SEND_START_ADDRESS + 1, start_address, 4);
-    sc->send_frame(IAP_REQUEST_ID, SEND_START_ADDRESS, sizeof(SEND_START_ADDRESS));
-    resp = sc->get_frame(IAP_RESPONSE_ID, this, resp_call_back);
-    while(get_response_type(resp->ident, resp->data, resp->DLC) != SEND_START_ADDRESS_RESPONSE)
+    // next send the start address
+    memcpy(SEND_START_ADDRESS_DATA + 1, start_address, 4); // copy in start address bytes into message
+    sc->send_frame(IAP_REQUEST_ID, SEND_START_ADDRESS_DATA, sizeof(SEND_START_ADDRESS_DATA));
+    resp = sc->get_frame(IAP_RESPONSE_ID, this, resp_call_back, 20);
+    if(get_response_type(resp->ident, resp->data, resp->DLC) != SEND_START_ADDRESS_RESPONSE)
     {
-        sc->send_frame(IAP_REQUEST_ID, SEND_START_ADDRESS, sizeof(SEND_START_ADDRESS));
-        resp = sc->get_frame(IAP_RESPONSE_ID, this, resp_call_back);
+        return SEND_START_ADDRESS_FAIL;
     }
+    #ifdef PRINT_LOG
     printf("SENT START ADDRESS\n");
+    #endif
 
-    memcpy(SEND_CHECKSUM_DATA + 1, total_checksum, 4);
+    // next send the total checksum
+    memcpy(SEND_CHECKSUM_DATA + 1, total_checksum, 4); // copy in checksum bytes into message
     sc->send_frame(IAP_REQUEST_ID, SEND_CHECKSUM_DATA, sizeof(SEND_CHECKSUM_DATA));
-    resp = sc->get_frame(IAP_RESPONSE_ID, this, resp_call_back);
-    while(get_response_type(resp->ident, resp->data, resp->DLC) != SEND_CHECKSUM_DATA_RESPONSE)
+    resp = sc->get_frame(IAP_RESPONSE_ID, this, resp_call_back, 20);
+    if(get_response_type(resp->ident, resp->data, resp->DLC) != SEND_CHECKSUM_DATA_RESPONSE)
     {
-        sc->send_frame(IAP_REQUEST_ID, SEND_CHECKSUM_DATA, sizeof(SEND_CHECKSUM_DATA));
-        resp = sc->get_frame(IAP_RESPONSE_ID, this, resp_call_back);
+        return SEND_CHECKSUM_FAIL;
     }
+    #ifdef PRINT_LOG
     printf("GOT CHECKSUM DATA RESPONSE\n");
+    #endif;
 
-    memcpy(SEND_DATA_SIZE + 1, data_size, 4);
-    sc->send_frame(IAP_REQUEST_ID, SEND_DATA_SIZE, sizeof(SEND_DATA_SIZE));
-    resp = sc->get_frame(IAP_RESPONSE_ID, this, resp_call_back);
-    while(get_response_type(resp->ident, resp->data, resp->DLC) != SEND_DATA_SIZE_RESPONSE)
+    // finally send the data size
+    memcpy(SEND_DATA_SIZE_DATA + 1, data_size, 4); // copy in data size bytes into message
+    sc->send_frame(IAP_REQUEST_ID, SEND_DATA_SIZE_DATA, sizeof(SEND_DATA_SIZE_DATA));
+    resp = sc->get_frame(IAP_RESPONSE_ID, this, resp_call_back, 20);
+    if(get_response_type(resp->ident, resp->data, resp->DLC) != SEND_DATA_SIZE_RESPONSE)
     {
-        sc->send_frame(IAP_REQUEST_ID, SEND_DATA_SIZE, sizeof(SEND_DATA_SIZE));
-        resp = sc->get_frame(IAP_RESPONSE_ID, this, resp_call_back);
+        return SEND_DATA_SIZE_FAIL;
     }
+    #ifdef PRINT_LOG
     printf("SENT DATA SIZE\n =========DONE WITH INIT PACKETS\n");
+    #endif
+    return INIT_PACKET_SUCCESS;
 }
 
 status_code IAP::upload_hex_file()
 {
+    #ifdef PRINT_LOG
     printf("\n ======== Uploading hex file =======\n");
-    page_count = 0; // every 32 packets (1024 bytes) is a page
-    packet_count = 0; // every 4 frames (32 bytes) is a packet
-    num_bytes_uploaded = 0;
-    curr_page_cs = 0; // current page checksum is just the sum of all the bytes in the page
-
+    #endif
+    
     while(true) // keep sending packets until reached end of file or fail and function returns
     {
         // progress bar
@@ -157,18 +200,20 @@ status_code IAP::upload_hex_file()
         // reached the end of a page
         if(packet_count > 0 && packet_count % 32 == 0)
         {
+            #ifdef PRINT_LOG
             printf("\n======END OF PAGE %i======\n", page_count+1);
+            #endif
 
             // convert page checksum into a list of bytes, copy it into the data of a page checksum frame
-            ut->num_to_byte_list(curr_page_cs, SEND_PAGE_CHECKSUM + 1, 4);
-            SEND_PAGE_CHECKSUM[6] = page_count+1;
+            ut->num_to_byte_list(curr_page_cs, SEND_PAGE_CHECKSUM_DATA + 1, 4);
+            SEND_PAGE_CHECKSUM_DATA[6] = page_count+1;
 
             // send the page checksum frame
-            sc->send_frame(IAP_REQUEST_ID, SEND_PAGE_CHECKSUM, sizeof(SEND_PAGE_CHECKSUM));
+            sc->send_frame(IAP_REQUEST_ID, SEND_PAGE_CHECKSUM_DATA, sizeof(SEND_PAGE_CHECKSUM_DATA));
             CO_CANrxMsg_t * resp = sc->get_frame(IAP_RESPONSE_ID, this, resp_call_back);
             while(get_response_type(resp->ident, resp->data, resp->DLC) != CALCULATE_PAGE_CHECKSUM_RESPONSE)
             {
-                sc->send_frame(IAP_REQUEST_ID, SEND_PAGE_CHECKSUM, sizeof(SEND_PAGE_CHECKSUM));
+                sc->send_frame(IAP_REQUEST_ID, SEND_PAGE_CHECKSUM_DATA, sizeof(SEND_PAGE_CHECKSUM_DATA));
                 resp = sc->get_frame(IAP_RESPONSE_ID, this, resp_call_back);
             }
             page_count +=1;

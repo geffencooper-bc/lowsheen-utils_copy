@@ -32,8 +32,8 @@ int main()
     iap.print();
     iap.init_can("can0");
     iap.put_in_iap_mode(false);
-    iap.send_init_packets();
-    printf("Error: %i", iap.upload_hex_file());
+   // iap.send_init_packets();
+   // printf("Error: %i", iap.upload_hex_file());
 
     // SocketCanHelper sc;
     // sc.init_socketcan("can0");
