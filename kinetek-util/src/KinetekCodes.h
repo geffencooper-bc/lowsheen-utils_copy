@@ -4,12 +4,13 @@
 #ifndef KINETEK_CODES_H
 #define KINETEK_CODES_H
 
-
+#define V2
 // request and response can ids
+#ifdef V1
 enum kt_can_id
 {
     KINETEK_COMMAND_ID =       0x001,
-    FW_REVISION_REQUEST_ID =   0x045,
+    FW_VERSION_REQUEST_ID  =   0x045,
     IAP_REQUEST_ID =           0x048,
     SEND_FRAME_1_ID =          0x04F,
     SEND_FRAME_2_ID =          0x050,
@@ -20,11 +21,35 @@ enum kt_can_id
     RESEND_FRAME_3_ID =        0x055,
     RESEND_FRAME_4_ID =        0x056,
     KINETEK_MESSAGE_ID =       0x060,
-    FW_REVISION_RESPONSE_ID =  0x067,
+    FW_VERSION_RESPONSE_ID =   0x067,
     IAP_RESPONSE_ID =          0x069,
     HEART_BEAT_ID =            0x080,
     KINETEK_RESPONSE_ID =      0x081
 };
+#endif
+
+#ifdef V2
+enum kt_can_id
+{
+    KINETEK_COMMAND_ID =       0x001,
+    FW_VERSION_REQUEST_ID =    0x005,
+    IAP_REQUEST_ID =           0x008,
+    SEND_FRAME_1_ID =          0x00F,
+    SEND_FRAME_2_ID =          0x010,
+    SEND_FRAME_3_ID =          0x011,
+    SEND_FRAME_4_ID =          0x012,
+    RESEND_FRAME_1_ID =        0x013,
+    RESEND_FRAME_2_ID =        0x014,
+    RESEND_FRAME_3_ID =        0x015,
+    RESEND_FRAME_4_ID =        0x016,
+    KINETEK_MESSAGE_ID =       0x080,
+    FW_VERSION_RESPONSE_ID =   0x087,
+    IAP_RESPONSE_ID =          0x089,
+    HEART_BEAT_ID =            0x080,
+    KINETEK_RESPONSE_ID =      0x081
+};
+#endif
+
 
 // IAP response name
 enum iap_response
@@ -33,7 +58,7 @@ enum iap_response
     ENTER_IAP_MODE_SELECTIVE_RESPONSE,
     RECEIVED_32_BYTES,
     SEND_BYTES_RESPONSE,
-    FW_REVISION_RESPONSE,
+    FW_VERSION_RESPONSE,
     SEND_START_ADDRESS_RESPONSE,
     SEND_CHECKSUM_DATA_RESPONSE,
     SEND_DATA_SIZE_RESPONSE,
@@ -54,16 +79,16 @@ enum iap_response
 uint8_t ENTER_IAP_MODE_SELECTIVE_DATA[5]  =  {0x1D, 0x03, 0x27, 0x00, 0x00};
 
 // ID = 0x045
-uint8_t FW_REVISION_REQUEST_DATA[8]       =  {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
+uint8_t FW_VERSION_REQUEST_DATA[8]       =  {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
 
 // ID = 0x048
 uint8_t ENTER_IAP_MODE_FORCED_DATA[8]     =  {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
 uint8_t SEND_BYTES_DATA[8]                =  {0x88, 0x88, 0x88, 0x88, 0x88, 0x88, 0x88, 0x88};
 uint8_t SEND_START_ADDRESS_DATA[8]        =  {0x02, 0xFF, 0xFF, 0xFF, 0xFF, 0x9A, 0x00, 0x00};
-uint8_t SEND_CHECKSUM_DATA[8]        =  {0x03, 0xFF, 0xFF, 0xFF, 0xFF, 0x9B, 0x00, 0x00};
+uint8_t SEND_CHECKSUM_DATA[8]             =  {0x03, 0xFF, 0xFF, 0xFF, 0xFF, 0x9B, 0x00, 0x00};
 uint8_t SEND_DATA_SIZE_DATA[8]            =  {0x04, 0xFF, 0xFF, 0xFF, 0xFF, 0x9C, 0x00, 0x00};
 uint8_t SEND_END_OF_FILE_DATA[8]          =  {0x05, 0xFF, 0x00, 0x00, 0x00, 0x90, 0x00, 0x00};
-uint8_t TOTAL_CHECKSUM_DATA[8]    =  {0x06, 0xFF, 0xFF, 0xFF, 0xFF, 0x9D, 0x00, 0x00};
+uint8_t TOTAL_CHECKSUM_DATA[8]            =  {0x06, 0xFF, 0xFF, 0xFF, 0xFF, 0x9D, 0x00, 0x00};
 uint8_t SEND_PAGE_CHECKSUM_DATA[8]        =  {0x07, 0xFF, 0xFF, 0xFF, 0xFF, 0x9E, 0xFF, 0x00};
 
 
@@ -77,7 +102,7 @@ uint8_t IN_IAP_MODE_DATA[5]                           =  {0x80, 0x00, 0x00, 0x00
 uint8_t SELF_CALCULATED_PAGE_CHECKSUM_DATA[5]         =  {0x84, 0xFF, 0xFF, 0xFF, 0xFF};
 
 //ID = 0x067
-uint8_t FW_REVISION_RESPONSE_DATA[8]                  =  {0xFF, 0xFF, 0x5E, 0xFF, 0xFF, 0x00, 0x00, 0x00};
+uint8_t FW_VERSION_RESPONSE_DATA[8]                  =  {0xFF, 0xFF, 0x5E, 0xFF, 0xFF, 0x00, 0x00, 0x00};
 
 // ID = 0x069
 uint8_t SEND_BYTES_RESPONSE_DATA[8]                   =  {0x99, 0x99, 0x99, 0x99, 0x99, 0x99, 0x99, 0x99};
@@ -154,6 +179,11 @@ iap_response get_response_type(uint32_t can_id, uint8_t* data, uint8_t num_bytes
             return CALCULATE_PAGE_CHECKSUM_RESPONSE;
         }
     }
+    else if((kt_can_id)can_id == HEART_BEAT_ID && data[0] == HEART_BEAT_DATA[0]) // 0x080
+    {
+        printf("heart beat");
+        return HEART_BEAT;
+    }
     else if((kt_can_id)can_id == KINETEK_MESSAGE_ID) // 0x60
     {
         if(array_compare(IN_IAP_MODE_DATA, sizeof(IN_IAP_MODE_DATA), data, num_bytes))
@@ -165,18 +195,11 @@ iap_response get_response_type(uint32_t can_id, uint8_t* data, uint8_t num_bytes
             return SELF_CALCULATED_PAGE_CHECKSUM;
         }
     }
-    else if((kt_can_id)can_id == FW_REVISION_RESPONSE_ID) // 0x067
+    else if((kt_can_id)can_id == FW_VERSION_RESPONSE_ID) // 0x067
     {
         if(data[2] == 0x5E)
-        return FW_REVISION_RESPONSE;
+        return FW_VERSION_RESPONSE;
     } 
-    else if((kt_can_id)can_id == HEART_BEAT_ID) // 0x080
-    {
-        if(data[0] == HEART_BEAT_DATA[0])
-        {
-            return HEART_BEAT;
-        }
-    }
     else if ((kt_can_id)can_id == KINETEK_RESPONSE_ID) // 0x081
     {
         if(array_compare(ENTER_IAP_MODE_SELECTIVE_RESPONSE_DATA, sizeof(ENTER_IAP_MODE_SELECTIVE_RESPONSE_DATA), data, num_bytes))

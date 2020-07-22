@@ -28,20 +28,31 @@ void call_back(void* msg, const CO_CANrxMsg_t* can_msg)
 int main()
 {
     IAP iap;
-    iap.load_hex_file("/home/geffen.cooper/Desktop/kinetek_scripts/hex_file_copies/2.27_copy.hex");
+    iap.load_hex_file("/home/geffen.cooper/Desktop/kinetek_scripts/hex_file_copies/2.28_copy.hex");
     iap.print();
     iap.init_can("can0");
-    iap.put_in_iap_mode();
-    iap.send_init_packets();
-    int err = iap.upload_hex_file();
-    if(err != 16)
+    if(iap.put_in_iap_mode(false) == IAP_MODE_SUCCESS)
     {
-        printf("\nError: %i\n", err);
+        status_code status = iap.send_init_packets();
+        if( status == INIT_PACKET_SUCCESS)
+        {
+            int err = iap.upload_hex_file();
+            if(err != 16)
+            {
+                printf("\nError: %i\n", err);
+            }
+            else
+            {
+                printf("\n\n====== SUCCSESS =======\n");
+            }
+        }
+        else
+        {
+            printf("Error: %i", status);
+        }
     }
-    else
-    {
-        printf("\n\n====== SUCCSESS =======\n");
-    }
+    
+    
     
     
     

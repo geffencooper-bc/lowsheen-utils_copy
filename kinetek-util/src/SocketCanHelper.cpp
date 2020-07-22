@@ -1,6 +1,6 @@
 #include "SocketCanHelper.h"
 
-//#define PRINT_LOG
+#define PRINT_LOG
 
 SocketCanHelper::SocketCanHelper()
 {

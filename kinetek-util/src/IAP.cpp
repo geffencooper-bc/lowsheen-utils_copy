@@ -1,8 +1,8 @@
 #include "IAP.h"
 #include "KinetekCodes.h"
 
-//#define PRINT_LOG
-#define PROGRESS_BAR
+#define PRINT_LOG
+//#define PROGRESS_BAR
 using std::to_string;
 
 IAP::IAP()
@@ -102,6 +102,7 @@ status_code IAP::put_in_iap_mode(bool forced_mode)
     // selective mode
     if(!forced_mode)
     {
+        // first do soft reset by sending selective download command
         sc->send_frame(KINETEK_COMMAND_ID, ENTER_IAP_MODE_SELECTIVE_DATA, sizeof(ENTER_IAP_MODE_SELECTIVE_DATA));
         CO_CANrxMsg_t * resp = sc->get_frame(KINETEK_RESPONSE_ID, this, resp_call_back, 10);
         if(get_response_type(resp->ident, resp->data, resp->DLC) != ENTER_IAP_MODE_SELECTIVE_RESPONSE)
@@ -111,15 +112,24 @@ status_code IAP::put_in_iap_mode(bool forced_mode)
             #endif
             return IAP_MODE_FAIL;
         }
+         #ifdef PRINT_LOG
+        printf("Selective FW Request success\n");
+        #endif
 
-        resp = sc->get_frame(KINETEK_MESSAGE_ID, this, resp_call_back, 10);
+        // next check if in iap mode
+        int count = 0;
+        resp = sc->get_frame(KINETEK_MESSAGE_ID, this, resp_call_back, 20);
         while(get_response_type(resp->ident, resp->data, resp->DLC) != IN_IAP_MODE)
         {
-            resp = sc->get_frame(KINETEK_MESSAGE_ID, this, resp_call_back);
-            #ifdef PRINT_LOG
-            //printf("IAP mode time out\n");
-            #endif
-            //return IAP_MODE_FAIL;
+            if(count > 10)
+            {
+                #ifdef PRINT_LOG
+                printf("IAP mode time out\n");
+                #endif
+                return IAP_MODE_FAIL;
+            }
+            resp = sc->get_frame(KINETEK_MESSAGE_ID, this, resp_call_back, 20);
+            count++;
         }
     }
     // forced mode
@@ -127,7 +137,7 @@ status_code IAP::put_in_iap_mode(bool forced_mode)
     {
         int count = 0;
         sc->send_frame(IAP_REQUEST_ID, ENTER_IAP_MODE_FORCED_DATA, sizeof(ENTER_IAP_MODE_FORCED_DATA));
-        CO_CANrxMsg_t * resp = sc->get_frame(KINETEK_MESSAGE_ID, this, resp_call_back, 5);
+        CO_CANrxMsg_t * resp = sc->get_frame(KINETEK_MESSAGE_ID, this, resp_call_back, 4);
         while(get_response_type(resp->ident, resp->data, resp->DLC) != IN_IAP_MODE)
         {
             if(count > 5000)
@@ -152,15 +162,15 @@ status_code IAP::put_in_iap_mode(bool forced_mode)
 
 status_code IAP::send_init_packets()
 {
-    // first send the fw revision request
-    sc->send_frame(FW_REVISION_REQUEST_ID, FW_REVISION_REQUEST_DATA, sizeof(FW_REVISION_REQUEST_DATA));
-    CO_CANrxMsg_t * resp = sc->get_frame(FW_REVISION_RESPONSE_ID, this, resp_call_back, 20);
-    if(get_response_type(resp->ident, resp->data, resp->DLC) != FW_REVISION_RESPONSE)
+    // first send the fw version request
+    sc->send_frame(FW_VERSION_REQUEST_ID, FW_VERSION_REQUEST_DATA, sizeof(FW_VERSION_REQUEST_DATA));
+    CO_CANrxMsg_t * resp = sc->get_frame(FW_VERSION_RESPONSE_ID, this, resp_call_back, 40);
+    if(get_response_type(resp->ident, resp->data, resp->DLC) != FW_VERSION_RESPONSE)
     {
-        return FW_REVISION_REQUEST_FAIL;
+        return FW_VERSION_REQUEST_FAIL;
     }
     #ifdef PRINT_LOG
-    printf("GOT FW REVISION RESPONSE\n");
+    printf("GOT FW VERSION RESPONSE\n");
     #endif
 
     // next send  a request to sent bytes
