@@ -86,7 +86,7 @@ static error_t parse_opt(int key, char *arg, struct argp_state *state) {
         cmd->options = parse_int(arg);
         CU_TASK_addTask("state", 0);
         break;
-    case  'v':  // version information
+    case 'v':  // version information
         printf("%s - %s - %s\r\n", VERSION_GIT_HASH, VERSION_GIT_TAG, VERSION_GIT_DATE_LOCAL);
         exit(0);        
     case 't': 
@@ -95,7 +95,7 @@ static error_t parse_opt(int key, char *arg, struct argp_state *state) {
         CU_TASK_addTask("test", 0);
         break;       
     case 'e': 
-        // add task test
+        // add estop control
         cmd->options = parse_int(arg);
         CU_TASK_addTask("estop", 0);
         break;             
