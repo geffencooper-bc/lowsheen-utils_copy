@@ -18,7 +18,7 @@ static const CU_TASK_Entry taskEntries[] =
 { 
     {"info", CU_TASK_INFO_prepare, CU_TASK_INFO_update},
     {"program", CU_TASK_PROGRAM_prepare, CU_TASK_PROGRAM_update},
-    {"reset", CU_TASK_RESET_prepare, CU_TASK_RESET_update},
+    {"reset", NULL, CU_TASK_RESET_update},
     {"state", NULL, CU_TASK_STATE_update},
     {"test", NULL, CU_TASK_TEST_update},
 } ;
