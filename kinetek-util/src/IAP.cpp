@@ -2,7 +2,9 @@
 #include "KinetekCodes.h"
 #include <unistd.h>
 
-#define WAIT_TIME 100 // ms
+#define LONG_WAIT_TIME 5000 // ms --> 5 sec
+#define MEDIUM_WAIT_TIME 100 // ms
+#define SHORT_WAIT_TIME 10 // ms
 #define PRINT_LOG
 //#define PROGRESS_BAR
 using std::to_string;
@@ -106,11 +108,11 @@ status_code IAP::put_in_iap_mode(bool forced_mode)
     {
         // first do soft reset by sending selective download command
         sc->send_frame(KINETEK_COMMAND_ID, ENTER_IAP_MODE_SELECTIVE_DATA, sizeof(ENTER_IAP_MODE_SELECTIVE_DATA));
-        CO_CANrxMsg_t * resp = sc->get_frame(KINETEK_RESPONSE_ID, this, resp_call_back, 50*WAIT_TIME);
+        CO_CANrxMsg_t * resp = sc->get_frame(KINETEK_RESPONSE_ID, this, resp_call_back, LONG_WAIT_TIME);
         if(get_response_type(resp->ident, resp->data, resp->DLC) != ENTER_IAP_MODE_SELECTIVE_RESPONSE)
         {
             #ifdef PRINT_LOG
-            printf("IAP mode time out--\n");
+            printf("Selective FW Request time out\n");
             #endif
             return IAP_MODE_FAIL;
         }
@@ -119,7 +121,7 @@ status_code IAP::put_in_iap_mode(bool forced_mode)
         #endif
 
         // next check if in iap mode
-        resp = sc->get_frame(KINETEK_MESSAGE_ID, this, resp_call_back, WAIT_TIME);
+        resp = sc->get_frame(KINETEK_MESSAGE_ID, this, resp_call_back, MEDIUM_WAIT_TIME);
         if(get_response_type(resp->ident, resp->data, resp->DLC) != IN_IAP_MODE)
         {
             #ifdef PRINT_LOG
@@ -134,18 +136,18 @@ status_code IAP::put_in_iap_mode(bool forced_mode)
         // repeatedly send the force enter iap mode command 5000 times
         int count = 0;
         sc->send_frame(IAP_REQUEST_ID, ENTER_IAP_MODE_FORCED_DATA, sizeof(ENTER_IAP_MODE_FORCED_DATA));
-        CO_CANrxMsg_t * resp = sc->get_frame(KINETEK_MESSAGE_ID, this, resp_call_back, 3);
+        CO_CANrxMsg_t * resp = sc->get_frame(KINETEK_MESSAGE_ID, this, resp_call_back, 4);
         while(get_response_type(resp->ident, resp->data, resp->DLC) != IN_IAP_MODE)
         {
             if(count > 5000)
             {
                 #ifdef PRINT_LOG
-                printf("IAP mode time out\n");
+                printf("Forced IAP mode time out\n");
                 #endif
                 return IAP_MODE_FAIL;
             }
             sc->send_frame(IAP_REQUEST_ID, ENTER_IAP_MODE_FORCED_DATA, sizeof(ENTER_IAP_MODE_FORCED_DATA));
-            resp = sc->get_frame(KINETEK_MESSAGE_ID, this, resp_call_back);
+            resp = sc->get_frame(KINETEK_MESSAGE_ID, this, resp_call_back, 4);
             count++;
         }
     }     
@@ -161,7 +163,7 @@ status_code IAP::send_init_packets()
 {
     // first send the fw version request
     sc->send_frame(FW_VERSION_REQUEST_ID, FW_VERSION_REQUEST_DATA, sizeof(FW_VERSION_REQUEST_DATA));
-    CO_CANrxMsg_t * resp = sc->get_frame(FW_VERSION_RESPONSE_ID, this, resp_call_back, WAIT_TIME);
+    CO_CANrxMsg_t * resp = sc->get_frame(FW_VERSION_RESPONSE_ID, this, resp_call_back, SHORT_WAIT_TIME);
     if(get_response_type(resp->ident, resp->data, resp->DLC) != FW_VERSION_RESPONSE)
     {
         #ifdef PRINT_LOG
@@ -175,7 +177,7 @@ status_code IAP::send_init_packets()
 
     // next send  a request to sent bytes
     sc->send_frame(IAP_REQUEST_ID, SEND_BYTES_DATA, sizeof(SEND_BYTES_DATA));
-    resp = sc->get_frame(IAP_RESPONSE_ID, this, resp_call_back, WAIT_TIME);
+    resp = sc->get_frame(IAP_RESPONSE_ID, this, resp_call_back, SHORT_WAIT_TIME);
     if(get_response_type(resp->ident, resp->data, resp->DLC) != SEND_BYTES_RESPONSE)
     {
         #ifdef PRINT_LOG
@@ -190,7 +192,7 @@ status_code IAP::send_init_packets()
     // next send the start address
     memcpy(SEND_START_ADDRESS_DATA + 1, start_address, 4); // copy in start address bytes into message
     sc->send_frame(IAP_REQUEST_ID, SEND_START_ADDRESS_DATA, sizeof(SEND_START_ADDRESS_DATA));
-    resp = sc->get_frame(IAP_RESPONSE_ID, this, resp_call_back, 20);
+    resp = sc->get_frame(IAP_RESPONSE_ID, this, resp_call_back, SHORT_WAIT_TIME);
     if(get_response_type(resp->ident, resp->data, resp->DLC) != SEND_START_ADDRESS_RESPONSE)
     {
         #ifdef PRINT_LOG
@@ -205,7 +207,7 @@ status_code IAP::send_init_packets()
     // next send the total checksum
     memcpy(SEND_CHECKSUM_DATA + 1, total_checksum, 4); // copy in checksum bytes into message
     sc->send_frame(IAP_REQUEST_ID, SEND_CHECKSUM_DATA, sizeof(SEND_CHECKSUM_DATA));
-    resp = sc->get_frame(IAP_RESPONSE_ID, this, resp_call_back, WAIT_TIME);
+    resp = sc->get_frame(IAP_RESPONSE_ID, this, resp_call_back, SHORT_WAIT_TIME);
     if(get_response_type(resp->ident, resp->data, resp->DLC) != SEND_CHECKSUM_DATA_RESPONSE)
     {
         #ifdef PRINT_LOG
@@ -220,7 +222,7 @@ status_code IAP::send_init_packets()
     // finally send the data size
     memcpy(SEND_DATA_SIZE_DATA + 1, data_size, 4); // copy in data size bytes into message
     sc->send_frame(IAP_REQUEST_ID, SEND_DATA_SIZE_DATA, sizeof(SEND_DATA_SIZE_DATA));
-    resp = sc->get_frame(IAP_RESPONSE_ID, this, resp_call_back, WAIT_TIME);
+    resp = sc->get_frame(IAP_RESPONSE_ID, this, resp_call_back, SHORT_WAIT_TIME);
     if(get_response_type(resp->ident, resp->data, resp->DLC) != SEND_DATA_SIZE_RESPONSE)
     {
         #ifdef PRINT_LOG
@@ -259,7 +261,7 @@ status_code IAP::upload_hex_file()
 
             // send the page checksum frame, this frame typically takes longer
             sc->send_frame(IAP_REQUEST_ID, SEND_PAGE_CHECKSUM_DATA, sizeof(SEND_PAGE_CHECKSUM_DATA));
-            CO_CANrxMsg_t * resp = sc->get_frame(IAP_RESPONSE_ID, this, resp_call_back, 50*WAIT_TIME);
+            CO_CANrxMsg_t * resp = sc->get_frame(IAP_RESPONSE_ID, this, resp_call_back, LONG_WAIT_TIME);
             if(get_response_type(resp->ident, resp->data, resp->DLC) != CALCULATE_PAGE_CHECKSUM_RESPONSE)
             {
                 #ifdef PRINT_LOG
@@ -301,7 +303,7 @@ status_code IAP::upload_hex_file()
             // send end of file notification with the number of bytes of the last data line (account for filler when doing checksum), takes longer to receive response
             SEND_END_OF_FILE_DATA[1] = last_line_data_size;
             sc->send_frame(IAP_REQUEST_ID, SEND_END_OF_FILE_DATA, sizeof(SEND_END_OF_FILE_DATA));
-            CO_CANrxMsg_t * resp = sc->get_frame(IAP_RESPONSE_ID, this, resp_call_back, 50*WAIT_TIME);
+            CO_CANrxMsg_t * resp = sc->get_frame(IAP_RESPONSE_ID, this, resp_call_back, LONG_WAIT_TIME);
             if(get_response_type(resp->ident, resp->data, resp->DLC) != END_OF_HEX_FILE_RESPONSE)
             {
                 #ifdef PRINT_LOG
@@ -316,7 +318,7 @@ status_code IAP::upload_hex_file()
 
             // send last page checksum, takes longer to receive
             sc->send_frame(IAP_REQUEST_ID, SEND_PAGE_CHECKSUM_DATA, sizeof(SEND_PAGE_CHECKSUM_DATA));
-            resp = sc->get_frame(IAP_RESPONSE_ID, this, resp_call_back, 50*WAIT_TIME);
+            resp = sc->get_frame(IAP_RESPONSE_ID, this, resp_call_back, LONG_WAIT_TIME);
             if(get_response_type(resp->ident, resp->data, resp->DLC) != CALCULATE_PAGE_CHECKSUM_RESPONSE)
             {
                 #ifdef PRINT_LOG
@@ -334,7 +336,7 @@ status_code IAP::upload_hex_file()
             }
             memcpy(TOTAL_CHECKSUM_DATA+1, total_checksum,4);
             sc->send_frame(IAP_REQUEST_ID, TOTAL_CHECKSUM_DATA, sizeof(TOTAL_CHECKSUM_DATA));
-            resp = sc->get_frame(IAP_RESPONSE_ID, this, resp_call_back, 50*WAIT_TIME);
+            resp = sc->get_frame(IAP_RESPONSE_ID, this, resp_call_back, LONG_WAIT_TIME);
             if(get_response_type(resp->ident, resp->data, resp->DLC) != CALCULATE_TOTAL_CHECKSUM_RESPONSE)
             {
                 #ifdef PRINT_LOG
@@ -344,7 +346,7 @@ status_code IAP::upload_hex_file()
             }
 
             // check for a heartbeat
-            resp = sc->get_frame(HEART_BEAT_ID, this, resp_call_back, 50*WAIT_TIME);
+            resp = sc->get_frame(HEART_BEAT_ID, this, resp_call_back, LONG_WAIT_TIME);
             if(get_response_type(resp->ident, resp->data, resp->DLC) != HEART_BEAT)
             {
                 #ifdef PRINT_LOG
@@ -369,13 +371,14 @@ status_code IAP::send_hex_packet(bool is_retry)
         sc->send_frame(RESEND_FRAME_2_ID, current_packet+8, 8);
         sc->send_frame(RESEND_FRAME_3_ID, current_packet+16, 8);
         sc->send_frame(RESEND_FRAME_4_ID, current_packet+24, 8);
-        CO_CANrxMsg_t * resp = sc->get_frame(IAP_RESPONSE_ID, this, resp_call_back, WAIT_TIME);
+        CO_CANrxMsg_t * resp = sc->get_frame(IAP_RESPONSE_ID, this, resp_call_back, LONG_WAIT_TIME);
         if(get_response_type(resp->ident, resp->data, resp->DLC) != RECEIVED_32_BYTES)
         {
             return PACKET_RESENT_FAIL; // need to resend frames
         }
         // increment num bytes uploaded, need to figure out when last line not full
         return PACKET_SENT_SUCCESS;
+        usleep(10000);
     }
 
     // otherwise send the next hex packet
@@ -446,7 +449,7 @@ status_code IAP::send_hex_packet(bool is_retry)
                         case SEND_FRAME_4_ID:
                         {
                             sc->send_frame(SEND_FRAME_4_ID, current_packet+24, 8);
-                            CO_CANrxMsg_t * resp = sc->get_frame(IAP_RESPONSE_ID, this, resp_call_back, WAIT_TIME);
+                            CO_CANrxMsg_t * resp = sc->get_frame(IAP_RESPONSE_ID, this, resp_call_back, LONG_WAIT_TIME);
                             if(get_response_type(resp->ident, resp->data, resp->DLC) != RECEIVED_32_BYTES)
                             {
                                 return PACKET_SENT_FAIL;
@@ -487,7 +490,7 @@ status_code IAP::send_hex_packet(bool is_retry)
                 case SEND_FRAME_4_ID:
                 {
                     sc->send_frame(SEND_FRAME_4_ID, data, 8);
-                    CO_CANrxMsg_t * resp = sc->get_frame(IAP_RESPONSE_ID, this, resp_call_back, WAIT_TIME);
+                    CO_CANrxMsg_t * resp = sc->get_frame(IAP_RESPONSE_ID, this, resp_call_back, 500);
                     while(get_response_type(resp->ident, resp->data, resp->DLC) != RECEIVED_32_BYTES)
                     {
                         return PACKET_SENT_FAIL;
@@ -496,6 +499,7 @@ status_code IAP::send_hex_packet(bool is_retry)
                     #ifdef PRINT_LOG
                     printf("BYTES UPLOADED: %i\n", num_bytes_uploaded);
                     #endif
+                    usleep(10000);
                     return PACKET_SENT_SUCCESS;
                 }
             }

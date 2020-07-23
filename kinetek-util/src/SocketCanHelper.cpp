@@ -77,7 +77,7 @@ int SocketCanHelper::send_frame(uint32_t can_id, uint8_t* data, uint8_t data_siz
     // send the message
 	int err = CO_CANsend(cm, tx1);
 
-    while(err < 0)
+    if(err < 0)
     {
         #ifdef PRINT_LOG
 	    printf("Transmit Error: %i\t", err);
