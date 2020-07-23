@@ -55,17 +55,11 @@ void print_array(uint8_t* arr, uint8_t size)
 void IAP::print()
 {
     printf("\n");
-    printf("\n\t\t\t\t\t=============================================");
-    printf("\n\t\t\t\t\t============= IAP UTILITY PRINT== ===========");
-    printf("\n\t\t\t\t\t=============================================\n\n");
+    printf("\n================= IAP DETAILS ===============");
     printf("\nHEX FILE DATA SIZE:\t\t%i bytes", data_size_bytes);
     printf("\nHEX FILE DATA TOTAL CHECKSUM:\t"); print_array(total_checksum, sizeof(total_checksum));
     printf("\nSTART ADDRESS:\t\t\t"); print_array(start_address, sizeof(start_address));
-    printf("\n");
-    printf("\n\t\t\t\t\t=============================================");
-    printf("\n\t\t\t\t\t============= IAP UTILITY PRINT =============");
-    printf("\n\t\t\t\t\t=============================================\n\n\n\n");
-    
+    printf("\n=============================================\n");
 }
 
 void IAP::init_can(const char* channel_name)
@@ -136,7 +130,7 @@ status_code IAP::put_in_iap_mode(bool forced_mode)
         // repeatedly send the force enter iap mode command 5000 times
         int count = 0;
         sc->send_frame(IAP_REQUEST_ID, ENTER_IAP_MODE_FORCED_DATA, sizeof(ENTER_IAP_MODE_FORCED_DATA));
-        CO_CANrxMsg_t * resp = sc->get_frame(KINETEK_MESSAGE_ID, this, resp_call_back, 4);
+        CO_CANrxMsg_t * resp = sc->get_frame(FORCED_IAP_RESPOMSE_ID, this, resp_call_back, 10);
         while(get_response_type(resp->ident, resp->data, resp->DLC) != IN_IAP_MODE)
         {
             if(count > 5000)
@@ -147,7 +141,7 @@ status_code IAP::put_in_iap_mode(bool forced_mode)
                 return IAP_MODE_FAIL;
             }
             sc->send_frame(IAP_REQUEST_ID, ENTER_IAP_MODE_FORCED_DATA, sizeof(ENTER_IAP_MODE_FORCED_DATA));
-            resp = sc->get_frame(KINETEK_MESSAGE_ID, this, resp_call_back, 4);
+            resp = sc->get_frame(FORCED_IAP_RESPOMSE_ID, this, resp_call_back, 10);
             count++;
         }
     }     
@@ -174,6 +168,8 @@ status_code IAP::send_init_packets()
     #ifdef PRINT_LOG
     printf("GOT FW VERSION RESPONSE\n");
     #endif
+
+    printf("\nKinetek Bootloader Version: %i.%i", resp->data[0], resp->data[1]);
 
     // next send  a request to sent bytes
     sc->send_frame(IAP_REQUEST_ID, SEND_BYTES_DATA, sizeof(SEND_BYTES_DATA));
@@ -490,8 +486,8 @@ status_code IAP::send_hex_packet(bool is_retry)
                 case SEND_FRAME_4_ID:
                 {
                     sc->send_frame(SEND_FRAME_4_ID, data, 8);
-                    CO_CANrxMsg_t * resp = sc->get_frame(IAP_RESPONSE_ID, this, resp_call_back, 500);
-                    while(get_response_type(resp->ident, resp->data, resp->DLC) != RECEIVED_32_BYTES)
+                    CO_CANrxMsg_t * resp = sc->get_frame(IAP_RESPONSE_ID, this, resp_call_back, 150);
+                    if(get_response_type(resp->ident, resp->data, resp->DLC) != RECEIVED_32_BYTES)
                     {
                         return PACKET_SENT_FAIL;
                     }
