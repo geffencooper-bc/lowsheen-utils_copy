@@ -115,7 +115,7 @@ status_code IAP::put_in_iap_mode(bool forced_mode)
         #endif
 
         // next check if in iap mode
-        CO_CANrxMsg_t * resp = sc->get_frame(KINETEK_MESSAGE_ID, this, resp_call_back, MEDIUM_WAIT_TIME);
+        resp = sc->get_frame(KINETEK_MESSAGE_ID, this, resp_call_back, MEDIUM_WAIT_TIME);
         if(get_response_type(resp->ident, resp->data, resp->DLC) != IN_IAP_MODE)
         {
             #ifdef PRINT_LOG
@@ -247,6 +247,7 @@ status_code IAP::upload_hex_file()
         // reached the end of a page
         if(packet_count > 0 && packet_count % 32 == 0)
         {
+            usleep(100000);
             #ifdef PRINT_LOG
             printf("\n======END OF PAGE %i======\n", page_count+1);
             #endif
@@ -258,12 +259,18 @@ status_code IAP::upload_hex_file()
             // send the page checksum frame, this frame typically takes longer
             sc->send_frame(IAP_REQUEST_ID, SEND_PAGE_CHECKSUM_DATA, sizeof(SEND_PAGE_CHECKSUM_DATA));
             CO_CANrxMsg_t * resp = sc->get_frame(IAP_RESPONSE_ID, this, resp_call_back, LONG_WAIT_TIME);
-            if(get_response_type(resp->ident, resp->data, resp->DLC) != CALCULATE_PAGE_CHECKSUM_RESPONSE)
+            int count = 0;
+            while(get_response_type(resp->ident, resp->data, resp->DLC) != CALCULATE_PAGE_CHECKSUM_RESPONSE)
             {
-                #ifdef PRINT_LOG
-                printf("PAGE_CHECKSUM TIMEOUT\n");
-                #endif
-                return PAGE_CHECKSUM_FAIL;
+                if(count > 10)
+                {
+                    #ifdef PRINT_LOG
+                    printf("PAGE_CHECKSUM TIMEOUT\n");
+                    #endif
+                    return PAGE_CHECKSUM_FAIL;
+                }
+                resp = sc->get_frame(IAP_RESPONSE_ID, this, resp_call_back, LONG_WAIT_TIME);
+                count++;
             }
             page_count +=1;
             curr_page_cs = 0;
@@ -315,14 +322,19 @@ status_code IAP::upload_hex_file()
             // send last page checksum, takes longer to receive
             sc->send_frame(IAP_REQUEST_ID, SEND_PAGE_CHECKSUM_DATA, sizeof(SEND_PAGE_CHECKSUM_DATA));
             resp = sc->get_frame(IAP_RESPONSE_ID, this, resp_call_back, LONG_WAIT_TIME);
-            if(get_response_type(resp->ident, resp->data, resp->DLC) != CALCULATE_PAGE_CHECKSUM_RESPONSE)
+            int count = 0;
+            while(get_response_type(resp->ident, resp->data, resp->DLC) != CALCULATE_PAGE_CHECKSUM_RESPONSE)
             {
-                #ifdef PRINT_LOG
-                printf("PAGE_CHECKSUM TIMEOUT\n");
-                #endif
-                return PAGE_CHECKSUM_FAIL;
+                if(count > 10)
+                {
+                    #ifdef PRINT_LOG
+                    printf("PAGE_CHECKSUM TIMEOUT\n");
+                    #endif
+                    return PAGE_CHECKSUM_FAIL;
+                }
+                resp = sc->get_frame(IAP_RESPONSE_ID, this, resp_call_back, LONG_WAIT_TIME);
+                count++;
             }
-
             // send total checksum
             for(int i = 0; i < 2; i++)
             {
@@ -360,6 +372,7 @@ status_code IAP::send_hex_packet(bool is_retry)
     // first check if the hex packet to be sent is a retry
     if(is_retry)
     {
+        usleep(100000);
         // resend the last packet using saved data from "current packet"
         kt_can_id curr_frame_id = RESEND_FRAME_1_ID;
         uint8_t data[8];
@@ -374,7 +387,6 @@ status_code IAP::send_hex_packet(bool is_retry)
         }
         // increment num bytes uploaded, need to figure out when last line not full
         return PACKET_SENT_SUCCESS;
-        usleep(10000);
     }
 
     // otherwise send the next hex packet
