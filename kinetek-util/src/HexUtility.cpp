@@ -1,13 +1,11 @@
 #include "HexUtility.h"
 
 using std::ifstream;
-using std::ostringstream;
 using std::stoi;
 using std::ios;
 
 HexUtility::HexUtility(const string &hex_file_path) 
 {
-    // need to init other member variables
     curr_line = "";
     is_first_8 = true;
     is_eof = false;       
@@ -28,7 +26,6 @@ HexUtility::HexUtility(const string &hex_file_path)
 
 HexUtility::~HexUtility()
 {
-    printf("hex-utility destructor\n");
     hex_file.close();
 }
 
@@ -51,6 +48,7 @@ int HexUtility::get_start_address(uint8_t* start_address_bytes, uint8_t num_byte
 
 int HexUtility::get_next_8_bytes(uint8_t* data_bytes, uint8_t num_bytes)
 {
+    // get next line because start of new record
     if(is_first_8)
     {
         getline(hex_file, curr_line);
@@ -64,17 +62,19 @@ int HexUtility::get_next_8_bytes(uint8_t* data_bytes, uint8_t num_bytes)
         return -1;
     }
 
+    // get the next data line
     while(record_type != DATA)
     {
         getline(hex_file, curr_line);
         record_type = get_record_type(curr_line);
     }
 
+    // the last line is sometimes less than 8 bytes so need to handle accordingly
     if(get_record_data_length(curr_line) < 8)
     {
         get_record_data_bytes(curr_line, data_bytes, num_bytes); // will get the whole line by default
 
-        // filll in this last frame with 0xFF
+        // fill in this last frame with 0xFF
         int last_frame_filler_amount = 8 - get_record_data_length(curr_line);
         for(int i = get_record_data_length(curr_line); i < 8; i++)
         {
@@ -87,8 +87,8 @@ int HexUtility::get_next_8_bytes(uint8_t* data_bytes, uint8_t num_bytes)
         {
             sum += data_bytes[i];
         }
-        // printf("=======RETURNING LAST LINE SUM=======\n");
-        getline(hex_file, curr_line);
+
+        getline(hex_file, curr_line); // get the next line so the next time the function gets called it will reach eof
         return sum;
     }
 
@@ -159,7 +159,7 @@ int HexUtility::get_record_data_bytes(const string &hex_record, uint8_t* data_by
     // get the data bytes as a string
     string data = hex_record.substr(RECORD_DATA_START_I, 2*get_record_data_length(hex_record));
     
-    // if asking for too many bytes or default, then just grab the whole line (16 bytes)
+    // if asking for too many bytes or default, then just grab the whole line
     if( (num_bytes == -1) || (data.size() < 2*num_bytes) )
     {
         int sum = data_string_to_byte_list(data, data_bytes, num_data_bytes);
@@ -168,7 +168,7 @@ int HexUtility::get_record_data_bytes(const string &hex_record, uint8_t* data_by
     else
     {
         int sum = data_string_to_byte_list(hex_record.substr(RECORD_DATA_START_I+start, 2*num_bytes), data_bytes, num_data_bytes);
-       return sum;
+        return sum;
     }
 }
 
@@ -180,18 +180,19 @@ int HexUtility::get_record_checksum(const string &hex_line)
 int HexUtility::load_hex_file_data()
 {
     string last_data_line = ""; // save the last data line so can get its size
-    uint8_t byte_list[16];       // buffer to hold next 16 data bytes in the hex file
+    uint8_t byte_list[16];      // buffer to hold next 16 data bytes in the hex file
     int line_index = 0;
     uint16_t ms_16_bits = 0;
     uint16_t ls_16_bits = 0;
-    while(getline(hex_file, curr_line))
+    while(getline(hex_file, curr_line)) // go through entire hex file line by line
     {
+        // check to make sure all record checksums are valid
         if(calc_hex_checksum(curr_line) != get_record_checksum(curr_line))
         {
             printf("BAD HEX CHECKSUM, LINE: %i", line_index);
             return -1;
         }
-        // first get the start address, if extended linear then need to combine  ms and ls 16 bits
+        // get the start address, if extended linear then need to combine  ms and ls 16 bits
         if(line_index == 0 && get_record_type(curr_line) == EXTENDED_LINEAR_AR)
         {
             get_record_data_bytes(curr_line, byte_list, 16); // most significant 16 bits stored in bytes_list
@@ -212,7 +213,6 @@ int HexUtility::load_hex_file_data()
         {
             hex_file_data_size += get_record_data_length(curr_line);
             total_checksum += get_record_data_bytes(curr_line, byte_list, 16);
-
             last_data_line = curr_line;
         }
         line_index += 1;
@@ -220,7 +220,7 @@ int HexUtility::load_hex_file_data()
 
     last_data_line_size = get_record_data_length(last_data_line);
 
-    // reset pointer to top of file
+    // reset file stream pointer to top of file
     hex_file.clear();
     hex_file.seekg(0, ios::beg);
 }

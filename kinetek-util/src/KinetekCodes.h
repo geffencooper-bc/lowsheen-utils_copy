@@ -1,12 +1,13 @@
 // this file is essentially a config file with all the kinetek command and response codes
-// there is also a couple of functions to determine accordings response based on inout frame
+// there is also a couple of functions to determine accordings response based on inpout frame
 
 #ifndef KINETEK_CODES_H
 #define KINETEK_CODES_H
 
-#define V2
+#define SELECTIVE_MODE // for some reason when removing the switch, a new set of can_ids appeared for selective/forced mode
+// #define FORCED_MODE
 // request and response can ids
-#ifdef V1
+#ifdef FORCED_MODE
 enum kt_can_id
 {
     KINETEK_COMMAND_ID =       0x001,
@@ -28,7 +29,7 @@ enum kt_can_id
 };
 #endif
 
-#ifdef V2
+#ifdef SELECTIVE_MODE
 enum kt_can_id
 {
     KINETEK_COMMAND_ID =       0x001,

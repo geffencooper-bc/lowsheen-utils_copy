@@ -6,9 +6,11 @@
 #include "SocketCanHelper.h"
 #include "HexUtility.h"
 
+// these codes are used to determine if to move on or not in the iap process
 enum status_code
 {
-    IAP_MODE_FAIL = 0,
+    INIT_CAN_FAIL = 0,
+    IAP_MODE_FAIL,
     IAP_MODE_SUCCESS,
     FW_VERSION_REQUEST_FAIL,
     SEND_BYTES_FAIL,
@@ -45,7 +47,7 @@ class IAP
     void progress_bar(int current, int total, int bar_length = 20);
 
     // sets up socket can helper object, channel name is usually "can0"
-    void init_can(const char* channel_name);
+    int init_can(const char* channel_name);
 
     // step one of IAP process, uses selective mode by default
     status_code put_in_iap_mode(bool forced_mode=false);

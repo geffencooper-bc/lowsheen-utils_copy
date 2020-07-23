@@ -6,14 +6,7 @@ SocketCanHelper::SocketCanHelper()
 {
     new_value = new itimerspec;
     now = new timespec;
-    new_value->it_value.tv_sec = now->tv_sec + 0;
-    new_value->it_value.tv_nsec = now->tv_nsec + 5000000;
-    new_value->it_interval.tv_sec = 0;
-    new_value->it_interval.tv_nsec = 5000000;
     timer_fd = timerfd_create(CLOCK_REALTIME, 0);
-    int err = timerfd_settime(timer_fd, 0, new_value, NULL);
-    int err2 = clock_gettime(CLOCK_REALTIME, now);
-    printf("Errors: %i, %i, %i\n", timer_fd, err, err2);
 }
 
 SocketCanHelper::~SocketCanHelper()
@@ -39,12 +32,12 @@ int SocketCanHelper::init_socketcan(const char* interface_name)
     
     // interface init (can0), will not work unless initialize using ip link setup command
     unsigned int if_index = if_nametoindex(interface_name);
-    if(if_index < 0)
+    if(if_index == 0)
     {
         #ifdef PRINT_LOG
         printf("If Index Error\n");
         #endif
-        return if_index;
+        return -1;
     }
 
     uintptr_t can_interface = if_index;
@@ -97,8 +90,10 @@ int SocketCanHelper::send_frame(uint32_t can_id, uint8_t* data, uint8_t data_siz
 
 CO_CANrxMsg_t * SocketCanHelper::get_frame(uint32_t can_id, void* obj, void (*call_back)(void *object, const CO_CANrxMsg_t *message), int wait_time)
 {
+    // zero out the receive message buffer
     memset(can_msg, 0, sizeof(can_msg));
-    // setup desired time_out, 5ms by default
+
+    // setup desired time_out given ms input, 5ms by default
     new_value->it_value.tv_sec = wait_time/1000;
     new_value->it_value.tv_nsec = (wait_time%1000)*1000000;
 
@@ -119,7 +114,7 @@ CO_CANrxMsg_t * SocketCanHelper::get_frame(uint32_t can_id, void* obj, void (*ca
         return NULL;
     }
     
-    // waits until receive specified can_id until timer ends, blocking function
+    // waits until receive specified can_id or until timer ends, blocking function
     CO_CANrxWait(cm, timer_fd, can_msg); 
 
     #ifdef PRINT_LOG

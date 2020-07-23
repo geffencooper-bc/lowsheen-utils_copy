@@ -1,3 +1,6 @@
+// a utility class with helper functions to help read data from a hex file
+// it relies on reading from a hex file and keeping the current position
+
 #ifndef HEX_UTIL_H
 #define HEX_UTIL_H
 
@@ -8,8 +11,6 @@
 
 using std::string;
 using std::ifstream;
-// a utility class with helper functions to help read data from a hex file
-// it relies on reading from a hex file and keeping the current position
 
 // Hex file details
 
@@ -52,21 +53,24 @@ class HexUtility
     // accessors
     int get_file_data_size(uint8_t* data_size_bytes, uint8_t num_bytes);
     
+    // used by kinetek to correctly calculate checksum accounting for 0xFF filler
     uint8_t get_last_data_line_size()
     {
         return last_data_line_size;
     }
     
-    // pass in a 4 byte buffer to be filled with cs bytes 
+    // pass in a 4 byte buffer to be filled with checksum bytes 
     void get_total_cs(uint8_t* cs_bytes, uint8_t num_cs_bytes);
 
     // pass in a 4 byte buffer to be filled with address bytes, also gets returned as an int
     int get_start_address(uint8_t* start_address_bytes, uint8_t num_bytes);
 
-    // returns sum of bytes
+    // returns sum of the bext 8 bytes as an int as well
     int get_next_8_bytes(uint8_t* data_bytes, uint8_t num_bytes);
     
+    // need values as a list of bytes when sending messages to kinetek
     void num_to_byte_list(int num, uint8_t* bytes, uint8_t num_bytes);
+
 
     private:
     ifstream hex_file; // file is open for object lifetime
@@ -80,7 +84,7 @@ class HexUtility
     uint32_t start_address;
     
     
-    // Helper functions that should not be exposed
+    // Helper functions
 
     // first five functions extract and return certain part of hex record fed in as a string
     int get_record_data_length(const string &hex_record); // in bytes

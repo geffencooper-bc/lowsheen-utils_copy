@@ -2,12 +2,13 @@
 #include "KinetekCodes.h"
 #include <unistd.h>
 
+// these are timeout values used for waiting for response frames
 #define LONG_WAIT_TIME 5000 // ms --> 5 sec
 #define MEDIUM_WAIT_TIME 100 // ms
 #define SHORT_WAIT_TIME 10 // ms
+
 #define PRINT_LOG
 //#define PROGRESS_BAR
-using std::to_string;
 
 IAP::IAP()
 {
@@ -29,11 +30,9 @@ IAP::IAP()
 
 IAP::~IAP()
 {
-    printf("IAP Destructor\n");
     delete ut;
     delete sc;
 }
-
 
 void IAP::load_hex_file(string file_path)
 {
@@ -62,9 +61,13 @@ void IAP::print()
     printf("\n=============================================\n");
 }
 
-void IAP::init_can(const char* channel_name)
+int IAP::init_can(const char* channel_name)
 {
-    sc->init_socketcan(channel_name);
+   int err = sc->init_socketcan(channel_name);
+   if(err == -1)
+   {
+       return INIT_CAN_FAIL;
+   }
 }
 
 void IAP::progress_bar(int current, int total, int bar_length)
@@ -82,13 +85,12 @@ void IAP::progress_bar(int current, int total, int bar_length)
   {
     spaces += " ";
   }
-
   printf("  Progress [%s%s] %f %% \r", arrow.c_str(), spaces.c_str(), percent);
 }
 
 void resp_call_back(void* obj, const CO_CANrxMsg_t* can_msg)
 {
-    
+    // nothing needed
 }
 
 status_code IAP::put_in_iap_mode(bool forced_mode)
@@ -127,7 +129,7 @@ status_code IAP::put_in_iap_mode(bool forced_mode)
     // forced mode
     else
     {
-        // repeatedly send the force enter iap mode command 5000 times
+        // repeatedly send the force enter iap mode command
         int count = 0;
         sc->send_frame(IAP_REQUEST_ID, ENTER_IAP_MODE_FORCED_DATA, sizeof(ENTER_IAP_MODE_FORCED_DATA));
         CO_CANrxMsg_t * resp = sc->get_frame(KINETEK_MESSAGE_ID, this, resp_call_back, 3);
@@ -247,7 +249,7 @@ status_code IAP::upload_hex_file()
         // reached the end of a page
         if(packet_count > 0 && packet_count % 32 == 0)
         {
-            usleep(100000);
+            usleep(50000);
             #ifdef PRINT_LOG
             printf("\n======END OF PAGE %i======\n", page_count+1);
             #endif
@@ -372,7 +374,7 @@ status_code IAP::send_hex_packet(bool is_retry)
     // first check if the hex packet to be sent is a retry
     if(is_retry)
     {
-        usleep(100000);
+        usleep(50000); // wait 100ms before retry
         // resend the last packet using saved data from "current packet"
         kt_can_id curr_frame_id = RESEND_FRAME_1_ID;
         uint8_t data[8];
@@ -507,7 +509,7 @@ status_code IAP::send_hex_packet(bool is_retry)
                     #ifdef PRINT_LOG
                     printf("BYTES UPLOADED: %i\n", num_bytes_uploaded);
                     #endif
-                    usleep(10000);
+                    usleep(5000);
                     return PACKET_SENT_SUCCESS;
                 }
             }
