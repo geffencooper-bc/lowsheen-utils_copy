@@ -21,7 +21,7 @@ HexUtility::HexUtility(const string &hex_file_path)
     if(hex_file.fail())
     {
         printf("Invalid File Path\n");
-        // need to quit
+        exit(EXIT_FAILURE);
     }
     load_hex_file_data();
 }

@@ -77,7 +77,7 @@ int SocketCanHelper::send_frame(uint32_t can_id, uint8_t* data, uint8_t data_siz
     // send the message
 	int err = CO_CANsend(cm, tx1);
 
-    if(err < 0)
+    while(err < 0)
     {
         #ifdef PRINT_LOG
 	    printf("Transmit Error: %i\t", err);
@@ -97,8 +97,10 @@ int SocketCanHelper::send_frame(uint32_t can_id, uint8_t* data, uint8_t data_siz
 
 CO_CANrxMsg_t * SocketCanHelper::get_frame(uint32_t can_id, void* obj, void (*call_back)(void *object, const CO_CANrxMsg_t *message), int wait_time)
 {
+    memset(can_msg, 0, sizeof(can_msg));
     // setup desired time_out, 5ms by default
-    new_value->it_interval.tv_nsec = wait_time*1000000;
+    new_value->it_value.tv_sec = wait_time/1000;
+    new_value->it_value.tv_nsec = (wait_time%1000)*1000000;
 
     // reset the timer for the receive message
     timerfd_settime(timer_fd, 0, new_value, NULL);

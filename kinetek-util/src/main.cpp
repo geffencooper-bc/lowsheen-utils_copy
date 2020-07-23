@@ -19,19 +19,23 @@ int id = 21;
 // callback function passed into buffer init
 void call_back(void* msg, const CO_CANrxMsg_t* can_msg)
 {
-    uint32_t data_bytes;
-    memcpy(&data_bytes, can_msg->data, 4);
-    printf("%08X\n", data_bytes);
+    // uint32_t data_bytes;
+    // memcpy(&data_bytes, can_msg->data, 4);
+    // printf("%08X\n", data_bytes);
     printf("in call back. Obj: %i\t Id: %02X    data:%02X %02X %02X %02X %02X\n", (uintptr_t)msg, can_msg->ident, can_msg->data[0], can_msg->data[1], can_msg->data[2], can_msg->data[3], can_msg->data[4]);
 }
 
-int main()
+int main(int argc, char** argv)
 {
+    int iap_type = atoi(argv[2]);
+    // iap.load_hex_file("/home/geffen.cooper/hex_files/2.28.hex");
+    // printf("\n%s\n", argv[1]);
+
     IAP iap;
-    iap.load_hex_file("/home/geffen.cooper/Desktop/kinetek_scripts/hex_file_copies/2.28_copy.hex");
+    iap.load_hex_file(argv[1]);
     iap.print();
     iap.init_can("can0");
-    if(iap.put_in_iap_mode(false) == IAP_MODE_SUCCESS)
+    if(iap.put_in_iap_mode(iap_type) == IAP_MODE_SUCCESS)
     {
         status_code status = iap.send_init_packets();
         if( status == INIT_PACKET_SUCCESS)
@@ -63,6 +67,17 @@ int main()
     // sc.send_frame(0x001, data, 5);
     // sc.get_frame(0x081, (void*)(id), call_back);
 
+    // int count = 0;
+    // while(true)
+    // {
+    //     if(count == 9)
+    //     {
+    //         sc.get_frame(0x081, (void*)(id), call_back, 5);
+    //         count = 0;
+    //     }
+    //     sc.send_frame(0x001, data, 5);
+    //     count++;
+    // }
 
     /*====================================
     // empty objects
