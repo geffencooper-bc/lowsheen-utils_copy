@@ -115,7 +115,7 @@ status_code IAP::put_in_iap_mode(bool forced_mode)
         #endif
 
         // next check if in iap mode
-        resp = sc->get_frame(KINETEK_MESSAGE_ID, this, resp_call_back, MEDIUM_WAIT_TIME);
+        CO_CANrxMsg_t * resp = sc->get_frame(KINETEK_MESSAGE_ID, this, resp_call_back, MEDIUM_WAIT_TIME);
         if(get_response_type(resp->ident, resp->data, resp->DLC) != IN_IAP_MODE)
         {
             #ifdef PRINT_LOG
@@ -130,7 +130,7 @@ status_code IAP::put_in_iap_mode(bool forced_mode)
         // repeatedly send the force enter iap mode command 5000 times
         int count = 0;
         sc->send_frame(IAP_REQUEST_ID, ENTER_IAP_MODE_FORCED_DATA, sizeof(ENTER_IAP_MODE_FORCED_DATA));
-        CO_CANrxMsg_t * resp = sc->get_frame(FORCED_IAP_RESPOMSE_ID, this, resp_call_back, 10);
+        CO_CANrxMsg_t * resp = sc->get_frame(KINETEK_MESSAGE_ID, this, resp_call_back, 3);
         while(get_response_type(resp->ident, resp->data, resp->DLC) != IN_IAP_MODE)
         {
             if(count > 5000)
@@ -141,7 +141,7 @@ status_code IAP::put_in_iap_mode(bool forced_mode)
                 return IAP_MODE_FAIL;
             }
             sc->send_frame(IAP_REQUEST_ID, ENTER_IAP_MODE_FORCED_DATA, sizeof(ENTER_IAP_MODE_FORCED_DATA));
-            resp = sc->get_frame(FORCED_IAP_RESPOMSE_ID, this, resp_call_back, 10);
+            resp = sc->get_frame(KINETEK_MESSAGE_ID, this, resp_call_back, 3);
             count++;
         }
     }     

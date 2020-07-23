@@ -42,7 +42,6 @@ enum kt_can_id
     RESEND_FRAME_2_ID =        0x014,
     RESEND_FRAME_3_ID =        0x015,
     RESEND_FRAME_4_ID =        0x016,
-    FORCED_IAP_RESPOMSE_ID =   0x060,
     KINETEK_MESSAGE_ID =       0x080,
     FW_VERSION_RESPONSE_ID =   0x087,
     IAP_RESPONSE_ID =          0x089,
@@ -194,13 +193,6 @@ iap_response get_response_type(uint32_t can_id, uint8_t* data, uint8_t num_bytes
         else if(data[0] == 0x84)
         {
             return SELF_CALCULATED_PAGE_CHECKSUM;
-        }
-    }
-    else if((kt_can_id)can_id == FORCED_IAP_RESPOMSE_ID)
-    {
-        if(data[0] == 0x080)
-        {
-            return IN_IAP_MODE;
         }
     }
     else if((kt_can_id)can_id == FW_VERSION_RESPONSE_ID) // 0x067
