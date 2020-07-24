@@ -62,16 +62,15 @@ class IAP
     private:
     // hex file data
     int data_size_bytes;            // number of data bytes in hex file
-    uint8_t last_line_data_size;    // required for total checksum to account for filler bytes (0xFF)
     uint8_t start_address[4];
     uint8_t data_size[4];
     uint8_t total_checksum[4];
 
     // IAP variables for monitoring hex file upload
-    int packet_count;               // 4 CAN frames = 1 packet (32 bytes)
-    int page_count;                 // 32 packets = 1 frame (1024 bytes)
-    int num_bytes_uploaded;    
-    int curr_page_cs;               // page checksum = sum of all bytes in page
+    uint32_t packet_count;               // 4 CAN frames = 1 packet (32 bytes)
+    uint32_t page_count;                 // 32 packets = 1 frame (1024 bytes)
+    uint32_t num_bytes_uploaded;    
+    uint32_t curr_page_cs;               // page checksum = sum of all bytes in page
     bool in_iap_mode;                
     uint8_t current_packet[32];     // store the last packet in case need to resend it
     

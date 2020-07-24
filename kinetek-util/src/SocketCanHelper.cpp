@@ -4,8 +4,7 @@
 
 SocketCanHelper::SocketCanHelper()
 {
-    new_value = new itimerspec;
-    now = new timespec;
+    time_out = new itimerspec;
     timer_fd = timerfd_create(CLOCK_REALTIME, 0);
 }
 
@@ -16,8 +15,8 @@ SocketCanHelper::~SocketCanHelper()
     delete [] rx_buff_arr;
     delete can_msg;
     delete cm;
-    delete new_value;
-    delete now;
+    delete time_out;
+
 }
 
 int SocketCanHelper::init_socketcan(const char* interface_name)
@@ -34,10 +33,8 @@ int SocketCanHelper::init_socketcan(const char* interface_name)
     unsigned int if_index = if_nametoindex(interface_name);
     if(if_index == 0)
     {
-        #ifdef PRINT_LOG
         printf("If Index Error\n");
-        #endif
-        return -1;
+        exit(EXIT_FAILURE);
     }
 
     uintptr_t can_interface = if_index;
@@ -46,7 +43,7 @@ int SocketCanHelper::init_socketcan(const char* interface_name)
     printf("if index: %i\n", can_interface);
     #endif
 
-    // can module object init
+    // initialize the cab module object
     int err =  CO_CANmodule_init(cm, (void*)if_index, rx_buff_arr, 1, tx_buff_arr, 1, 250);
     #ifdef PRINT_LOG
     printf("Init CO_CANmodule. Error: %i     Interface Count: %i\n", err, cm->CANinterfaceCount);
@@ -94,11 +91,11 @@ CO_CANrxMsg_t * SocketCanHelper::get_frame(uint32_t can_id, void* obj, void (*ca
     memset(can_msg, 0, sizeof(can_msg));
 
     // setup desired time_out given ms input, 5ms by default
-    new_value->it_value.tv_sec = wait_time/1000;
-    new_value->it_value.tv_nsec = (wait_time%1000)*1000000;
+    time_out->it_value.tv_sec = wait_time/1000;
+    time_out->it_value.tv_nsec = (wait_time%1000)*1000000;
 
     // reset the timer for the receive message
-    timerfd_settime(timer_fd, 0, new_value, NULL);
+    timerfd_settime(timer_fd, 0, time_out, NULL);
 
     #ifdef PRINT_LOG
     printf("Getting Message-->");

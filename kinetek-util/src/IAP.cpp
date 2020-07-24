@@ -13,7 +13,6 @@
 IAP::IAP()
 {
     data_size_bytes = 0;
-    last_line_data_size = 0;
     memset(start_address, 0, 4);
     memset(data_size, 0, 4);
     memset(total_checksum, 0, 4);
@@ -40,7 +39,6 @@ void IAP::load_hex_file(string file_path)
     data_size_bytes = ut->get_file_data_size(data_size, 4);
     ut->get_total_cs(total_checksum, 4);
     ut->get_start_address(start_address, 4);
-    last_line_data_size = ut->get_last_data_line_size();
 }
 
 void print_array(uint8_t* arr, uint8_t size)
@@ -220,7 +218,7 @@ status_code IAP::send_init_packets()
 
     // finally send the data size
     memcpy(SEND_DATA_SIZE_DATA + 1, data_size, 4); // copy in data size bytes into message
-    if(last_line_data_size % 8 == 0)
+    if(data_size_bytes % 8 == 0)
     {
         SEND_DATA_SIZE_DATA[6] = 0x01;
         #ifdef PRINT_LOG
@@ -416,7 +414,7 @@ status_code IAP::send_hex_packet(bool is_retry)
             {
                 if(frame_count != 3)
                 {
-                    num_bytes_uploaded += last_line_data_size;
+                    num_bytes_uploaded += data_size_bytes % 32;
                 }
                 else
                 {
@@ -515,7 +513,7 @@ status_code IAP::send_hex_packet(bool is_retry)
                     }
                     num_bytes_uploaded += 32;
                     #ifdef PRINT_LOG
-                    printf("BYTES UPLOADED: %i", num_bytes_uploaded);
+                    printf("BYTES UPLOADED: %i\n", num_bytes_uploaded);
                     #endif
                     usleep(5000);
                     return PACKET_SENT_SUCCESS;

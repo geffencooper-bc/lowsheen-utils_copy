@@ -24,7 +24,7 @@ class SocketCanHelper
     // initializes CO_driver objects and connects to an interface, ex: "can0"
     int init_socketcan(const char* interface_name);
     
-    int send_frame(uint32_t can_id, uint8_t* data, uint8_t data_size);
+    int send_frame(uint32_t can_id, uint8_t* byte_array, uint8_t arr_size);
 
     // receiving a message requires an identifier object and a callback function which gets the identifier, wait_time is in ms
     CO_CANrxMsg_t * get_frame(uint32_t can_id, void* obj, void (*pFunct)(void *object, const CO_CANrxMsg_t *message), int wait_time=5);
@@ -37,8 +37,7 @@ class SocketCanHelper
     CO_CANrxMsg_t* can_msg;
 
     // timer variables
-    itimerspec* new_value;
-    timespec* now;
+    itimerspec* time_out;
     int timer_fd;
 };
 

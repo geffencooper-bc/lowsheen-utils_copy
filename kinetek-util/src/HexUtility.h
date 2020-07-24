@@ -1,5 +1,31 @@
-// a utility class with helper functions to help read data from a hex file
-// it relies on reading from a hex file and keeping the current position
+// a utility class with helper functions to help extract data from a hex file
+// Note: this class assumes that data records are 16 bytes long
+
+// Hex file details
+
+// Entries in hex files (called records) follow this format
+//
+// :llaaaatt[dd...dd]cc
+//
+// :          signifies the start of a record
+// ll         signifies the number of bytes in the data field of the record
+// aaaa       signifies the address of this data field
+// tt         signifies the record type
+// [dd...dd]  signifies the data bytes
+// cc         signifies the two byte checksum
+
+
+// function details
+
+// CAN data is sent as an array of bytes, ex: {0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08}
+// a portion of the data array may contain a number like the starting address that requires multiple bytes
+
+// ex: starting address 0x08008000 gets split up into 0x08 0x00 0x80 0x00 and placed into the data array
+
+// some functions will require an array to be passed in to store these bytes. The according section of the data
+// array can be passed in as the buffer --> ex: to get the 4 address bytes from above, you might pass in
+// position two of a data array and a size of 4.
+
 
 #ifndef HEX_UTIL_H
 #define HEX_UTIL_H
@@ -12,19 +38,6 @@
 using std::string;
 using std::ifstream;
 
-// Hex file details
-
-// Entries in hex files follow this format
-//
-// :llaaaatt[dd...dd]cc
-//
-// :          signifies the start of a line
-// ll         signifies the number of bytes in the data record
-// aaaa       signifies the address of this data field
-// tt         signifies the record type
-// [dd...dd]  signifies the data bytes
-// cc         signifies the two byte checksum
-
 enum hex_record_type
 {
     DATA = 0,
@@ -34,12 +47,19 @@ enum hex_record_type
     START_LINEAR_AR = 5
 };
 
-const uint8_t CAN_MAX_DATA_LEN = 8;
-const uint8_t RECORD_DATA_LENGTH_START_I = 1;
-const uint8_t RECORD_ADDRESS_START_I = 3;
-const uint8_t RECORD_TYPE_START_I = 7;
-const uint8_t RECORD_DATA_START_I = 9;
-const uint8_t KT_CHECKSUM_SIZE = 4; // size in bytes
+
+// start index of fields in a hex record
+enum record_indices
+{
+    RECORD_DATA_LENGTH_START_I = 1,
+    RECORD_ADDRESS_START_I = 3,
+    RECORD_TYPE_START_I = 7,
+    RECORD_DATA_START_I = 9
+};
+
+// number of data bytes in a can frame
+#define CAN_DATA_LEN 8
+#define HEX_DATA_RECORD_LEN 16
 
 class HexUtility
 {
@@ -50,38 +70,36 @@ class HexUtility
     // closes file
     ~HexUtility();
 
-    // accessors
-    int get_file_data_size(uint8_t* data_size_bytes, uint8_t num_bytes);
+    // parameters: 4 byte array to be filled with data size.
+    // return: data size as an int
+    int get_file_data_size(uint8_t* byte_array, uint8_t arr_size);
     
-    // used by kinetek to correctly calculate checksum accounting for 0xFF filler
-    uint8_t get_last_data_line_size()
-    {
-        return last_data_line_size;
-    }
-    
-    // pass in a 4 byte buffer to be filled with checksum bytes 
-    void get_total_cs(uint8_t* cs_bytes, uint8_t num_cs_bytes);
+    // parameters: 4 byte array to be filled with checksum 
+    void get_total_cs(uint8_t* byte_array, uint8_t arr_size);
 
-    // pass in a 4 byte buffer to be filled with address bytes, also gets returned as an int
-    int get_start_address(uint8_t* start_address_bytes, uint8_t num_bytes);
+    // parameters: 4 byte array to be filled with start address
+    // return: start addess as an int
+    int get_start_address(uint8_t* byte_array, uint8_t arr_size);
 
-    // returns sum of the bext 8 bytes as an int as well
-    int get_next_8_bytes(uint8_t* data_bytes, uint8_t num_bytes);
+    // parameters: 8 byte array to be filled with the next 8 data bytes in the hex file
+    // return: sum of the 8 data bytes as an int, returns -1 if there is no more data (EOF)
+    // Note: if record has less than 8 bytes, remaining bytes will be 0xFF (not included in sum)
+    int get_next_8_bytes(uint8_t* byte_array, uint8_t arr_size);
     
-    // need values as a list of bytes when sending messages to kinetek
-    void num_to_byte_list(int num, uint8_t* bytes, uint8_t num_bytes);
+    // converts a number's hex representation to a list of bytes
+    // parameters: the number to convert, an array to store the byte representation
+    // ex: 1000 in hex is 0x3E8 --> {0x03, 0xE8}
+    void num_to_byte_list(int num, uint8_t* byte_array, uint8_t arr_size);
 
 
     private:
-    bool is_first_line = true;
     ifstream hex_file; // file is open for object lifetime
     string curr_line;  // file will be read line by line
 
-    bool is_first_8;   // reading 1st 8 bytes or 2nd 8 bytes of 16 data bytes in each hex record 
+    bool is_first_8;   // reading 1st 8 data bytes or next 8 data bytes in each hex record 
     bool is_eof;       
-    uint8_t last_data_line_size; // needed by IAP
-    int hex_file_data_size;      
-    uint32_t total_checksum;     // sum of all data bytes
+    uint32_t hex_file_data_size;      
+    uint32_t total_checksum; 
     uint32_t start_address;
     
     
@@ -91,11 +109,12 @@ class HexUtility
     int get_record_data_length(const string &hex_record); // in bytes
     int get_record_address(const string &hex_record);
     hex_record_type get_record_type(const string &hex_record);
-    // extracts the data bytes and fills in a buffer passed in
+    // fills an array passed in with the data portion of a hex record
+    // can specify number of bytes to get from a starting byte (ex: byte 2), returns sum of the bytes
     int get_record_data_bytes(const string &hex_record, uint8_t* data_bytes, uint8_t num_data_bytes, int start=0, int num_bytes=-1);
     int get_record_checksum(const string &hex_record);
 
-    // converts a string of bytes "AABBCCDD" to an array of bytes [0xAA, 0xBB, 0xCC, 0xDD]
+    // converts a string of bytes "AABBCCDD" to an array of bytes {0xAA, 0xBB, 0xCC, 0xDD}
     int data_string_to_byte_list(const string &hex_data, uint8_t* data_bytes, uint8_t num_data_bytes);
     int load_hex_file_data();    
     uint8_t calc_hex_checksum(const string &hex_record);
