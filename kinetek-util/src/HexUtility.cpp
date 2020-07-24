@@ -58,6 +58,7 @@ int HexUtility::get_next_8_bytes(uint8_t* data_bytes, uint8_t num_bytes)
 
     if(record_type == END_OF_FILE || record_type == START_LINEAR_AR)
     {
+        printf("last line=========\n");
         is_eof = true;
         return -1;
     }
@@ -72,7 +73,7 @@ int HexUtility::get_next_8_bytes(uint8_t* data_bytes, uint8_t num_bytes)
     // the last line is sometimes less than 8 bytes so need to handle accordingly
     if(get_record_data_length(curr_line) < 8)
     {
-        get_record_data_bytes(curr_line, data_bytes, num_bytes); // will get the whole line by default
+        int sum = get_record_data_bytes(curr_line, data_bytes, num_bytes); // will get the whole line by default
 
         // fill in this last frame with 0xFF
         int last_frame_filler_amount = 8 - get_record_data_length(curr_line);
@@ -80,14 +81,6 @@ int HexUtility::get_next_8_bytes(uint8_t* data_bytes, uint8_t num_bytes)
         {
             data_bytes[i] = 0xFF;
         }
-
-        // find the sum of the data portion
-        int sum = 0;
-        for(int i = 0; i < get_record_data_length(curr_line); i++)
-        {
-            sum += data_bytes[i];
-        }
-
         getline(hex_file, curr_line); // get the next line so the next time the function gets called it will reach eof
         return sum;
     }
@@ -102,7 +95,22 @@ int HexUtility::get_next_8_bytes(uint8_t* data_bytes, uint8_t num_bytes)
     else
     {
         is_first_8 = true;
-        int sum = get_record_data_bytes(curr_line, data_bytes, num_bytes, 8, 8);
+        int sum;
+        if(get_record_data_length(curr_line) - 8 < 8) // means second half of line < 8 bytes
+        {
+            sum = get_record_data_bytes(curr_line, data_bytes, num_bytes, 8, get_record_data_length(curr_line) - 8);
+            int last_frame_filler_amount = 16 - get_record_data_length(curr_line);
+            for(int i = get_record_data_length(curr_line)-8; i < 8; i++)
+            {
+                data_bytes[i] = 0xFF;
+            }
+            getline(hex_file, curr_line); // get the next line so the next time the function gets called it will reach eof
+            printf("\nlast line second 8 bytes is < 8 bytes, sum: %i\n", sum);
+        }
+        else
+        {
+            sum = get_record_data_bytes(curr_line, data_bytes, num_bytes, 8, 8);
+        }
         return sum;
     }
 }

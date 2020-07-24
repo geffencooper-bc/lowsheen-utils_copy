@@ -73,6 +73,7 @@ class HexUtility
 
 
     private:
+    bool is_first_line = true;
     ifstream hex_file; // file is open for object lifetime
     string curr_line;  // file will be read line by line
 

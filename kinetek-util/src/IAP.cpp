@@ -59,6 +59,7 @@ void IAP::print()
     printf("\nHEX FILE DATA TOTAL CHECKSUM:\t"); print_array(total_checksum, sizeof(total_checksum));
     printf("\nSTART ADDRESS:\t\t\t"); print_array(start_address, sizeof(start_address));
     printf("\n=============================================\n");
+    printf("last packet size: %i", data_size_bytes%32);
 }
 
 int IAP::init_can(const char* channel_name)
@@ -219,6 +220,13 @@ status_code IAP::send_init_packets()
 
     // finally send the data size
     memcpy(SEND_DATA_SIZE_DATA + 1, data_size, 4); // copy in data size bytes into message
+    if(last_line_data_size % 8 == 0)
+    {
+        SEND_DATA_SIZE_DATA[6] = 0x01;
+        #ifdef PRINT_LOG
+        printf("last data frame has no filler\n");
+        #endif
+    }
     sc->send_frame(IAP_REQUEST_ID, SEND_DATA_SIZE_DATA, sizeof(SEND_DATA_SIZE_DATA));
     resp = sc->get_frame(IAP_RESPONSE_ID, this, resp_call_back, SHORT_WAIT_TIME);
     if(get_response_type(resp->ident, resp->data, resp->DLC) != SEND_DATA_SIZE_RESPONSE)
@@ -261,18 +269,12 @@ status_code IAP::upload_hex_file()
             // send the page checksum frame, this frame typically takes longer
             sc->send_frame(IAP_REQUEST_ID, SEND_PAGE_CHECKSUM_DATA, sizeof(SEND_PAGE_CHECKSUM_DATA));
             CO_CANrxMsg_t * resp = sc->get_frame(IAP_RESPONSE_ID, this, resp_call_back, LONG_WAIT_TIME);
-            int count = 0;
-            while(get_response_type(resp->ident, resp->data, resp->DLC) != CALCULATE_PAGE_CHECKSUM_RESPONSE)
+            if(get_response_type(resp->ident, resp->data, resp->DLC) != CALCULATE_PAGE_CHECKSUM_RESPONSE)
             {
-                if(count > 10)
-                {
-                    #ifdef PRINT_LOG
-                    printf("PAGE_CHECKSUM TIMEOUT\n");
-                    #endif
-                    return PAGE_CHECKSUM_FAIL;
-                }
-                resp = sc->get_frame(IAP_RESPONSE_ID, this, resp_call_back, LONG_WAIT_TIME);
-                count++;
+                #ifdef PRINT_LOG
+                printf("PAGE_CHECKSUM TIMEOUT\n");
+                #endif
+                return PAGE_CHECKSUM_FAIL;
             }
             page_count +=1;
             curr_page_cs = 0;
@@ -305,8 +307,13 @@ status_code IAP::upload_hex_file()
         // if reached end of file then send end of hex file, total checksum, the last page checksum, and check for a heartbeat
         else if(status == END_OF_FILE_CODE)
         {   
-            // send end of file notification with the number of bytes of the last data line (account for filler when doing checksum), takes longer to receive response
-            SEND_END_OF_FILE_DATA[1] = last_line_data_size;
+            // send end of file notification with the number of bytes of the last data packet (account for filler when doing checksum), takes longer to receive response
+            uint8_t last_packet_size = data_size_bytes % 32;
+            if(last_packet_size == 0)
+            {
+                last_packet_size = 32;
+            }
+            SEND_END_OF_FILE_DATA[1] = last_packet_size;
             sc->send_frame(IAP_REQUEST_ID, SEND_END_OF_FILE_DATA, sizeof(SEND_END_OF_FILE_DATA));
             CO_CANrxMsg_t * resp = sc->get_frame(IAP_RESPONSE_ID, this, resp_call_back, LONG_WAIT_TIME);
             if(get_response_type(resp->ident, resp->data, resp->DLC) != END_OF_HEX_FILE_RESPONSE)
@@ -324,18 +331,12 @@ status_code IAP::upload_hex_file()
             // send last page checksum, takes longer to receive
             sc->send_frame(IAP_REQUEST_ID, SEND_PAGE_CHECKSUM_DATA, sizeof(SEND_PAGE_CHECKSUM_DATA));
             resp = sc->get_frame(IAP_RESPONSE_ID, this, resp_call_back, LONG_WAIT_TIME);
-            int count = 0;
-            while(get_response_type(resp->ident, resp->data, resp->DLC) != CALCULATE_PAGE_CHECKSUM_RESPONSE)
+            if(get_response_type(resp->ident, resp->data, resp->DLC) != CALCULATE_PAGE_CHECKSUM_RESPONSE)
             {
-                if(count > 10)
-                {
-                    #ifdef PRINT_LOG
-                    printf("PAGE_CHECKSUM TIMEOUT\n");
-                    #endif
-                    return PAGE_CHECKSUM_FAIL;
-                }
-                resp = sc->get_frame(IAP_RESPONSE_ID, this, resp_call_back, LONG_WAIT_TIME);
-                count++;
+                #ifdef PRINT_LOG
+                printf("PAGE_CHECKSUM TIMEOUT\n");
+                #endif
+                return PAGE_CHECKSUM_FAIL;
             }
             // send total checksum
             for(int i = 0; i < 2; i++)
@@ -407,14 +408,21 @@ status_code IAP::send_hex_packet(bool is_retry)
             if(sum != -1)
             {
                 curr_page_cs += sum;
+                // copy these next 8 bytes into the current packet
+                memcpy(current_packet + 8*frame_count, data, 8);
             }
-
-            // copy these next 8 bytes into the current packet
-            memcpy(current_packet + 8*frame_count, data, 8);
             
             if(sum == -1) // means surpassed last data line
             {
-                num_bytes_uploaded += last_line_data_size;
+                if(frame_count != 3)
+                {
+                    num_bytes_uploaded += last_line_data_size;
+                }
+                else
+                {
+                    num_bytes_uploaded -= 32;
+                    num_bytes_uploaded += data_size_bytes % 32;
+                }
                 if(curr_frame_id == SEND_FRAME_1_ID) // if the frame id is 1, that means that last packet was completed, so no filler necessary
                 { 
                     #ifdef PRINT_LOG
@@ -507,7 +515,7 @@ status_code IAP::send_hex_packet(bool is_retry)
                     }
                     num_bytes_uploaded += 32;
                     #ifdef PRINT_LOG
-                    printf("BYTES UPLOADED: %i\n", num_bytes_uploaded);
+                    printf("BYTES UPLOADED: %i", num_bytes_uploaded);
                     #endif
                     usleep(5000);
                     return PACKET_SENT_SUCCESS;
