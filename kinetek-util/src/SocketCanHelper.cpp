@@ -34,7 +34,7 @@ int SocketCanHelper::init_socketcan(const char* interface_name)
     if(if_index == 0)
     {
         printf("If Index Error\n");
-        exit(EXIT_FAILURE);
+        return -1;
     }
 
     uintptr_t can_interface = if_index;

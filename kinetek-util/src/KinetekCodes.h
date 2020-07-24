@@ -4,14 +4,14 @@
 #ifndef KINETEK_CODES_H
 #define KINETEK_CODES_H
 
-//#define SELECTIVE_MODE // for some reason when removing the switch, a new set of can_ids appeared for selective/forced mode
- #define FORCED_MODE
-// request and response can ids
-#ifdef FORCED_MODE
+#define SELECTIVE_MODE // for some reason when removing the switch, a new set of can_ids appeared for selective/forced mode
+//#define FORCED_MODE
 
 // Kinetek namespace
 namespace KT
 {
+    // request and response can ids
+    #ifdef FORCED_MODE
     enum can_id
     {
         KINETEK_COMMAND_ID =       0x001,

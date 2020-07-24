@@ -29,6 +29,9 @@ enum status_code
     UPLOAD_COMPLETE
 };
 
+#define PAGE_SIZE 32 // number of packets in a page
+#define PACKET_SIZE 32 // number of bytes in a packet
+
 class IAP
 {
     public:
