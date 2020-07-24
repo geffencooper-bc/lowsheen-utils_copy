@@ -62,9 +62,9 @@ class IAP
     private:
     // hex file data
     int data_size_bytes;            // number of data bytes in hex file
-    uint8_t start_address[4];
-    uint8_t data_size[4];
-    uint8_t total_checksum[4];
+    int start_address;
+    int total_checksum;
+    int last_packet_size;
 
     // IAP variables for monitoring hex file upload
     uint32_t packet_count;               // 4 CAN frames = 1 packet (32 bytes)

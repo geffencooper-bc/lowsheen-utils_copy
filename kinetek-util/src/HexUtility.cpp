@@ -39,14 +39,22 @@ int HexUtility::get_file_data_size(uint8_t* byte_array, uint8_t arr_size)
     return hex_file_data_size;
 }
 
-void HexUtility::get_total_cs(uint8_t* byte_array, uint8_t arr_size)
+int HexUtility::get_total_cs(uint8_t* byte_array, uint8_t arr_size, bool rev)
 {
     if(arr_size < 4)
     {
         printf("Error: Array size is not big enough\n");
         exit(EXIT_FAILURE);
     }
-    num_to_byte_list(total_checksum, byte_array, arr_size);
+    if(rev)
+    {
+        num_to_byte_list(__builtin_bswap32(total_checksum), byte_array, arr_size);
+    }
+    else
+    {
+        num_to_byte_list(total_checksum, byte_array, arr_size);
+    }
+    return total_checksum;
 }
 
 int HexUtility::get_start_address(uint8_t* byte_array, uint8_t arr_size)
@@ -129,6 +137,7 @@ int HexUtility::get_next_8_bytes(uint8_t* byte_array, uint8_t arr_size)
             {
                 byte_array[i] = 0xFF;
             }
+            return sum;
         }
         else
         {

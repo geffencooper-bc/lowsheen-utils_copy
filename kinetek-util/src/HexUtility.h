@@ -32,7 +32,6 @@
 
 #include <string>
 #include <fstream>
-#include <sstream>
 #include <stdint.h>
 
 using std::string;
@@ -47,7 +46,6 @@ enum hex_record_type
     START_LINEAR_AR = 5
 };
 
-
 // start index of fields in a hex record
 enum record_indices
 {
@@ -57,7 +55,6 @@ enum record_indices
     RECORD_DATA_START_I = 9
 };
 
-// number of data bytes in a can frame
 #define CAN_DATA_LEN 8
 #define HEX_DATA_RECORD_LEN 16
 
@@ -70,24 +67,26 @@ class HexUtility
     // closes file
     ~HexUtility();
 
-    // parameters: 4 byte array to be filled with data size.
+    // parameters: >= 4 byte array to be filled with data size.
     // return: data size as an int
     int get_file_data_size(uint8_t* byte_array, uint8_t arr_size);
     
-    // parameters: 4 byte array to be filled with checksum 
-    void get_total_cs(uint8_t* byte_array, uint8_t arr_size);
+    // parameters: >= 4 byte array to be filled with checksum, stored in reverse for kinetek format
+    // return: checksum as an int 
+    int get_total_cs(uint8_t* byte_array, uint8_t arr_size, bool rev=true);
 
-    // parameters: 4 byte array to be filled with start address
+    // parameters: >= 4 byte array to be filled with start address
     // return: start addess as an int
     int get_start_address(uint8_t* byte_array, uint8_t arr_size);
 
-    // parameters: 8 byte array to be filled with the next 8 data bytes in the hex file
+    // parameters: >= 8 byte array to be filled with the next 8 data bytes in the hex file
     // return: sum of the 8 data bytes as an int, returns -1 if there is no more data (EOF)
-    // Note: if record has less than 8 bytes, remaining bytes will be 0xFF (not included in sum)
+    // Note: if record has less than 8 bytes, remaining bytes will be filled with 0xFF (not included in sum)
     int get_next_8_bytes(uint8_t* byte_array, uint8_t arr_size);
     
     // converts a number's hex representation to a list of bytes
-    // parameters: the number to convert, an array to store the byte representation
+    // parameters: number to convert, array to store byte representation
+    // Note: array size determines representation (if to add extra 0x00 filler)
     // ex: 1000 in hex is 0x3E8 --> {0x03, 0xE8}
     void num_to_byte_list(int num, uint8_t* byte_array, uint8_t arr_size);
 
