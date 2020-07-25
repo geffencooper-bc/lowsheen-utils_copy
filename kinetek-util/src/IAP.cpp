@@ -62,11 +62,11 @@ int IAP::init_can(const char* channel_name)
 
 void IAP::progress_bar(int current, int total, int bar_length)
 {
-  float percent = (current*100)/total;
+  int percent = (current*100)/total;
   string arrow = "";
   string spaces = "";
   int i;
-  for(i = 0; i < (percent/100)*bar_length-1; i++)
+  for(i = 0; i < (percent*bar_length-1)/100; i++)
   {
     arrow += "-";
   }
@@ -75,7 +75,7 @@ void IAP::progress_bar(int current, int total, int bar_length)
   {
     spaces += " ";
   }
-  printf("  Progress [%s%s] %f %% \r", arrow.c_str(), spaces.c_str(), percent);
+  printf("Progress [%s%s] %i %% PAGE: %i\r", arrow.c_str(), spaces.c_str(), percent, page_count);
 }
 
 void resp_call_back(void* obj, const CO_CANrxMsg_t* can_msg)
@@ -161,7 +161,7 @@ status_code IAP::send_init_packets()
     printf("GOT FW VERSION RESPONSE\n");
     #endif
 
-    printf("\nKinetek Bootloader Version: %i.%i", resp->data[0], resp->data[1]);
+    printf("\nKinetek Bootloader Version: %i.%i\n", resp->data[0], resp->data[1]);
 
     // next send  a request to sent bytes
     sc->send_frame(KT::IAP_REQUEST_ID, KT::send_bytes_data, sizeof(KT::send_bytes_data));

@@ -45,9 +45,10 @@ int SocketCanHelper::init_socketcan(const char* interface_name)
 
     // initialize the cab module object
     int err =  CO_CANmodule_init(cm, (void*)if_index, rx_buff_arr, 1, tx_buff_arr, 1, 250);
-    #ifdef PRINT_LOG
-    printf("Init CO_CANmodule. Error: %i     Interface Count: %i\n", err, cm->CANinterfaceCount);
-    #endif
+    if(err != 0)
+    {
+        printf("Init CO_CANmodule. Error: %i     Interface Count: %i\n", err, cm->CANinterfaceCount);
+    }
 
     // sets up receive filters
     CO_CANsetNormalMode(cm);
@@ -69,9 +70,7 @@ int SocketCanHelper::send_frame(uint32_t can_id, uint8_t* data, uint8_t data_siz
 
     if(err < 0)
     {
-        #ifdef PRINT_LOG
 	    printf("Transmit Error: %i\t", err);
-        #endif
         return err;
     }
     
@@ -105,9 +104,7 @@ CO_CANrxMsg_t * SocketCanHelper::get_frame(uint32_t can_id, void* obj, void (*ca
 
     if(err < 0)
     {
-        #ifdef PRINT_LOG
         printf("Receive Error: %i\t", err);
-        #endif
         return NULL;
     }
     

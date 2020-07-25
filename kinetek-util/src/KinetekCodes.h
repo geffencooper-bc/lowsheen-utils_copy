@@ -190,7 +190,7 @@ namespace KT
         }
         else if((can_id)id == HEART_BEAT_ID && data_array[0] == heart_beat_data[0]) // 0x080
         {
-            printf("heart beat");
+            printf("\nheart beat");
             return HEART_BEAT;
         }
         else if((can_id)id == KINETEK_STATUS_ID) // 0x60, 0x080
