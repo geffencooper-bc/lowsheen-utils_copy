@@ -430,7 +430,7 @@ status_code IAP::send_hex_packet(bool is_retry)
             resp = sc->get_frame(KT::IAP_RESPONSE_ID, this, resp_call_back, MEDIUM_WAIT_TIME);
             if(KT::get_response_type(resp->ident, resp->data, resp->DLC) != KT::ACK_32_BYTES)
             {
-                return PACKET_RESENT_FAIL; // need to resend frames
+                return PACKET_RESENT_FAIL;
             }   
         }
         // increment num bytes uploaded, need to figure out when last line not full
@@ -459,7 +459,7 @@ status_code IAP::send_hex_packet(bool is_retry)
             
             if(sum == -1) // means surpassed last data line
             {
-                // have not reached the end of the frame
+                // have not reached the end of the packet
                 if(frame_count != 0)
                 {
                     num_bytes_uploaded += data_size_bytes % PACKET_SIZE;
