@@ -18,9 +18,10 @@ static const CU_TASK_Entry taskEntries[] =
 { 
     {"info", CU_TASK_INFO_prepare, CU_TASK_INFO_update},
     {"program", CU_TASK_PROGRAM_prepare, CU_TASK_PROGRAM_update},
-    {"reset", CU_TASK_RESET_prepare, CU_TASK_RESET_update},
+    {"reset", NULL, CU_TASK_RESET_update},
     {"state", NULL, CU_TASK_STATE_update},
     {"test", NULL, CU_TASK_TEST_update},
+    {"estop", NULL, CU_TASK_ESTOP_update},
 } ;
 
 // size of entries
@@ -55,7 +56,7 @@ void CU_TASK_addTask(const char *request_task_name, int32_t option)
         }
     }
 
-    printf("Invalid argument passed: %s\r\n", request_task_name);
+    printf("Invalid Task requested: %s\r\n", request_task_name);
     exit(-1);
 }
 

@@ -27,6 +27,7 @@ static struct argp_option options[] = {
     { "reset", 'r', 0, 0, "Reset Adapter"},
     { "state", 's', "STATE", 0, "Set Node into Specified State. 0x01: operational, 0x02: Stopped, 0x80: pre-operational, 0x81: reset, 0x82: reset comms"},
     { "test", 't', "TEST", 0, "Send a Test Command"},    
+    { "estop", 'e', "ESTOP", 0, "Control ESTOP. 1 = assert, 2 = de-assert"},    
     { 0 } 
 };
 
@@ -85,14 +86,19 @@ static error_t parse_opt(int key, char *arg, struct argp_state *state) {
         cmd->options = parse_int(arg);
         CU_TASK_addTask("state", 0);
         break;
-    case  'v':  // version information
+    case 'v':  // version information
         printf("%s - %s - %s\r\n", VERSION_GIT_HASH, VERSION_GIT_TAG, VERSION_GIT_DATE_LOCAL);
         exit(0);        
     case 't': 
         // add task test
         cmd->options = parse_int(arg);
         CU_TASK_addTask("test", 0);
-        break;        
+        break;       
+    case 'e': 
+        // add estop control
+        cmd->options = parse_int(arg);
+        CU_TASK_addTask("estop", 0);
+        break;             
     case ARGP_KEY_ARG: return 0;
     default: return ARGP_ERR_UNKNOWN;
     }   
