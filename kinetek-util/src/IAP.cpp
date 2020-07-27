@@ -1,6 +1,5 @@
 #include "IAP.h"
 #include "KinetekCodes.h"
-#include <unistd.h>
 
 // these are timeout values used for waiting for response frames
 #define LONG_WAIT_TIME 5000 // ms --> 5 sec
@@ -32,9 +31,15 @@ IAP::~IAP()
 void IAP::load_hex_file(string file_path)
 {
     ut = new HexUtility(file_path);
+    // size of hex file
     data_size_bytes = ut->get_file_data_size(KT::data_size_data + 1, KT_DATA_SIZE_LEN);
+
+    // total checksum init frame
     total_checksum = ut->get_total_cs(KT::total_checksum_data + 1, KT_CS_LEN);
-    ut->get_total_cs(KT::calculate_total_checksum_data + 1, KT_CS_LEN, true); // kinetek format for cs confirmation is reverse
+
+    // total checksum calculation frame (sent after upload, CS bytes sent in reverse)
+    ut->get_total_cs(KT::calculate_total_checksum_data + 1, KT_CS_LEN, true);
+
     start_address = ut->get_start_address(KT::start_address_data + 1, KT_ADDRESS_LEN);
     last_packet_size = data_size_bytes % PACKET_SIZE;
 }
@@ -44,20 +49,21 @@ void IAP::print()
     printf("\n");
     printf("\n================= IAP DETAILS ===============");
     printf("\nHEX FILE DATA SIZE:             %i bytes", data_size_bytes);
-    printf("\nHEX FILE DATA TOTAL CHECKSUM:   %08X", __builtin_bswap32(total_checksum));
+    printf("\nHEX FILE DATA TOTAL CHECKSUM:   %08X", total_checksum);
     printf("\nSTART ADDRESS:                  %08X", start_address);
     printf("\nLAST PACKET SIZE:               %i", last_packet_size);
     printf("\n=============================================\n");
     
 }
 
-int IAP::init_can(const char* channel_name)
+status_code IAP::init_can(const char* channel_name)
 {
    int err = sc->init_socketcan(channel_name);
    if(err == -1)
    {
        return INIT_CAN_FAIL;
    }
+   return INIT_CAN_SUCCESS;
 }
 
 void IAP::progress_bar(int current, int total, int bar_length)
@@ -95,6 +101,7 @@ status_code IAP::put_in_iap_mode(bool forced_mode)
         // first do soft reset by sending selective download command
         sc->send_frame(KT::KINETEK_COMMAND_ID, KT::enter_iap_mode_selective_data, sizeof(KT::enter_iap_mode_selective_data));
         CO_CANrxMsg_t * resp = sc->get_frame(KT::KINETEK_RESPONSE_ID, this, resp_call_back, MEDIUM_WAIT_TIME);
+
         if(KT::get_response_type(resp->ident, resp->data, resp->DLC) != KT::ENTER_IAP_MODE_SELECTIVE_RESPONSE)
         {
             #ifdef PRINT_LOG
@@ -123,9 +130,10 @@ status_code IAP::put_in_iap_mode(bool forced_mode)
         int count = 0;
         sc->send_frame(KT::IAP_REQUEST_ID, KT::enter_iap_mode_forced_data, sizeof(KT::enter_iap_mode_forced_data));
         CO_CANrxMsg_t * resp = sc->get_frame(KT::KINETEK_STATUS_ID, this, resp_call_back, 3);
+
         while(KT::get_response_type(resp->ident, resp->data, resp->DLC) != KT::IN_IAP_MODE)
         {
-            if(count > 5000)
+            if(count > 5000) // try 5000 times
             {
                 #ifdef PRINT_LOG
                 printf("Forced IAP mode time out\n");
@@ -145,11 +153,12 @@ status_code IAP::put_in_iap_mode(bool forced_mode)
     return IAP_MODE_SUCCESS;  
 }
 
-status_code IAP::send_init_packets()
+status_code IAP::send_init_frames()
 {
     // first send the fw version request
     sc->send_frame(KT::FW_VERSION_REQUEST_ID, KT::fw_version_request_data, sizeof(KT::fw_version_request_data));
     CO_CANrxMsg_t * resp = sc->get_frame(KT::FW_VERSION_RESPONSE_ID, this, resp_call_back, SHORT_WAIT_TIME);
+
     if(KT::get_response_type(resp->ident, resp->data, resp->DLC) != KT::FW_VERSION_RESPONSE)
     {
         #ifdef PRINT_LOG
@@ -166,6 +175,7 @@ status_code IAP::send_init_packets()
     // next send  a request to sent bytes
     sc->send_frame(KT::IAP_REQUEST_ID, KT::send_bytes_data, sizeof(KT::send_bytes_data));
     resp = sc->get_frame(KT::IAP_RESPONSE_ID, this, resp_call_back, SHORT_WAIT_TIME);
+
     if(KT::get_response_type(resp->ident, resp->data, resp->DLC) != KT::SEND_BYTES_RESPONSE)
     {
         #ifdef PRINT_LOG
@@ -180,6 +190,7 @@ status_code IAP::send_init_packets()
     // next send the start address
     sc->send_frame(KT::IAP_REQUEST_ID, KT::start_address_data, sizeof(KT::start_address_data));
     resp = sc->get_frame(KT::IAP_RESPONSE_ID, this, resp_call_back, SHORT_WAIT_TIME);
+
     if(KT::get_response_type(resp->ident, resp->data, resp->DLC) != KT::START_ADDRESS_RESPONSE)
     {
         #ifdef PRINT_LOG
@@ -194,6 +205,7 @@ status_code IAP::send_init_packets()
     // next send the total checksum
     sc->send_frame(KT::IAP_REQUEST_ID, KT::total_checksum_data, sizeof(KT::total_checksum_data));
     resp = sc->get_frame(KT::IAP_RESPONSE_ID, this, resp_call_back, SHORT_WAIT_TIME);
+
     if(KT::get_response_type(resp->ident, resp->data, resp->DLC) != KT::TOTAL_CHECKSUM_RESPONSE)
     {
         #ifdef PRINT_LOG
@@ -215,6 +227,7 @@ status_code IAP::send_init_packets()
     }
     sc->send_frame(KT::IAP_REQUEST_ID, KT::data_size_data, sizeof(KT::data_size_data));
     resp = sc->get_frame(KT::IAP_RESPONSE_ID, this, resp_call_back, SHORT_WAIT_TIME);
+
     if(KT::get_response_type(resp->ident, resp->data, resp->DLC) != KT::DATA_SIZE_RESPONSE)
     {
         #ifdef PRINT_LOG
@@ -222,8 +235,9 @@ status_code IAP::send_init_packets()
         #endif
         return SEND_DATA_SIZE_FAIL;
     }
+
     #ifdef PRINT_LOG
-    printf("SENT DATA SIZE\n =========DONE WITH INIT PACKETS\n");
+    printf("SENT DATA SIZE\n====== DONE WITH INIT PACKETS ======\n");
     #endif
     return INIT_PACKET_SUCCESS;
 }
@@ -233,7 +247,6 @@ status_code IAP::upload_hex_file()
     #ifdef PRINT_LOG
     printf("\n ======== Uploading hex file =======\n");
     #endif
-    bool page_cs_status = false;
 
     while(true) // keep sending packets until reached end of file or fail and function returns
     {
@@ -244,6 +257,7 @@ status_code IAP::upload_hex_file()
         // reached the end of a page
         if(packet_count > 0 && packet_count % PAGE_SIZE == 0)
         {
+            // wait for Kinetek to send page checksum, try twice. If don't receive can still get confirmation by sending page checksum
             CO_CANrxMsg_t* resp = sc->get_frame(KT::KINETEK_STATUS_ID, this, resp_call_back, MEDIUM_WAIT_TIME);
             if(KT::get_response_type(resp->ident, resp->data, resp->DLC) != KT::KT_CALCULATED_PAGE_CHECKSUM)
             {
@@ -255,6 +269,7 @@ status_code IAP::upload_hex_file()
                     #endif
                 }
             }
+
             #ifdef PRINT_LOG
             printf("\n======END OF PAGE %i======\n", page_count+1);
             #endif
@@ -263,17 +278,19 @@ status_code IAP::upload_hex_file()
             ut->num_to_byte_list(curr_page_cs, KT::page_checksum_data + 1, KT_CS_LEN);
             KT::page_checksum_data[6] = page_count+1;
 
-            // send the page checksum frame, this frame typically takes longer
+            // send the page checksum frame to the kinetek, wait for confirmation, send twice if need to
             sc->send_frame(KT::IAP_REQUEST_ID, KT::page_checksum_data, sizeof(KT::page_checksum_data));
             resp = sc->get_frame(KT::IAP_RESPONSE_ID, this, resp_call_back, MEDIUM_WAIT_TIME);
+
             if(KT::get_response_type(resp->ident, resp->data, resp->DLC) != KT::CALCULATE_PAGE_CHECKSUM_RESPONSE)
             {
                 sc->send_frame(KT::IAP_REQUEST_ID, KT::page_checksum_data, sizeof(KT::page_checksum_data));
                 resp = sc->get_frame(KT::IAP_RESPONSE_ID, this, resp_call_back, MEDIUM_WAIT_TIME);
+
                 if(KT::get_response_type(resp->ident, resp->data, resp->DLC) != KT::CALCULATE_PAGE_CHECKSUM_RESPONSE)
                 {
                     printf("last effort compare\n");
-                    // if don't receive cs frame, may have misse it, as a last effort compare the KT calculated CS and your CS
+                    // if don't receive cs frame, may have missed it, as a last effort compare the KT calculated CS and your calculated CS
                     if(KT::array_compare(KT::page_checksum_data + 1, KT_CS_LEN, resp->data + 1, KT_CS_LEN) == false)
                     {
                         #ifdef PRINT_LOG
@@ -292,6 +309,7 @@ status_code IAP::upload_hex_file()
         if(status == PACKET_SENT_SUCCESS)
         {
             packet_count +=1;
+            continue;
         }
 
         // if send_hex_packet fails then resend the packet
@@ -317,13 +335,15 @@ status_code IAP::upload_hex_file()
         else if(status == END_OF_FILE_CODE)
         {   
             // send end of file notification with the number of bytes of the last data packet (accounts for filler when doing checksum)
-            if(last_packet_size == 0)
+            if(last_packet_size == 0) // do this because 32 % 32 = 0
             {
                 last_packet_size = PACKET_SIZE;
             }
             KT::end_of_file_data[1] = last_packet_size; // need to tell Kinetek what the last packet size is
+
             sc->send_frame(KT::IAP_REQUEST_ID, KT::end_of_file_data, sizeof(KT::end_of_file_data));
             CO_CANrxMsg_t * resp = sc->get_frame(KT::IAP_RESPONSE_ID, this, resp_call_back, MEDIUM_WAIT_TIME);
+
             if(KT::get_response_type(resp->ident, resp->data, resp->DLC) != KT::END_OF_HEX_FILE_RESPONSE)
             {
                 resp = sc->get_frame(KT::IAP_RESPONSE_ID, this, resp_call_back, MEDIUM_WAIT_TIME);
@@ -338,7 +358,6 @@ status_code IAP::upload_hex_file()
 
             // wait for the kinetek to send its calculated page checksum
             resp = sc->get_frame(KT::KINETEK_STATUS_ID, this, resp_call_back, MEDIUM_WAIT_TIME);
-            int count = 0;
             if(KT::get_response_type(resp->ident, resp->data, resp->DLC) != KT::KT_CALCULATED_PAGE_CHECKSUM)
             {
                 #ifdef PRINT_LOG
@@ -353,16 +372,24 @@ status_code IAP::upload_hex_file()
             // send last page checksum
             sc->send_frame(KT::IAP_REQUEST_ID, KT::page_checksum_data, sizeof(KT::page_checksum_data));
             resp = sc->get_frame(KT::IAP_RESPONSE_ID, this, resp_call_back, MEDIUM_WAIT_TIME);
+
             if(KT::get_response_type(resp->ident, resp->data, resp->DLC) != KT::CALCULATE_PAGE_CHECKSUM_RESPONSE)
             {
-                #ifdef PRINT_LOG
-                printf("PAGE_CHECKSUM TIMEOUT\n");
-                #endif
-                return PAGE_CHECKSUM_FAIL;
+                sc->send_frame(KT::IAP_REQUEST_ID, KT::page_checksum_data, sizeof(KT::page_checksum_data));
+                resp = sc->get_frame(KT::IAP_RESPONSE_ID, this, resp_call_back, MEDIUM_WAIT_TIME);
+
+                if(KT::get_response_type(resp->ident, resp->data, resp->DLC) != KT::CALCULATE_PAGE_CHECKSUM_RESPONSE)
+                {
+                    #ifdef PRINT_LOG
+                    printf("PAGE_CHECKSUM TIMEOUT\n");
+                    #endif
+                    return PAGE_CHECKSUM_FAIL;
+                }
             }
             // send total checksum
             sc->send_frame(KT::IAP_REQUEST_ID, KT::calculate_total_checksum_data, sizeof(KT::calculate_total_checksum_data));
             resp = sc->get_frame(KT::IAP_RESPONSE_ID, this, resp_call_back, MEDIUM_WAIT_TIME);
+
             if(KT::get_response_type(resp->ident, resp->data, resp->DLC) != KT::CALCULATE_TOTAL_CHECKSUM_RESPONSE)
             {
                 #ifdef PRINT_LOG
@@ -397,10 +424,10 @@ status_code IAP::send_hex_packet(bool is_retry)
         sc->send_frame(KT::RESEND_FRAME_2_ID, current_packet+8, sizeof(data));
         sc->send_frame(KT::RESEND_FRAME_3_ID, current_packet+16, sizeof(data));
         sc->send_frame(KT::RESEND_FRAME_4_ID, current_packet+24, sizeof(data));
-        CO_CANrxMsg_t * resp = sc->get_frame(KT::IAP_RESPONSE_ID, this, resp_call_back, SHORT_WAIT_TIME);
+        CO_CANrxMsg_t * resp = sc->get_frame(KT::IAP_RESPONSE_ID, this, resp_call_back, MEDIUM_WAIT_TIME);
         if(KT::get_response_type(resp->ident, resp->data, resp->DLC) != KT::ACK_32_BYTES)
         {
-            resp = sc->get_frame(KT::IAP_RESPONSE_ID, this, resp_call_back, SHORT_WAIT_TIME);
+            resp = sc->get_frame(KT::IAP_RESPONSE_ID, this, resp_call_back, MEDIUM_WAIT_TIME);
             if(KT::get_response_type(resp->ident, resp->data, resp->DLC) != KT::ACK_32_BYTES)
             {
                 return PACKET_RESENT_FAIL; // need to resend frames
@@ -494,10 +521,10 @@ status_code IAP::send_hex_packet(bool is_retry)
                         case KT::SEND_FRAME_4_ID:
                         {
                             sc->send_frame(KT::SEND_FRAME_4_ID, current_packet+CAN_DATA_LEN*frame_count, CAN_DATA_LEN);
-                            CO_CANrxMsg_t * resp = sc->get_frame(KT::IAP_RESPONSE_ID, this, resp_call_back, SHORT_WAIT_TIME);
+                            CO_CANrxMsg_t * resp = sc->get_frame(KT::IAP_RESPONSE_ID, this, resp_call_back, MEDIUM_WAIT_TIME);
                             if(KT::get_response_type(resp->ident, resp->data, resp->DLC) != KT::ACK_32_BYTES)
                             {
-                                resp = sc->get_frame(KT::IAP_RESPONSE_ID, this, resp_call_back, SHORT_WAIT_TIME);
+                                resp = sc->get_frame(KT::IAP_RESPONSE_ID, this, resp_call_back, MEDIUM_WAIT_TIME);
                                 if(KT::get_response_type(resp->ident, resp->data, resp->DLC) != KT::ACK_32_BYTES)
                                 {
                                     return PACKET_SENT_FAIL;
@@ -540,10 +567,10 @@ status_code IAP::send_hex_packet(bool is_retry)
                 case KT::SEND_FRAME_4_ID:
                 {
                     sc->send_frame(KT::SEND_FRAME_4_ID, data, sizeof(data));
-                    CO_CANrxMsg_t * resp = sc->get_frame(KT::IAP_RESPONSE_ID, this, resp_call_back, SHORT_WAIT_TIME);
+                    CO_CANrxMsg_t * resp = sc->get_frame(KT::IAP_RESPONSE_ID, this, resp_call_back, MEDIUM_WAIT_TIME);
                     if(KT::get_response_type(resp->ident, resp->data, resp->DLC) != KT::ACK_32_BYTES)
                     {
-                        resp = sc->get_frame(KT::IAP_RESPONSE_ID, this, resp_call_back, SHORT_WAIT_TIME);
+                        resp = sc->get_frame(KT::IAP_RESPONSE_ID, this, resp_call_back, MEDIUM_WAIT_TIME);
                         if(KT::get_response_type(resp->ident, resp->data, resp->DLC) != KT::ACK_32_BYTES)
                         {
                             return PACKET_SENT_FAIL;

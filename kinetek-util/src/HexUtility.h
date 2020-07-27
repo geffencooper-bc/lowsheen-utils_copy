@@ -1,5 +1,5 @@
 // a utility class with helper functions to help extract data from a hex file
-// Note: this class assumes that data records are 16 bytes long
+// Note: this class assumes that the hex file data records are 16 bytes long
 
 // Hex file details
 
@@ -18,17 +18,17 @@
 // function details
 
 // CAN data is sent as an array of bytes, ex: {0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08}
-// a portion of the data array may contain a number like the starting address that requires multiple bytes
+// a portion of the data array may contain a number, like the starting address, that requires multiple bytes
 
 // ex: starting address 0x08008000 gets split up into 0x08 0x00 0x80 0x00 and placed into the data array
 
 // some functions will require an array to be passed in to store these bytes. The according section of the data
 // array can be passed in as the buffer --> ex: to get the 4 address bytes from above, you might pass in
-// position two of a data array and a size of 4.
+// position two of a data array and a size of 4 so that the final array is: {0x01, 0x08, 0x00, 0x80, 0x00, 0x06, 0x07, 0x08}
 
 
-#ifndef HEX_UTIL_H
-#define HEX_UTIL_H
+#ifndef HEX_UTILITY_H
+#define HEX_UTILITY_H
 
 #include <string>
 #include <fstream>
@@ -67,13 +67,13 @@ class HexUtility
     // closes file
     ~HexUtility();
 
-    // parameters: >= 4 byte array to be filled with data size.
+    // parameters: >= 4 byte array to be filled with hex file data size.
     // return: data size as an int
     int get_file_data_size(uint8_t* byte_array, uint8_t arr_size);
     
-    // parameters: >= 4 byte array to be filled with checksum, stored in reverse for kinetek format
+    // parameters: >= 4 byte array to be filled with checksum, specify if want bytes in reverse
     // return: checksum as an int 
-    int get_total_cs(uint8_t* byte_array, uint8_t arr_size, bool rev=true);
+    int get_total_cs(uint8_t* byte_array, uint8_t arr_size, bool rev=false);
 
     // parameters: >= 4 byte array to be filled with start address
     // return: start addess as an int
@@ -108,13 +108,13 @@ class HexUtility
     int get_record_data_length(const string &hex_record); // in bytes
     int get_record_address(const string &hex_record);
     hex_record_type get_record_type(const string &hex_record);
-    // fills an array passed in with the data portion of a hex record
+    // fills in an array passed in with the data portion of a hex record
     // can specify number of bytes to get from a starting byte (ex: byte 2), returns sum of the bytes
-    int get_record_data_bytes(const string &hex_record, uint8_t* data_bytes, uint8_t num_data_bytes, int start=0, int num_bytes=-1);
+    int get_record_data_bytes(const string &hex_record, uint8_t* byte_array, uint8_t arr_size, int start=0, int num_bytes=-1);
     int get_record_checksum(const string &hex_record);
 
     // converts a string of bytes "AABBCCDD" to an array of bytes {0xAA, 0xBB, 0xCC, 0xDD}
-    int data_string_to_byte_list(const string &hex_data, uint8_t* data_bytes, uint8_t num_data_bytes);
+    int data_string_to_byte_list(const string &hex_data, uint8_t* byte_array, uint8_t arr_size);
     int load_hex_file_data();    
     uint8_t calc_hex_checksum(const string &hex_record);
 };

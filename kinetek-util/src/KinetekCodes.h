@@ -80,9 +80,9 @@ namespace KT
 
     // IAP request data
 
-    #define KT_ADDRESS_LEN 4
-    #define KT_CS_LEN 4
-    #define KT_DATA_SIZE_LEN 4
+    #define KT_ADDRESS_LEN 4     // address data is 4 bytes
+    #define KT_CS_LEN 4          // checksum data is 4 bytes
+    #define KT_DATA_SIZE_LEN 4   // file data size is 4 bytes
 
     // ID = 0x001
     uint8_t enter_iap_mode_selective_data[5]  =  {0x1D, 0x03, 0x27, 0x00, 0x00};

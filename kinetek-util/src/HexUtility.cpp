@@ -108,7 +108,7 @@ int HexUtility::get_next_8_bytes(uint8_t* byte_array, uint8_t arr_size)
             // if the number of bytes to get is not specified, it will get all the data bytes based on the hex record
             int sum = get_record_data_bytes(curr_line, byte_array, arr_size);
 
-            // fill in with 0xFF
+            // fill in remaining spots with 0xFF
             int filler_amount = CAN_DATA_LEN - get_record_data_length(curr_line);
             for(int i = get_record_data_length(curr_line); i < CAN_DATA_LEN; i++)
             {
@@ -132,7 +132,7 @@ int HexUtility::get_next_8_bytes(uint8_t* byte_array, uint8_t arr_size)
         if(get_record_data_length(curr_line) - CAN_DATA_LEN < CAN_DATA_LEN) 
         {
             int sum = get_record_data_bytes(curr_line, byte_array, arr_size, HEX_DATA_RECORD_LEN/2, get_record_data_length(curr_line) - CAN_DATA_LEN);
-            int last_frame_filler_amount = HEX_DATA_RECORD_LEN - get_record_data_length(curr_line);
+            // fill in remaining spots with 0xFF
             for(int i = get_record_data_length(curr_line)-CAN_DATA_LEN; i < CAN_DATA_LEN; i++)
             {
                 byte_array[i] = 0xFF;
@@ -167,7 +167,7 @@ hex_record_type HexUtility::get_record_type(const string &hex_record)
 
 int HexUtility::data_string_to_byte_list(const string &hex_data, uint8_t* byte_array, uint8_t arr_size)
 {
-    // the number of bytes should be at least half the number of chars in the string, "AA" --> 1 byte
+    // the number of bytes should be at least half the number of chars in the string, 2 chars "AA" --> 1 byte
     if(arr_size < hex_data.size()/2)
     {
         printf("Error: Array size is not big enough\n");
@@ -232,10 +232,10 @@ int HexUtility::load_hex_file_data()
             printf("BAD HEX CHECKSUM, LINE: %i", line_index);
             exit(EXIT_FAILURE);
         }
-        // get the start address, if extended linear then need to combine  ms and ls 16 bits
+        // get the start address, if using extended linear then need to combine ms and ls 16 bits
         if(line_index == 0 && get_record_type(curr_line) == EXTENDED_LINEAR_AR)
         {
-            // most significant 16 bits stored in bytes_list because extended linear adress record format
+            // most significant 16 bits stored in the data portion of extended linear adress record
             get_record_data_bytes(curr_line, byte_list, sizeof(byte_list)); 
 
             // need to convert from bytes list to int, ex: [0x01, 0x10] --> 0x0110
@@ -253,6 +253,8 @@ int HexUtility::load_hex_file_data()
         {
             start_address = get_record_address(curr_line);
         }
+
+        // count number of data bytes
         if(get_record_type(curr_line) == DATA)
         {
             hex_file_data_size += get_record_data_length(curr_line);

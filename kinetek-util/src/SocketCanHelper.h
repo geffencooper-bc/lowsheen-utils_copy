@@ -26,7 +26,7 @@ class SocketCanHelper
     
     int send_frame(uint32_t can_id, uint8_t* byte_array, uint8_t arr_size);
 
-    // receiving a message requires an identifier object and a callback function which gets the identifier, wait_time is in ms
+    // receiving a message requires an identifier object and a callback function which receives the identifier object, wait_time is in ms
     CO_CANrxMsg_t * get_frame(uint32_t can_id, void* obj, void (*pFunct)(void *object, const CO_CANrxMsg_t *message), int wait_time=5);
 
     private:
