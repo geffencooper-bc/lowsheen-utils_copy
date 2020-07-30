@@ -585,7 +585,7 @@ status_code IAP::send_hex_packet(bool is_retry)
                 case KT::SEND_FRAME_1_ID:
                 {
                     // usleep(5000);
-                    usleep(5000);
+                    usleep(1000);
                     sc->send_frame(KT::SEND_FRAME_1_ID, data, sizeof(data));
                     curr_frame_id = KT::SEND_FRAME_2_ID;
                     frame_count +=1;
@@ -593,7 +593,7 @@ status_code IAP::send_hex_packet(bool is_retry)
                 }
                 case KT::SEND_FRAME_2_ID:
                 {
-                    usleep(5000);
+                    usleep(1000);
                     sc->send_frame(KT::SEND_FRAME_2_ID, data, sizeof(data));
                     curr_frame_id = KT::SEND_FRAME_3_ID;
                     frame_count +=1;
@@ -601,7 +601,7 @@ status_code IAP::send_hex_packet(bool is_retry)
                 }
                 case KT::SEND_FRAME_3_ID:
                 {
-                    usleep(5000);
+                    usleep(1000);
                     sc->send_frame(KT::SEND_FRAME_3_ID, data, sizeof(data));
                     curr_frame_id = KT::SEND_FRAME_4_ID;
                     frame_count +=1;
@@ -609,7 +609,7 @@ status_code IAP::send_hex_packet(bool is_retry)
                 }
                 case KT::SEND_FRAME_4_ID:
                 {
-                    usleep(5000);
+                    usleep(1000);
                     sc->send_frame(KT::SEND_FRAME_4_ID, data, sizeof(data));
                     CO_CANrxMsg_t * resp = sc->get_frame(KT::IAP_RESPONSE_ID, this, resp_call_back, MEDIUM_WAIT_TIME);
                     if(KT::get_response_type(resp->ident, resp->data, resp->DLC) != KT::ACK_32_BYTES)
