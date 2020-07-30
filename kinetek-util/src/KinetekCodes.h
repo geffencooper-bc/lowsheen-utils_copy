@@ -4,8 +4,9 @@
 #ifndef KINETEK_CODES_H
 #define KINETEK_CODES_H
 
-#define SELECTIVE_MODE // for some reason when removing the switch, a new set of can_ids appeared for selective/forced mode
+//#define SELECTIVE_MODE // for some reason when removing the switch, a new set of can_ids appeared for selective/forced mode
 //#define FORCED_MODE
+#define BASE_IDS
 
 // Kinetek namespace
 namespace KT
@@ -29,11 +30,12 @@ namespace KT
         FW_VERSION_RESPONSE_ID =   0x067,
         IAP_RESPONSE_ID =          0x069,
         HEART_BEAT_ID =            0x080,
-        KINETEK_RESPONSE_ID =      0x081
+        KINETEK_RESPONSE_ID =      0x081,
+        ESTOP_ID =            0xAC1DC0DE
     };
     #endif
 
-    #ifdef SELECTIVE_MODE
+    #ifdef BASE_IDS
     enum can_id
     {
         KINETEK_COMMAND_ID =       0x001,
@@ -47,11 +49,15 @@ namespace KT
         RESEND_FRAME_2_ID =        0x014,
         RESEND_FRAME_3_ID =        0x015,
         RESEND_FRAME_4_ID =        0x016,
+        FORCE_ENTER_IAP_MODE_IAP = 0x048,
+        KINETEK_STATUS_1_ID =      0x060, // if have this then |= 0100 0000 for sending and mask first three bits, &= 00011111
+        KINETEK_STATUS_2_ID =      0x080, // if have this then nothing needed
         KINETEK_STATUS_ID =        0x080,
-        FW_VERSION_RESPONSE_ID =   0x087,
-        IAP_RESPONSE_ID =          0x089,
+        FW_VERSION_RESPONSE_ID =   0x007,
+        IAP_RESPONSE_ID =          0x009,
         HEART_BEAT_ID =            0x080,
-        KINETEK_RESPONSE_ID =      0x081
+        KINETEK_RESPONSE_ID =      0x081,
+        ESTOP_ID =            0xAC1DC0DE
     };
     #endif
 
@@ -74,6 +80,13 @@ namespace KT
         KT_CALCULATED_PAGE_CHECKSUM,
         HEART_BEAT
     };
+
+    // =======================================================================================================
+
+    // commands to toggle the estop line and turn on/off the Kinetek
+
+    uint8_t enable_kinetek_data[2] = {0x02, 0x02};
+    uint8_t disable_kinetek_data[2] = {0x02, 0x01};
 
     // =======================================================================================================
 
@@ -153,6 +166,10 @@ namespace KT
     // determines response based on can_id and data bytes
     iap_response get_response_type(uint32_t id, uint8_t* data_array, uint8_t arr_size)
     {
+        if(id != 0x060 && id != 0x080 && id != 0x081)
+        {
+            id &= 0b1111;
+        }
         if((can_id)id == IAP_RESPONSE_ID) // 0x69, 0x089
         {
             if(array_compare(ACK_32_bytes_data, sizeof(ACK_32_bytes_data), data_array, arr_size))
@@ -190,10 +207,10 @@ namespace KT
         }
         else if((can_id)id == HEART_BEAT_ID && data_array[0] == heart_beat_data[0]) // 0x080
         {
-            printf("\nheart beat");
+            printf("\nheart beat\n");
             return HEART_BEAT;
         }
-        else if((can_id)id == KINETEK_STATUS_ID) // 0x60, 0x080
+        else if((can_id)id == KINETEK_STATUS_1_ID || (can_id)id == KINETEK_STATUS_2_ID) // 0x60, 0x080
         {
             if(array_compare(in_iap_mode_data, sizeof(in_iap_mode_data), data_array, arr_size))
             {
@@ -216,6 +233,11 @@ namespace KT
                 return ENTER_IAP_MODE_SELECTIVE_RESPONSE;
             }
         }
+        else
+        {
+            return NONE;
+        }
+        
     }
 
 }

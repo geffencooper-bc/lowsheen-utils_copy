@@ -53,6 +53,9 @@ class IAP
     // sets up socket can helper object, channel name is usually "can0"
     status_code init_can(const char* channel_name);
 
+    // determines which IAP mode have entered into and if need to |= 0x40
+    status_code check_iap_mode(int wait_time);
+
     // step one of IAP process, uses selective mode by default
     status_code put_in_iap_mode(bool forced_mode=false);
 
@@ -64,6 +67,7 @@ class IAP
 
 
     private:
+
     // hex file data
     int data_size_bytes;     // number of data bytes in hex file
     int start_address;

@@ -29,7 +29,16 @@ class SocketCanHelper
     // receiving a message requires an identifier object and a callback function which receives the identifier object, wait_time is in ms
     CO_CANrxMsg_t * get_frame(uint32_t can_id, void* obj, void (*pFunct)(void *object, const CO_CANrxMsg_t *message), int wait_time=5);
 
+    void set_add_0x40(uint8_t num)
+    {
+        add_0x40 = num;
+        printf("\nadd 40: %02X\n", add_0x40);
+    }
+
     private:
+    uint8_t add_0x40 = 0;
+    uint8_t can_id_mask = 0b1111;
+
     // objects rerquired to use CO_driver
     CO_CANmodule_t* cm;
     CO_CANtx_t* tx_buff_arr;
