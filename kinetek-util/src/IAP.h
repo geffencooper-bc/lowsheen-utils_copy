@@ -41,13 +41,12 @@ enum status_code
     UPLOAD_COMPLETE
 };
 
-#define PACKET_SIZE 32 // number of bytes in a packet (4 can frames)
-#define PAGE_SIZE 32   // number of packets in a page (128 can frames)
+#define PACKET_SIZE 32  // number of bytes in a packet (4 can frames)
+#define PAGE_SIZE 32    // number of packets in a page (128 can frames)
 
 class IAP
 {
-    public:
-
+   public:
     // init member variables
     IAP();
 
@@ -67,7 +66,7 @@ class IAP
     status_code init_can(const char* channel_name);
 
     // step one of IAP process, uses selective mode by default
-    status_code put_in_iap_mode(bool forced_mode=false);
+    status_code put_in_iap_mode(bool forced_mode = false);
 
     // step two of IAP process, send hex file data size, checksum, start address etc
     status_code send_init_frames();
@@ -75,28 +74,29 @@ class IAP
     // step three of IAP process, sends actual hex data
     status_code upload_hex_file();
 
-
-    private:
-
+   private:
     // hex file data
-    int data_size_bytes;     // number of data bytes in hex file
+    int data_size_bytes;  // number of data bytes in hex file
     int start_address;
     int total_checksum;
     int last_packet_size;
 
     // IAP variables for monitoring hex file upload
-    uint32_t packet_count;          // 4 CAN frames = 1 packet (32 bytes)
-    uint32_t page_count;            // 32 packets = 1 page (1024 bytes)
-    uint32_t num_bytes_uploaded;    
-    uint32_t curr_page_cs;          // page checksum = sum of all bytes in page
-    bool in_iap_mode;                
-    uint8_t current_packet[32];     // store the last packet in case need to resend it
-    
-    SocketCanHelper* sc;            // helps with sending and receiving can messages
-    HexUtility* ut;                 // helps with reading hex file
+    uint32_t packet_count;  // 4 CAN frames = 1 packet (32 bytes)
+    uint32_t page_count;    // 32 packets = 1 page (1024 bytes)
+    uint32_t num_bytes_uploaded;
+    uint32_t curr_page_cs;  // page checksum = sum of all bytes in page
+    bool in_iap_mode;
+    uint8_t current_packet[32];  // store the last packet in case need to resend it
 
-    friend void resp_call_back(void* msg, const CO_CANrxMsg_t* can_msg);  // the call back may need access to private member variables
-    status_code send_hex_packet(bool is_retry=false);                     // sends the next 32 bytes of hex data, called by upload_hex_file
+    SocketCanHelper* sc;  // helps with sending and receiving can messages
+    HexUtility* ut;       // helps with reading hex file
+
+    friend void resp_call_back(
+        void* msg,
+        const CO_CANrxMsg_t* can_msg);  // the call back may need access to private member variables
+    status_code send_hex_packet(
+        bool is_retry = false);  // sends the next 32 bytes of hex data, called by upload_hex_file
 
     // determines which IAP state have entered into and if need to adjust can ids
     // wait_time specifies timeout value, Note: iap state is independent of iap mode (forced vs selective)
