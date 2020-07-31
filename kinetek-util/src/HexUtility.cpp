@@ -49,8 +49,8 @@ int HexUtility::get_file_data_size(uint8_t* byte_array, uint8_t arr_size)
         printf("Error: Array size is not big enough\n");
         exit(EXIT_FAILURE);
     }
-    // store file data size as array of bytes
-    num_to_byte_list(hex_file_data_size, byte_array, arr_size);
+    // store file data size as array of 4 bytes--> Kinetek format
+    num_to_byte_list(hex_file_data_size, byte_array, 4);
     return hex_file_data_size;
 }
 
@@ -65,12 +65,13 @@ int HexUtility::get_total_cs(uint8_t* byte_array, uint8_t arr_size, bool rev)
     // kinetek expects total checksum in reverse (little endian) after sending hex file
     if (rev)
     {
-        num_to_byte_list(__builtin_bswap32(total_checksum), byte_array, arr_size);
+        // store checksum as array of 4 bytes--> Kinetek format
+        num_to_byte_list(__builtin_bswap32(total_checksum), byte_array, 4);
     }
     // kinetek expects total checksum in big endian when sending init packets
     else
     {
-        num_to_byte_list(total_checksum, byte_array, arr_size);
+        num_to_byte_list(total_checksum, byte_array, 4);
     }
     return total_checksum;
 }
@@ -83,8 +84,8 @@ int HexUtility::get_start_address(uint8_t* byte_array, uint8_t arr_size)
         printf("Error: Array size is not big enough\n");
         exit(EXIT_FAILURE);
     }
-    // store the start address as an array of bytes
-    num_to_byte_list(start_address, byte_array, arr_size);
+    // store the start address as an array 4 of bytes--> Kinetek format
+    num_to_byte_list(start_address, byte_array, 4);
     return start_address;
 }
 

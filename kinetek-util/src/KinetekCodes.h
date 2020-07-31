@@ -18,8 +18,17 @@
 // Kinetek namespace
 namespace KT
 {
-#define KINETEK_STATUS_1_ID 0x080  // if have this then nothing needed
-#define KINETEK_STATUS_2_ID 0x060  // if have this then |= 0100 0000 for sending and mask first three bits, &= 00011111
+/*
+   The IAP state (STATUS_ID) is determined upon entering IAP mode and is independent
+   of the mode (forced vs selective). There are two iap states which
+   each use a different but related set of can ids. State 1 uses iap_can_id
+   as defined by iap_can_id below. State 2 uses the following,
+   iap_can_id | 01000000 for commands (set the 7th bit high). Since the
+   4 least significant bits are the same for responses for both states, the iap_can_id
+   responses will have a bit mask of 00001111 --> iap_can_id & 00001111.
+*/
+#define KINETEK_STATUS_1_ID 0x080  // if state 1 then commands same, responses &= 00001111
+#define KINETEK_STATUS_2_ID 0x060  // if state 2 then can id |= 01000000 for commands, responses &= 00001111
     // can ids used for iap request/response
     enum iap_can_id
     {  // State 1 ids                          // State 2 ids
@@ -208,6 +217,7 @@ namespace KT
                 return KT_CALCULATED_PAGE_CHECKSUM;
             }
         }
+        // only care if the last four bit match (last hex digit)
         else if ((id & 0b00001111) == 0x07)  // 0x067, 0x087
         {
             if (data_array[2] == 0x5E)

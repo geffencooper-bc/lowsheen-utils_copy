@@ -442,6 +442,18 @@ status_code IAP::upload_hex_file()
                 LOG_PRINT(("HEART_BEAT TIMEOUT\n"));
                 return NO_HEART_BEAT;
             }
+            // reset the Kinetek and check for a heartbeat again
+            sc->send_frame(KT::ESTOP_ID, KT::disable_kinetek_data, sizeof(KT::disable_kinetek_data));
+            usleep(2000000); 
+            sc->send_frame(KT::ESTOP_ID, KT::enable_kinetek_data, sizeof(KT::enable_kinetek_data)); 
+
+            // check for a heartbeat
+            resp = sc->get_frame(KT::HEART_BEAT_ID, this, resp_call_back, LONG_WAIT_TIME);
+            if (KT::get_response_type(resp->ident, resp->data, resp->DLC) != KT::HEART_BEAT)
+            {
+                LOG_PRINT(("HEART_BEAT TIMEOUT\n"));
+                return NO_HEART_BEAT;
+            }
             return UPLOAD_COMPLETE;
         }
     }
@@ -456,11 +468,11 @@ status_code IAP::send_hex_packet(bool is_retry)
         KT::iap_can_id curr_frame_id = KT::RESEND_FRAME_1_ID;
         uint8_t data[CAN_DATA_LEN];
         sc->send_frame(KT::RESEND_FRAME_1_ID | set_7th, current_packet, sizeof(data));
-        usleep(2000);  // delay to prevent TX overflow
+        usleep(3000);  // delay to prevent TX overflow
         sc->send_frame(KT::RESEND_FRAME_2_ID | set_7th, current_packet + 8, sizeof(data));
-        usleep(2000);  // delay to prevent TX overflow
+        usleep(3000);  // delay to prevent TX overflow
         sc->send_frame(KT::RESEND_FRAME_3_ID | set_7th, current_packet + 16, sizeof(data));
-        usleep(2000);  // delay to prevent TX overflow
+        usleep(3000);  // delay to prevent TX overflow
         sc->send_frame(KT::RESEND_FRAME_4_ID | set_7th, current_packet + 24, sizeof(data));
         CO_CANrxMsg_t* resp =
             sc->get_frame(KT::IAP_RESPONSE_ID, this, resp_call_back, SHORT_WAIT_TIME, iap_can_id_mask);
@@ -534,14 +546,14 @@ status_code IAP::send_hex_packet(bool is_retry)
                     {
                         case KT::SEND_FRAME_1_ID:
                         {
-                            usleep(2000);  // delay to prevent TX overflow
+                            usleep(3000);  // delay to prevent TX overflow
                             sc->send_frame(KT::SEND_FRAME_1_ID | set_7th, current_packet, CAN_DATA_LEN);
                             curr_frame_id = KT::SEND_FRAME_2_ID;
                             frame_count += 1;
                         }
                         case KT::SEND_FRAME_2_ID:
                         {
-                            usleep(2000);  // delay to prevent TX overflow
+                            usleep(3000);  // delay to prevent TX overflow
                             sc->send_frame(KT::SEND_FRAME_2_ID | set_7th, current_packet + CAN_DATA_LEN * frame_count,
                                            CAN_DATA_LEN);
                             curr_frame_id = KT::SEND_FRAME_3_ID;
@@ -549,7 +561,7 @@ status_code IAP::send_hex_packet(bool is_retry)
                         }
                         case KT::SEND_FRAME_3_ID:
                         {
-                            usleep(2000);  // delay to prevent TX overflow
+                            usleep(3000);  // delay to prevent TX overflow
                             sc->send_frame(KT::SEND_FRAME_3_ID | set_7th, current_packet + CAN_DATA_LEN * frame_count,
                                            CAN_DATA_LEN);
                             curr_frame_id = KT::SEND_FRAME_4_ID;
@@ -557,7 +569,7 @@ status_code IAP::send_hex_packet(bool is_retry)
                         }
                         case KT::SEND_FRAME_4_ID:
                         {
-                            usleep(2000);  // delay to prevent TX overflow
+                            usleep(3000);  // delay to prevent TX overflow
                             sc->send_frame(KT::SEND_FRAME_4_ID | set_7th, current_packet + CAN_DATA_LEN * frame_count,
                                            CAN_DATA_LEN);
                             CO_CANrxMsg_t* resp = sc->get_frame(KT::IAP_RESPONSE_ID, this, resp_call_back,
@@ -584,7 +596,7 @@ status_code IAP::send_hex_packet(bool is_retry)
             {
                 case KT::SEND_FRAME_1_ID:
                 {
-                    usleep(2000);  // delay to prevent TX overflow
+                    usleep(3000);  // delay to prevent TX overflow
                     sc->send_frame(KT::SEND_FRAME_1_ID | set_7th, data, sizeof(data));
                     curr_frame_id = KT::SEND_FRAME_2_ID;
                     frame_count += 1;
@@ -592,7 +604,7 @@ status_code IAP::send_hex_packet(bool is_retry)
                 }
                 case KT::SEND_FRAME_2_ID:
                 {
-                    usleep(2000);  // delay to prevent TX overflow
+                    usleep(3000);  // delay to prevent TX overflow
                     sc->send_frame(KT::SEND_FRAME_2_ID | set_7th, data, sizeof(data));
                     curr_frame_id = KT::SEND_FRAME_3_ID;
                     frame_count += 1;
@@ -600,7 +612,7 @@ status_code IAP::send_hex_packet(bool is_retry)
                 }
                 case KT::SEND_FRAME_3_ID:
                 {
-                    usleep(2000);  // delay to prevent TX overflow
+                    usleep(3000);  // delay to prevent TX overflow
                     sc->send_frame(KT::SEND_FRAME_3_ID | set_7th, data, sizeof(data));
                     curr_frame_id = KT::SEND_FRAME_4_ID;
                     frame_count += 1;
@@ -608,7 +620,7 @@ status_code IAP::send_hex_packet(bool is_retry)
                 }
                 case KT::SEND_FRAME_4_ID:
                 {
-                    usleep(2000);  // delay to prevent TX overflow
+                    usleep(3000);  // delay to prevent TX overflow
                     sc->send_frame(KT::SEND_FRAME_4_ID | set_7th, data, sizeof(data));
                     CO_CANrxMsg_t* resp =
                         sc->get_frame(KT::IAP_RESPONSE_ID, this, resp_call_back, MEDIUM_WAIT_TIME, iap_can_id_mask);
