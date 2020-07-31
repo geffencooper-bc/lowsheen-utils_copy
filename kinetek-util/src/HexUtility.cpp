@@ -1,12 +1,23 @@
-#include "HexUtility.h"
+//==================================================================
+// Copyright 2020 Brain Corporation. All rights reserved. Brain
+// Corporation proprietary and confidential.
+// ALL ACCESS AND USAGE OF THIS SOURCE CODE IS STRICTLY PROHIBITED
+// WITHOUT EXPRESS WRITTEN APPROVAL FROM BRAIN CORPORATION.
+// Portions of this Source Code and its related modules/libraries
+// may be governed by one or more third party licenses, additional
+// information of which can be found at:
+// https://info.braincorp.com/open-source-attributions
+//==================================================================
 
-// #define PRINT_LOG
+#include "HexUtility.h"
 
 using std::stoi;
 using std::ios;
 
+// opens file and loads hex data like checksums, data size, etc
 HexUtility::HexUtility(const string &hex_file_path) 
 {
+    // init member variables
     curr_line = "";
     is_first_8 = true;
     is_eof = false;       
@@ -14,6 +25,7 @@ HexUtility::HexUtility(const string &hex_file_path)
     total_checksum = 0;
     start_address = 0;
     
+    // try to open the hex file and load the data
     hex_file.open(hex_file_path);
     if(hex_file.fail())
     {
@@ -23,11 +35,13 @@ HexUtility::HexUtility(const string &hex_file_path)
     load_hex_file_data();
 }
 
+// close file, nothing to deallocate
 HexUtility::~HexUtility()
 {
     hex_file.close();
 }
 
+// get the number of data bytes in the hex file
 int HexUtility::get_file_data_size(uint8_t* byte_array, uint8_t arr_size)
 {
     if(arr_size < 4)
@@ -35,10 +49,12 @@ int HexUtility::get_file_data_size(uint8_t* byte_array, uint8_t arr_size)
         printf("Error: Array size is not big enough\n");
         exit(EXIT_FAILURE);
     }
+    // store file data size as array of bytes
     num_to_byte_list(hex_file_data_size, byte_array, arr_size);
     return hex_file_data_size;
 }
 
+// get the checksum for entire hex file
 int HexUtility::get_total_cs(uint8_t* byte_array, uint8_t arr_size, bool rev)
 {
     if(arr_size < 4)
@@ -46,10 +62,12 @@ int HexUtility::get_total_cs(uint8_t* byte_array, uint8_t arr_size, bool rev)
         printf("Error: Array size is not big enough\n");
         exit(EXIT_FAILURE);
     }
+    // kinetek expects total checksum in reverse (little endian) after sending hex file
     if(rev)
     {
         num_to_byte_list(__builtin_bswap32(total_checksum), byte_array, arr_size);
     }
+    // kinetek expects total checksum in big endian when sending init packets
     else
     {
         num_to_byte_list(total_checksum, byte_array, arr_size);
@@ -57,6 +75,7 @@ int HexUtility::get_total_cs(uint8_t* byte_array, uint8_t arr_size, bool rev)
     return total_checksum;
 }
 
+// get the start address for the data
 int HexUtility::get_start_address(uint8_t* byte_array, uint8_t arr_size)
 {
     if(arr_size < 4)
@@ -64,10 +83,12 @@ int HexUtility::get_start_address(uint8_t* byte_array, uint8_t arr_size)
         printf("Error: Array size is not big enough\n");
         exit(EXIT_FAILURE);
     }
+    // store the start address as an array of bytes
     num_to_byte_list(start_address, byte_array, arr_size);
     return start_address;
 }
 
+// get the next can frame data from the hex file
 int HexUtility::get_next_8_bytes(uint8_t* byte_array, uint8_t arr_size)
 {
     if(arr_size < 8)
@@ -83,11 +104,9 @@ int HexUtility::get_next_8_bytes(uint8_t* byte_array, uint8_t arr_size)
     
     hex_record_type record_type = get_record_type(curr_line);
 
+    // if hit these record types then have read all data
     if(record_type == END_OF_FILE || record_type == START_LINEAR_AR)
     {
-        #ifdef PRINT_LOG
-        printf("Last Line in hex file\n");
-        #endif
         is_eof = true;
         return -1;
     }
@@ -99,13 +118,14 @@ int HexUtility::get_next_8_bytes(uint8_t* byte_array, uint8_t arr_size)
         record_type = get_record_type(curr_line);
     }
 
+    // grab the first 8 data bytes in a hex record
     if(is_first_8)
     {   
         is_first_8 = false;
-        // when record has less than 8 data bytes, it is the end of the file and needs to be filled with 0xFF
-        if(get_record_data_length(curr_line) < CAN_DATA_LEN)
+        // when record has <= 8 data bytes, fill remainder with 0xFF and go to next line
+        if(get_record_data_length(curr_line) <= CAN_DATA_LEN)
         {
-            // if the number of bytes to get is not specified, it will get all the data bytes based on the hex record
+            // if number of bytes is not specified, it will get all the data bytes in the record
             int sum = get_record_data_bytes(curr_line, byte_array, arr_size);
 
             // fill in remaining spots with 0xFF
@@ -118,6 +138,7 @@ int HexUtility::get_next_8_bytes(uint8_t* byte_array, uint8_t arr_size)
             getline(hex_file, curr_line); 
             return sum;
         }
+        // record with > 8 bytes
         else
         {
             int sum = get_record_data_bytes(curr_line, byte_array, arr_size, 0, CAN_DATA_LEN);
@@ -125,13 +146,16 @@ int HexUtility::get_next_8_bytes(uint8_t* byte_array, uint8_t arr_size)
         }
     }
 
+    // grab the first 8 data bytes in a hex record
     else
     {
         is_first_8 = true;
-        // when the second half of the data field is less than 8 bytes, it needs to be filled with 0xFF
+        // when send half of record has <= 8 data bytes, fill remainder with 0xFF and go to next line
         if(get_record_data_length(curr_line) - CAN_DATA_LEN < CAN_DATA_LEN) 
         {
+            // grab second half of data bytes (byte 8 --> end)
             int sum = get_record_data_bytes(curr_line, byte_array, arr_size, HEX_DATA_RECORD_LEN/2, get_record_data_length(curr_line) - CAN_DATA_LEN);
+
             // fill in remaining spots with 0xFF
             for(int i = get_record_data_length(curr_line)-CAN_DATA_LEN; i < CAN_DATA_LEN; i++)
             {
@@ -139,6 +163,7 @@ int HexUtility::get_next_8_bytes(uint8_t* byte_array, uint8_t arr_size)
             }
             return sum;
         }
+        // record with 16 bytes
         else
         {
             int sum = get_record_data_bytes(curr_line, byte_array, arr_size, HEX_DATA_RECORD_LEN/2, CAN_DATA_LEN);
@@ -148,23 +173,27 @@ int HexUtility::get_next_8_bytes(uint8_t* byte_array, uint8_t arr_size)
 }
 
 
-//-------------- helper funcs
+// -------------- helper funcs --------------------
 
+// convert field from string to int, interpret as base 16
 int HexUtility::get_record_data_length(const string &hex_record)
 {
     return stoi(hex_record.substr(RECORD_DATA_LENGTH_START_I, 2), 0, 16);
 }
 
+// convert field from string to int, interpret as base 16
 int HexUtility::get_record_address(const string &hex_record)
 {
     return stoi(hex_record.substr(RECORD_ADDRESS_START_I, 4), 0, 16);
 }
 
+// convert field from string to int, interpret as base 16
 hex_record_type HexUtility::get_record_type(const string &hex_record)
 {
     return (hex_record_type)(stoi(hex_record.substr(RECORD_TYPE_START_I,2), 0, 16));
 }
 
+// convert a data field from a string to a list of bytes
 int HexUtility::data_string_to_byte_list(const string &hex_data, uint8_t* byte_array, uint8_t arr_size)
 {
     // the number of bytes should be at least half the number of chars in the string, 2 chars "AA" --> 1 byte
@@ -183,6 +212,7 @@ int HexUtility::data_string_to_byte_list(const string &hex_data, uint8_t* byte_a
     return sum_bytes;
 }
 
+// convert the data field given a hex record as a string to a list of bytes, returns the sum
 int HexUtility::get_record_data_bytes(const string &hex_record, uint8_t* byte_array, uint8_t arr_size, int start, int num_bytes)
 {
     // the array should be at least the size of the number of bytes to extract
@@ -211,22 +241,27 @@ int HexUtility::get_record_data_bytes(const string &hex_record, uint8_t* byte_ar
     }
 }
 
+// convert field from string to int, interpret as base 16
 int HexUtility::get_record_checksum(const string &hex_line)
 {
     return stoi(hex_line.substr(RECORD_DATA_START_I + 2*get_record_data_length(hex_line), 2), 0, 16);
 }
 
+// read through entire hex file and grab neccessary information
 int HexUtility::load_hex_file_data()
 {
-    uint8_t byte_list[HEX_DATA_RECORD_LEN]; // buffer to hold next 16 data bytes in the hex file
+    // buffer to hold next 16 data bytes in the hex file
+    uint8_t byte_list[HEX_DATA_RECORD_LEN]; 
     int line_index = 0;
+
+    // used for an address stored using extended linear address
     uint16_t ms_16_bits = 0;
     uint16_t ls_16_bits = 0;
 
     // go through entire hex file line by line
     while(getline(hex_file, curr_line)) 
     {
-        // check to make sure all record checksums are valid
+        // check to make sure all record checksums are valid (is hex file corrupt)
         if(calc_hex_checksum(curr_line) != get_record_checksum(curr_line))
         {
             printf("BAD HEX CHECKSUM, LINE: %i", line_index);
@@ -249,6 +284,7 @@ int HexUtility::load_hex_file_data()
                 start_address = (ms_16_bits << 16) + ls_16_bits;
             }
         }
+        // if not extended linear address then start address is first data line address
         else if(line_index == 0 && get_record_type(curr_line) == DATA) 
         {
             start_address = get_record_address(curr_line);
@@ -277,6 +313,7 @@ void HexUtility::num_to_byte_list(int num, uint8_t* byte_array, uint8_t arr_size
     }
 }
 
+// calculates the checksum of a hex record using the standard formula
 uint8_t HexUtility::calc_hex_checksum(const string &hex_record)
 {
     int size = 4 + get_record_data_length(hex_record); // first 4 bytes are fixed --> :llaaaatt

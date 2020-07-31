@@ -1,30 +1,43 @@
+//==================================================================
+// Copyright 2020 Brain Corporation. All rights reserved. Brain
+// Corporation proprietary and confidential.
+// ALL ACCESS AND USAGE OF THIS SOURCE CODE IS STRICTLY PROHIBITED
+// WITHOUT EXPRESS WRITTEN APPROVAL FROM BRAIN CORPORATION.
+// Portions of this Source Code and its related modules/libraries
+// may be governed by one or more third party licenses, additional
+// information of which can be found at:
+// https://info.braincorp.com/open-source-attributions
+//==================================================================
+
 // a utility class with helper functions to help extract data from a hex file
 // Note: this class assumes that the hex file data records are 16 bytes long
 
-// Hex file details
-
 // Entries in hex files (called records) follow this format
-//
-// :llaaaatt[dd...dd]cc
-//
-// :          signifies the start of a record
-// ll         signifies the number of bytes in the data field of the record
-// aaaa       signifies the address of this data field
-// tt         signifies the record type
-// [dd...dd]  signifies the data bytes
-// cc         signifies the two byte checksum
+
+/*
+    :llaaaatt[dd...dd]cc
+
+    :          signifies the start of a record
+    ll         data length field --> signifies number of bytes in data field of record
+    aaaa       address field --> signifies the address of a data field
+    tt         type field --> signifies the record type
+    [dd...dd]  data field --> signifies the data bytes
+    cc         checksum field --> signifies the two byte checksum
+*/
 
 
 // function details
 
-// CAN data is sent as an array of bytes, ex: {0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08}
-// a portion of the data array may contain a number, like the starting address, that requires multiple bytes
+/*
+    CAN data is sent as an array of bytes, ex: {0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08}
+    a portion of the data array may contain a number, like the starting address, that requires multiple bytes
 
-// ex: starting address 0x08008000 gets split up into 0x08 0x00 0x80 0x00 and placed into the data array
+    ex: starting address 0x08008000 gets split up into 0x08 0x00 0x80 0x00 and placed into the data array
 
-// some functions will require an array to be passed in to store these bytes. The according section of the data
-// array can be passed in as the buffer --> ex: to get the 4 address bytes from above, you might pass in
-// position two of a data array and a size of 4 so that the final array is: {0x01, 0x08, 0x00, 0x80, 0x00, 0x06, 0x07, 0x08}
+    some functions will require an array to be passed in to store these bytes. The according section of the data
+    array can be passed in as the buffer --> ex: to get the 4 address bytes from above, you might pass in
+    position two of a data array and a size of 4 so that the final array is: {0x01, 0x08, 0x00, 0x80, 0x00, 0x06, 0x07, 0x08}
+*/
 
 
 #ifndef HEX_UTILITY_H
@@ -37,6 +50,7 @@
 using std::string;
 using std::ifstream;
 
+// each record in a hex file has a type
 enum hex_record_type
 {
     DATA = 0,
@@ -55,7 +69,10 @@ enum record_indices
     RECORD_DATA_START_I = 9
 };
 
+// can frames have at most 8 data bytes
 #define CAN_DATA_LEN 8
+
+// assume data records in hex file are 16 bytes
 #define HEX_DATA_RECORD_LEN 16
 
 class HexUtility
@@ -95,7 +112,7 @@ class HexUtility
     ifstream hex_file; // file is open for object lifetime
     string curr_line;  // file will be read line by line
 
-    bool is_first_8;   // reading 1st 8 data bytes or next 8 data bytes in each hex record 
+    bool is_first_8;   // reading 1st 8 data bytes or next 8 data bytes in hex record 
     bool is_eof;       
     uint32_t hex_file_data_size;      
     uint32_t total_checksum; 
@@ -110,6 +127,7 @@ class HexUtility
     hex_record_type get_record_type(const string &hex_record);
     // fills in an array passed in with the data portion of a hex record
     // can specify number of bytes to get from a starting byte (ex: byte 2), returns sum of the bytes
+    // if start and num_bytes not specified, then all data bytes in line will be grabbed
     int get_record_data_bytes(const string &hex_record, uint8_t* byte_array, uint8_t arr_size, int start=0, int num_bytes=-1);
     int get_record_checksum(const string &hex_record);
 

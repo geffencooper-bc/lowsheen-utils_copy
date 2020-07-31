@@ -1,3 +1,14 @@
+//==================================================================
+// Copyright 2020 Brain Corporation. All rights reserved. Brain
+// Corporation proprietary and confidential.
+// ALL ACCESS AND USAGE OF THIS SOURCE CODE IS STRICTLY PROHIBITED
+// WITHOUT EXPRESS WRITTEN APPROVAL FROM BRAIN CORPORATION.
+// Portions of this Source Code and its related modules/libraries
+// may be governed by one or more third party licenses, additional
+// information of which can be found at:
+// https://info.braincorp.com/open-source-attributions
+//==================================================================
+
 // a class to abstract CO_driver and make it easy to send/receive messages
 
 #ifndef SOCKET_CAN_HELPER_H
@@ -16,33 +27,29 @@
 class SocketCanHelper
 {
     public:
-    // sets up timer for receiving messages
+    // create timer used for receive message timeouts
     SocketCanHelper();
 
+    // deallocate memory, disable CO_CANmodule
     ~SocketCanHelper();
 
-    // initializes CO_driver objects and connects to an interface, ex: "can0"
+    // initialize CO_driver objects and connect to can interface, ex: "can0"
     int init_socketcan(const char* interface_name);
     
-    int send_frame(uint32_t can_id, uint8_t* byte_array, uint8_t arr_size);
+    // send a CAN frame, pass in can id (11 bit or extended) and data as array of bytes {0x01, 0x02, ...}
+    int send_frame(uint32_t can_id, uint8_t* data, uint8_t data_len);
 
-    // receiving a message requires an identifier object and a callback function which receives the identifier object, wait_time is in ms
-    CO_CANrxMsg_t * get_frame(uint32_t can_id, void* obj, void (*pFunct)(void *object, const CO_CANrxMsg_t *message), int wait_time=5);
-
-    void set_add_0x40(uint8_t num)
-    {
-        add_0x40 = num;
-        printf("\nadd 40: %02X\n", add_0x40);
-    }
+    // wait for next can frame with the specified 11 bit id (and mask)
+    // CO_CANrxBufferInit requires identifier object and callback function that gets called
+    // if a frame with specified id is received within the wait_time (in ms)
+    CO_CANrxMsg_t * get_frame(uint32_t can_id, void* obj, void (*call_back)(void *obj, const CO_CANrxMsg_t *msg), int wait_time, uint32_t can_id_mask=0x7FF);
 
     private:
-    uint8_t add_0x40 = 0;
-    uint8_t can_id_mask = 0b1111;
 
     // objects rerquired to use CO_driver
-    CO_CANmodule_t* cm;
-    CO_CANtx_t* tx_buff_arr;
-    CO_CANrx_t* rx_buff_arr;
+    CO_CANmodule_t* can_module;
+    CO_CANtx_t* tx_arr;
+    CO_CANrx_t* rx_arr;
     CO_CANrxMsg_t* can_msg;
 
     // timer variables

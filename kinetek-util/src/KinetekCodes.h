@@ -1,68 +1,57 @@
+//==================================================================
+// Copyright 2020 Brain Corporation. All rights reserved. Brain
+// Corporation proprietary and confidential.
+// ALL ACCESS AND USAGE OF THIS SOURCE CODE IS STRICTLY PROHIBITED
+// WITHOUT EXPRESS WRITTEN APPROVAL FROM BRAIN CORPORATION.
+// Portions of this Source Code and its related modules/libraries
+// may be governed by one or more third party licenses, additional
+// information of which can be found at:
+// https://info.braincorp.com/open-source-attributions
+//==================================================================
+
 // this file is essentially a config file with all the kinetek command and response codes
-// there is also a couple of functions to determine accordings response based on inpout frame
+// there are also a couple of functions to determine accordings response based on input frame
 
 #ifndef KINETEK_CODES_H
 #define KINETEK_CODES_H
 
-//#define SELECTIVE_MODE // for some reason when removing the switch, a new set of can_ids appeared for selective/forced mode
-//#define FORCED_MODE
-#define BASE_IDS
-
 // Kinetek namespace
 namespace KT
 {
-    // request and response can ids
-    #ifdef FORCED_MODE
-    enum can_id
+    #define KINETEK_STATUS_1_ID      0x080 // if have this then nothing needed
+    #define KINETEK_STATUS_2_ID      0x060 // if have this then |= 0100 0000 for sending and mask first three bits, &= 00011111
+    // can ids used for iap request/response
+    enum iap_can_id
+    {   // State 1 ids                          // State 2 ids
+        // command ids                          
+        FW_VERSION_REQUEST_ID =    0x005,       // 0x045
+        IAP_REQUEST_ID =           0x008,       // 0x048
+        SEND_FRAME_1_ID =          0x00F,       // 0x04F
+        SEND_FRAME_2_ID =          0x010,       // 0x050
+        SEND_FRAME_3_ID =          0x011,       // 0x051
+        SEND_FRAME_4_ID =          0x012,       // 0x052
+        RESEND_FRAME_1_ID =        0x013,       // 0x053
+        RESEND_FRAME_2_ID =        0x014,       // 0x054
+        RESEND_FRAME_3_ID =        0x015,       // 0x055
+        RESEND_FRAME_4_ID =        0x016,       // 0x056
+        FORCE_ENTER_IAP_MODE_IAP = 0x048,       // 0x048
+        
+        // response ids
+        FW_VERSION_RESPONSE_ID =   0x087,       // 0x067
+        IAP_RESPONSE_ID =          0x089        // 0x069
+    };
+
+    // standard can ids used outside of iap
+    enum std_can_id
     {
         KINETEK_COMMAND_ID =       0x001,
-        FW_VERSION_REQUEST_ID  =   0x045,
-        IAP_REQUEST_ID =           0x048,
-        SEND_FRAME_1_ID =          0x04F,
-        SEND_FRAME_2_ID =          0x050,
-        SEND_FRAME_3_ID =          0x051,
-        SEND_FRAME_4_ID =          0x052,
-        RESEND_FRAME_1_ID =        0x053,
-        RESEND_FRAME_2_ID =        0x054,
-        RESEND_FRAME_3_ID =        0x055,
-        RESEND_FRAME_4_ID =        0x056,
-        KINETEK_STATUS_ID =        0x060,
-        FW_VERSION_RESPONSE_ID =   0x067,
-        IAP_RESPONSE_ID =          0x069,
         HEART_BEAT_ID =            0x080,
         KINETEK_RESPONSE_ID =      0x081,
         ESTOP_ID =            0xAC1DC0DE
     };
-    #endif
-
-    #ifdef BASE_IDS
-    enum can_id
-    {
-        KINETEK_COMMAND_ID =       0x001,
-        FW_VERSION_REQUEST_ID =    0x005,
-        IAP_REQUEST_ID =           0x008,
-        SEND_FRAME_1_ID =          0x00F,
-        SEND_FRAME_2_ID =          0x010,
-        SEND_FRAME_3_ID =          0x011,
-        SEND_FRAME_4_ID =          0x012,
-        RESEND_FRAME_1_ID =        0x013,
-        RESEND_FRAME_2_ID =        0x014,
-        RESEND_FRAME_3_ID =        0x015,
-        RESEND_FRAME_4_ID =        0x016,
-        FORCE_ENTER_IAP_MODE_IAP = 0x048,
-        KINETEK_STATUS_1_ID =      0x060, // if have this then |= 0100 0000 for sending and mask first three bits, &= 00011111
-        KINETEK_STATUS_2_ID =      0x080, // if have this then nothing needed
-        KINETEK_STATUS_ID =        0x080,
-        FW_VERSION_RESPONSE_ID =   0x007,
-        IAP_RESPONSE_ID =          0x009,
-        HEART_BEAT_ID =            0x080,
-        KINETEK_RESPONSE_ID =      0x081,
-        ESTOP_ID =            0xAC1DC0DE
-    };
-    #endif
 
 
-    // IAP response name
+    // Kinetek iap responses to iap requests
     enum iap_response
     {
         NONE = -1,
@@ -166,11 +155,9 @@ namespace KT
     // determines response based on can_id and data bytes
     iap_response get_response_type(uint32_t id, uint8_t* data_array, uint8_t arr_size)
     {
-        if(id != 0x060 && id != 0x080 && id != 0x081)
-        {
-            id &= 0b1111;
-        }
-        if((can_id)id == IAP_RESPONSE_ID) // 0x69, 0x089
+        // only care if the last four bit match (last hex digit)
+        // first category of responses is IAP_RESPONSE
+        if((id & 0b00001111) == 0x09) // 0x69, 0x089
         {
             if(array_compare(ACK_32_bytes_data, sizeof(ACK_32_bytes_data), data_array, arr_size))
             {
@@ -205,12 +192,14 @@ namespace KT
                 return CALCULATE_PAGE_CHECKSUM_RESPONSE;
             }
         }
-        else if((can_id)id == HEART_BEAT_ID && data_array[0] == heart_beat_data[0]) // 0x080
+        // second category of responses is HEART_BEAT
+        else if((std_can_id)id == HEART_BEAT_ID && data_array[0] == heart_beat_data[0]) // 0x080
         {
             printf("\nheart beat\n");
             return HEART_BEAT;
         }
-        else if((can_id)id == KINETEK_STATUS_1_ID || (can_id)id == KINETEK_STATUS_2_ID) // 0x60, 0x080
+        // third category of responses is KINETEK STATUS
+        else if(id == KINETEK_STATUS_1_ID || id == KINETEK_STATUS_2_ID) // 0x60, 0x080
         {
             if(array_compare(in_iap_mode_data, sizeof(in_iap_mode_data), data_array, arr_size))
             {
@@ -221,12 +210,12 @@ namespace KT
                 return KT_CALCULATED_PAGE_CHECKSUM;
             }
         }
-        else if((can_id)id == FW_VERSION_RESPONSE_ID) // 0x067, 0x087
+        else if((id & 0b00001111) == 0x07) // 0x067, 0x087
         {
             if(data_array[2] == 0x5E)
             return FW_VERSION_RESPONSE;
         } 
-        else if ((can_id)id == KINETEK_RESPONSE_ID) // 0x081
+        else if ((std_can_id)id == KINETEK_RESPONSE_ID) // 0x081
         {
             if(array_compare(enter_iap_mode_selective_response_data, sizeof(enter_iap_mode_selective_response_data), data_array, arr_size))
             {

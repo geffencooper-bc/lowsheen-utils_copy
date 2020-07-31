@@ -1,8 +1,25 @@
+//==================================================================
+// Copyright 2020 Brain Corporation. All rights reserved. Brain
+// Corporation proprietary and confidential.
+// ALL ACCESS AND USAGE OF THIS SOURCE CODE IS STRICTLY PROHIBITED
+// WITHOUT EXPRESS WRITTEN APPROVAL FROM BRAIN CORPORATION.
+// Portions of this Source Code and its related modules/libraries
+// may be governed by one or more third party licenses, additional
+// information of which can be found at:
+// https://info.braincorp.com/open-source-attributions
+//==================================================================
+
 #include "IAP.h"
 
 // arg 1 = file path, arg2 = iap_mode
 int main(int argc, char** argv)
 {
+    if(argc != 3)
+    {
+        printf("ARGS: [FILE PATH] [IAP MODE] (0 = selective, 1 = forced)");
+        exit(EXIT_FAILURE);
+    }
+
     int iap_type = atoi(argv[2]); // 0 = selective, 1 = forced
 
     IAP iap;
