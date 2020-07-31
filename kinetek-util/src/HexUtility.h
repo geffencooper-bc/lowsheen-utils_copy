@@ -25,7 +25,6 @@
     cc         checksum field --> signifies the two byte checksum
 */
 
-
 // function details
 
 /*
@@ -36,9 +35,9 @@
 
     some functions will require an array to be passed in to store these bytes. The according section of the data
     array can be passed in as the buffer --> ex: to get the 4 address bytes from above, you might pass in
-    position two of a data array and a size of 4 so that the final array is: {0x01, 0x08, 0x00, 0x80, 0x00, 0x06, 0x07, 0x08}
+    position two of a data array and a size of 4 so that the final array is: {0x01, 0x08, 0x00, 0x80, 0x00, 0x06, 0x07,
+   0x08}
 */
-
 
 #ifndef HEX_UTILITY_H
 #define HEX_UTILITY_H
@@ -77,9 +76,9 @@ enum record_indices
 
 class HexUtility
 {
-    public:
+   public:
     // opens file, then loads hex data like checksums, data size, etc
-    HexUtility(const string &hex_file_path);
+    HexUtility(const string& hex_file_path);
 
     // closes file
     ~HexUtility();
@@ -87,10 +86,10 @@ class HexUtility
     // parameters: >= 4 byte array to be filled with hex file data size.
     // return: data size as an int
     int get_file_data_size(uint8_t* byte_array, uint8_t arr_size);
-    
+
     // parameters: >= 4 byte array to be filled with checksum, specify if want bytes in reverse
-    // return: checksum as an int 
-    int get_total_cs(uint8_t* byte_array, uint8_t arr_size, bool rev=false);
+    // return: checksum as an int
+    int get_total_cs(uint8_t* byte_array, uint8_t arr_size, bool rev = false);
 
     // parameters: >= 4 byte array to be filled with start address
     // return: start addess as an int
@@ -100,41 +99,43 @@ class HexUtility
     // return: sum of the 8 data bytes as an int, returns -1 if there is no more data (EOF)
     // Note: if record has less than 8 bytes, remaining bytes will be filled with 0xFF (not included in sum)
     int get_next_8_bytes(uint8_t* byte_array, uint8_t arr_size);
-    
+
     // converts a number's hex representation to a list of bytes
     // parameters: number to convert, array to store byte representation
     // Note: array size determines representation (if to add extra 0x00 filler)
     // ex: 1000 in hex is 0x3E8 --> {0x03, 0xE8}
     void num_to_byte_list(int num, uint8_t* byte_array, uint8_t arr_size);
 
+   private:
+    ifstream hex_file;  // file is open for object lifetime
+    string curr_line;   // file will be read line by line
 
-    private:
-    ifstream hex_file; // file is open for object lifetime
-    string curr_line;  // file will be read line by line
-
-    bool is_first_8;   // reading 1st 8 data bytes or next 8 data bytes in hex record 
-    bool is_eof;       
-    uint32_t hex_file_data_size;      
-    uint32_t total_checksum; 
+    bool is_first_8;  // reading 1st 8 data bytes or next 8 data bytes in hex record
+    bool is_eof;
+    uint32_t hex_file_data_size;
+    uint32_t total_checksum;
     uint32_t start_address;
-    
-    
+
     // Helper functions
 
     // first five functions extract and return certain part of hex record fed in as a string
-    int get_record_data_length(const string &hex_record); // in bytes
-    int get_record_address(const string &hex_record);
-    hex_record_type get_record_type(const string &hex_record);
+    int get_record_data_length(const string& hex_record);  // in bytes
+    int get_record_address(const string& hex_record);
+    hex_record_type get_record_type(const string& hex_record);
     // fills in an array passed in with the data portion of a hex record
     // can specify number of bytes to get from a starting byte (ex: byte 2), returns sum of the bytes
     // if start and num_bytes not specified, then all data bytes in line will be grabbed
-    int get_record_data_bytes(const string &hex_record, uint8_t* byte_array, uint8_t arr_size, int start=0, int num_bytes=-1);
-    int get_record_checksum(const string &hex_record);
+    int get_record_data_bytes(const string& hex_record,
+                              uint8_t* byte_array,
+                              uint8_t arr_size,
+                              int start = 0,
+                              int num_bytes = -1);
+    int get_record_checksum(const string& hex_record);
 
     // converts a string of bytes "AABBCCDD" to an array of bytes {0xAA, 0xBB, 0xCC, 0xDD}
-    int data_string_to_byte_list(const string &hex_data, uint8_t* byte_array, uint8_t arr_size);
-    int load_hex_file_data();    
-    uint8_t calc_hex_checksum(const string &hex_record);
+    int data_string_to_byte_list(const string& hex_data, uint8_t* byte_array, uint8_t arr_size);
+    int load_hex_file_data();
+    uint8_t calc_hex_checksum(const string& hex_record);
 };
 
 #endif
