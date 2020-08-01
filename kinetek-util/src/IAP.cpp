@@ -41,7 +41,7 @@ IAP::IAP()
     sc = new SocketCanHelper;
 
     set_7th = 0;                   // 0 by default
-    iap_can_id_mask = 0b00001111;  // only want fours lsb
+    iap_can_id_mask = 0b00001111;  // only want four lsb
 }
 
 // deallocate memory
@@ -63,7 +63,7 @@ void IAP::load_hex_file(string file_path)
     ut->get_total_cs(KT::calculate_total_checksum_data + 1, KT_CS_LEN, true);   // sent after upload in little endian
     start_address = ut->get_start_address(KT::start_address_data + 1, KT_ADDRESS_LEN);
 
-    // Kinetek needs to know last packet size
+    // // Kinetek needs to know last packet size
     last_packet_size = data_size_bytes % PACKET_SIZE;
 }
 
@@ -234,7 +234,7 @@ status_code IAP::send_init_frames()
     sc->send_frame(KT::FW_VERSION_REQUEST_ID | set_7th, KT::fw_version_request_data,
                    sizeof(KT::fw_version_request_data));
     CO_CANrxMsg_t* resp =
-        sc->get_frame(KT::FW_VERSION_RESPONSE_ID, this, resp_call_back, SHORT_WAIT_TIME, iap_can_id_mask);
+        sc->get_frame(KT::FW_VERSION_RESPONSE_ID, this, resp_call_back, MEDIUM_WAIT_TIME, iap_can_id_mask);
 
     if (KT::get_response_type(resp->ident, resp->data, resp->DLC) != KT::FW_VERSION_RESPONSE)
     {
@@ -247,7 +247,7 @@ status_code IAP::send_init_frames()
 
     // next send  a request to sent bytes
     sc->send_frame(KT::IAP_REQUEST_ID | set_7th, KT::send_bytes_data, sizeof(KT::send_bytes_data));
-    resp = sc->get_frame(KT::IAP_RESPONSE_ID, this, resp_call_back, SHORT_WAIT_TIME, iap_can_id_mask);
+    resp = sc->get_frame(KT::IAP_RESPONSE_ID, this, resp_call_back, MEDIUM_WAIT_TIME, iap_can_id_mask);
 
     if (KT::get_response_type(resp->ident, resp->data, resp->DLC) != KT::SEND_BYTES_RESPONSE)
     {
@@ -258,7 +258,7 @@ status_code IAP::send_init_frames()
 
     // next send the start address
     sc->send_frame(KT::IAP_REQUEST_ID | set_7th, KT::start_address_data, sizeof(KT::start_address_data));
-    resp = sc->get_frame(KT::IAP_RESPONSE_ID, this, resp_call_back, SHORT_WAIT_TIME, iap_can_id_mask);
+    resp = sc->get_frame(KT::IAP_RESPONSE_ID, this, resp_call_back, MEDIUM_WAIT_TIME, iap_can_id_mask);
 
     if (KT::get_response_type(resp->ident, resp->data, resp->DLC) != KT::START_ADDRESS_RESPONSE)
     {
@@ -269,7 +269,7 @@ status_code IAP::send_init_frames()
 
     // next send the total checksum
     sc->send_frame(KT::IAP_REQUEST_ID | set_7th, KT::total_checksum_data, sizeof(KT::total_checksum_data));
-    resp = sc->get_frame(KT::IAP_RESPONSE_ID, this, resp_call_back, SHORT_WAIT_TIME, iap_can_id_mask);
+    resp = sc->get_frame(KT::IAP_RESPONSE_ID, this, resp_call_back, MEDIUM_WAIT_TIME, iap_can_id_mask);
 
     if (KT::get_response_type(resp->ident, resp->data, resp->DLC) != KT::TOTAL_CHECKSUM_RESPONSE)
     {
@@ -279,7 +279,7 @@ status_code IAP::send_init_frames()
     LOG_PRINT(("GOT CHECKSUM DATA RESPONSE\n"));
 
     sc->send_frame(KT::IAP_REQUEST_ID | set_7th, KT::data_size_data, sizeof(KT::data_size_data));
-    resp = sc->get_frame(KT::IAP_RESPONSE_ID, this, resp_call_back, SHORT_WAIT_TIME, iap_can_id_mask);
+    resp = sc->get_frame(KT::IAP_RESPONSE_ID, this, resp_call_back, MEDIUM_WAIT_TIME, iap_can_id_mask);
 
     if (KT::get_response_type(resp->ident, resp->data, resp->DLC) != KT::DATA_SIZE_RESPONSE)
     {

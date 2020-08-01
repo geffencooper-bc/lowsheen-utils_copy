@@ -100,7 +100,8 @@ int HexUtility::get_next_8_bytes(uint8_t* byte_array, uint8_t arr_size)
     // get next line because start of new record
     if (is_first_8)
     {
-        getline(hex_file, curr_line);
+        hu_getline(hex_file, curr_line);
+        printf("LINE:\t%s\n", curr_line.c_str());
     }
 
     hex_record_type record_type = get_record_type(curr_line);
@@ -115,7 +116,8 @@ int HexUtility::get_next_8_bytes(uint8_t* byte_array, uint8_t arr_size)
     // get the next data line
     while (record_type != DATA)
     {
-        getline(hex_file, curr_line);
+        hu_getline(hex_file, curr_line);
+        printf("LINE:\t%s\n", curr_line.c_str());
         record_type = get_record_type(curr_line);
     }
 
@@ -137,7 +139,8 @@ int HexUtility::get_next_8_bytes(uint8_t* byte_array, uint8_t arr_size)
             }
             // get the next line so the next time the function gets called it will reach eof and not try to grab the
             // second 8 bytes
-            getline(hex_file, curr_line);
+            hu_getline(hex_file, curr_line);
+            printf("LINE:\t%s\n", curr_line.c_str());
             return sum;
         }
         // record with > 8 bytes
@@ -266,8 +269,9 @@ int HexUtility::load_hex_file_data()
     uint16_t ls_16_bits = 0;
 
     // go through entire hex file line by line
-    while (getline(hex_file, curr_line))
+    while (hu_getline(hex_file, curr_line))
     {
+        printf("LINE:\t%s\n", curr_line.c_str());
         // check to make sure all record checksums are valid (is hex file corrupt)
         if (calc_hex_checksum(curr_line) != get_record_checksum(curr_line))
         {
@@ -283,7 +287,8 @@ int HexUtility::load_hex_file_data()
             // need to convert from bytes list to int, ex: [0x01, 0x10] --> 0x0110
             ms_16_bits = (byte_list[0] << 8) + byte_list[1];
 
-            getline(hex_file, curr_line);
+            hu_getline(hex_file, curr_line);
+            printf("LINE:\t%s\n", curr_line.c_str());
             line_index += 1;
             if (get_record_type(curr_line) == DATA)
             {
@@ -316,7 +321,7 @@ void HexUtility::num_to_byte_list(int num, uint8_t* byte_array, uint8_t arr_size
     // need to convert from number to list of bytes, ex: 0x00018C1D --> [0x00, 0x01, 0x8C, 0x1D]
     for (int i = 0; i < arr_size; i++)
     {
-        byte_array[i] = (num >> 8 * (arr_size - i - 1)) & 0xFF;
+        byte_array[i] = (num >> (8 * (arr_size - i - 1))) & 0xFF;
     }
 }
 
@@ -334,4 +339,41 @@ uint8_t HexUtility::calc_hex_checksum(const string& hex_record)
     }
     int two_compl = (256 - sum) % 256;
     return two_compl;
+}
+
+// get line function that handles dos and linux newlines, returns false when reach eof
+bool HexUtility::hu_getline(std::istream& file, std::string& str) 
+{
+    str.clear();
+    while(true)
+    {
+        int c = file.get();
+		switch (c) 
+        {
+			case '\n':
+            {
+                return true;
+            }
+			case '\r':
+            {
+                if (file.get() == '\n')
+                {
+					return true;
+				}
+            }	
+			case EOF:
+            {
+                // Also handle the case when the last line has no line ending
+				if (str.empty()) 
+                {
+					file.setstate(std::ios::eofbit);
+				}
+                return false;
+            }
+			default:
+            {
+                str += (char)c;
+            }	
+		}
+    }
 }
