@@ -136,9 +136,9 @@ class HexUtility
     int data_string_to_byte_list(const string& hex_data, uint8_t* byte_array, uint8_t arr_size);
     int load_hex_file_data();
     uint8_t calc_hex_checksum(const string& hex_record);
-
-    // special hex utility getline function that can handle dos and linux newlines
-    bool hu_getline(std::istream& file, std::string& str);
 };
+
+// special hex utility getline function that can handle dos and linux newlines, returns false when reach EOF
+bool hu_getline(std::istream& file, std::string& str);
 
 #endif
