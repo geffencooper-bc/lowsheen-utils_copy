@@ -10,6 +10,7 @@ set(LOWSHEEN_UTILS_PATH /usr/local/bin)
 set(CMAKE_C_FLAGS ${CMAKE_C_FLAGS} "-Wall -Werror")
 
 set(BUILD_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/build)
+set(CMAKE_BINARY_DIR ${BUILD_OUTPUT_PATH})
 
 # Extract GIT information
 
@@ -31,20 +32,26 @@ execute_process(
 )
 
 execute_process(
-    COMMAND sh "-c" "date | tr -d \"\r\n\""
-    OUTPUT_VARIABLE BUILD_DATE
+    COMMAND sh "-c" "git rev-parse --abbrev-ref HEAD | tr -d \"\r\n\""
+    OUTPUT_VARIABLE BRANCH_NAME
 )
+
+if (NOT TAG_NAME)
+    set(TAG_NAME "2.2.2")
+else()
+    message(STATUS "tag has a name")
+endif()
 
 message(STATUS "TAG_NAME: " ${TAG_NAME})
 message(STATUS "TAG_COMMIT_HASH: " ${TAG_COMMIT_HASH})
 message(STATUS "TAG_DATE: " ${TAG_DATE})
-message(STATUS "BUILD_DATE: " ${BUILD_DATE})
-
-message(STATUS "bild dir" ${CMAKE_CURRENT_BINARY_DIR})
 
 # version header with definitions
-configure_file(${PROJECT_SOURCE_DIR}/version.h.cmake ${CMAKE_CURRENT_BINARY_DIR}/version.h)
+configure_file(${PROJECT_SOURCE_DIR}/version.h.cmake ${BUILD_OUTPUT_PATH}/version.h)
  
+# Project Applications
+add_subdirectory(vcis-util)
+
 # Debian Package Definition (using CPack)
 SET(CPACK_GENERATOR "DEB")
 SET(CPACK_DEBIAN_PACKAGE_MAINTAINER "Lowsheen") #required
@@ -58,5 +65,4 @@ install(PROGRAMS ${LOWSHEEN_UTILS_IFC_SCRIPT}
     DESTINATION "/etc/network/interfaces.d/"
 )
 
-# Project Applications
-add_subdirectory(vcis-util)
+
