@@ -87,7 +87,10 @@ static error_t parse_opt(int key, char *arg, struct argp_state *state) {
         CU_TASK_addTask("state", 0);
         break;
     case 'v':  // version information
-        printf("%s - %s - %s\r\n", VERSION_GIT_HASH, VERSION_GIT_TAG, VERSION_GIT_DATE_LOCAL);
+        printf("GIT Tag Name: %s\r\n", VERSION_GIT_TAG_NAME);
+        printf("GIT Tag Hash: %s\r\n", VERSION_GIT_TAG_HASH);
+        printf("GIT Tag Date: %s\r\n", VERSION_GIT_TAG_DATE);
+        printf("Build Date: %s\r\n", VERSION_BUILD_DATE);
         exit(0);        
     case 't': 
         // add task test
