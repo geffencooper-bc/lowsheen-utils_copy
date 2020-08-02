@@ -37,7 +37,7 @@ execute_process(
 )
 
 if (NOT TAG_NAME)
-    set(TAG_NAME "2.2.2")
+    set(TAG_NAME ${TAG_COMMIT_HASH})
 else()
     message(STATUS "tag has a name")
 endif()
