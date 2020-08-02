@@ -9,7 +9,7 @@ set(LOWSHEEN_UTILS_PATH /usr/local/bin)
 
 set(CMAKE_C_FLAGS ${CMAKE_C_FLAGS} "-Wall -Werror")
 
-set(BUILD_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/build)
+set(BUILD_OUTPUT_PATH ${PROJECT_SOURCE_DIR})
 set(CMAKE_BINARY_DIR ${BUILD_OUTPUT_PATH})
 
 # Extract GIT information
