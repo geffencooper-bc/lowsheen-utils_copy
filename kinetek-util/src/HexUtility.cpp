@@ -359,11 +359,6 @@ bool hu_getline(std::istream& file, std::string& str)
             }
             case EOF:
             {
-                // Also handle the case when the last line has no line ending
-                if (str.empty())
-                {
-                    file.setstate(std::ios::eofbit);
-                }
                 return false;
             }
             default:

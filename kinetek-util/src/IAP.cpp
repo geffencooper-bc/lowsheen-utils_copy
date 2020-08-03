@@ -245,6 +245,7 @@ status_code IAP::send_init_frames()
 
     printf("\nKinetek Bootloader Version: %i.%i\n", resp->data[0], resp->data[1]);
 
+    usleep(1000);
     // next send  a request to sent bytes
     sc->send_frame(KT::IAP_REQUEST_ID | set_7th, KT::send_bytes_data, sizeof(KT::send_bytes_data));
     resp = sc->get_frame(KT::IAP_RESPONSE_ID, this, resp_call_back, MEDIUM_WAIT_TIME, iap_can_id_mask);
@@ -256,6 +257,7 @@ status_code IAP::send_init_frames()
     }
     LOG_PRINT(("CAN START SENDING BYTES\n"));
 
+    usleep(1000);
     // next send the start address
     sc->send_frame(KT::IAP_REQUEST_ID | set_7th, KT::start_address_data, sizeof(KT::start_address_data));
     resp = sc->get_frame(KT::IAP_RESPONSE_ID, this, resp_call_back, MEDIUM_WAIT_TIME, iap_can_id_mask);
@@ -267,6 +269,7 @@ status_code IAP::send_init_frames()
     }
     LOG_PRINT(("SENT START ADDRESS\n"));
 
+    usleep(1000);
     // next send the total checksum
     sc->send_frame(KT::IAP_REQUEST_ID | set_7th, KT::total_checksum_data, sizeof(KT::total_checksum_data));
     resp = sc->get_frame(KT::IAP_RESPONSE_ID, this, resp_call_back, MEDIUM_WAIT_TIME, iap_can_id_mask);
@@ -278,6 +281,8 @@ status_code IAP::send_init_frames()
     }
     LOG_PRINT(("GOT CHECKSUM DATA RESPONSE\n"));
 
+    usleep(1000);
+    // finally send the data size
     sc->send_frame(KT::IAP_REQUEST_ID | set_7th, KT::data_size_data, sizeof(KT::data_size_data));
     resp = sc->get_frame(KT::IAP_RESPONSE_ID, this, resp_call_back, MEDIUM_WAIT_TIME, iap_can_id_mask);
 
@@ -442,6 +447,7 @@ status_code IAP::upload_hex_file()
                 LOG_PRINT(("HEART_BEAT TIMEOUT\n"));
                 return NO_HEART_BEAT;
             }
+            usleep(3000);
             // reset the Kinetek and check for a heartbeat again
             sc->send_frame(KT::ESTOP_ID, KT::disable_kinetek_data, sizeof(KT::disable_kinetek_data));
             usleep(2000000);

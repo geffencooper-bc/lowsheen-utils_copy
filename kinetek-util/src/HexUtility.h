@@ -140,5 +140,5 @@ class HexUtility
 
 // special hex utility getline function that can handle dos and linux newlines, returns false when reach EOF
 bool hu_getline(std::istream& file, std::string& str);
-
+void getline_test(string file_path);
 #endif
