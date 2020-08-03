@@ -18,7 +18,7 @@
 #ifdef PRINT_LOG
 #define LOG_PRINT(x) printf x
 #else
-#define LOG_PRINT(x) void
+#define LOG_PRINT(x) do {} while (0)
 #define PROGRESS_BAR  // show a progress bar instead
 #endif
 
@@ -447,13 +447,10 @@ status_code IAP::upload_hex_file()
                 LOG_PRINT(("HEART_BEAT TIMEOUT\n"));
                 return NO_HEART_BEAT;
             }
-            usleep(3000);
-            // reset the Kinetek and check for a heartbeat again
-            sc->send_frame(KT::ESTOP_ID, KT::disable_kinetek_data, sizeof(KT::disable_kinetek_data));
-            usleep(2000000);
-            sc->send_frame(KT::ESTOP_ID, KT::enable_kinetek_data, sizeof(KT::enable_kinetek_data));
 
-            // check for a heartbeat
+            usleep(3000);
+
+            // check for a heartbeat again
             resp = sc->get_frame(KT::HEART_BEAT_ID, this, resp_call_back, LONG_WAIT_TIME);
             if (KT::get_response_type(resp->ident, resp->data, resp->DLC) != KT::HEART_BEAT)
             {

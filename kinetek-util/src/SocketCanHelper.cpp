@@ -17,7 +17,7 @@
 #ifdef PRINT_LOG
 #define LOG_PRINT(x) printf x
 #else
-#define LOG_PRINT(x) void
+#define LOG_PRINT(x) do {} while (0)
 #endif
 
 // create timer used for receive message timeouts
