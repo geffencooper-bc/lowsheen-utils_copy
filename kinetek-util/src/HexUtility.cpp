@@ -101,7 +101,6 @@ int HexUtility::get_next_8_bytes(uint8_t* byte_array, uint8_t arr_size)
     if (is_first_8)
     {
         hu_getline(hex_file, curr_line);
-        printf("LINE:\t%s\n", curr_line.c_str());
     }
 
     hex_record_type record_type = get_record_type(curr_line);
@@ -117,7 +116,6 @@ int HexUtility::get_next_8_bytes(uint8_t* byte_array, uint8_t arr_size)
     while (record_type != DATA)
     {
         hu_getline(hex_file, curr_line);
-        printf("LINE:\t%s\n", curr_line.c_str());
         record_type = get_record_type(curr_line);
     }
 
@@ -140,7 +138,6 @@ int HexUtility::get_next_8_bytes(uint8_t* byte_array, uint8_t arr_size)
             // get the next line so the next time the function gets called it will reach eof and not try to grab the
             // second 8 bytes
             hu_getline(hex_file, curr_line);
-            printf("LINE:\t%s\n", curr_line.c_str());
             return sum;
         }
         // record with > 8 bytes
@@ -271,7 +268,6 @@ int HexUtility::load_hex_file_data()
     // go through entire hex file line by line
     while (hu_getline(hex_file, curr_line))
     {
-        printf("LINE:\t%s\n", curr_line.c_str());
         // check to make sure all record checksums are valid (is hex file corrupt)
         if (calc_hex_checksum(curr_line) != get_record_checksum(curr_line))
         {
@@ -288,7 +284,6 @@ int HexUtility::load_hex_file_data()
             ms_16_bits = (byte_list[0] << 8) + byte_list[1];
 
             hu_getline(hex_file, curr_line);
-            printf("LINE:\t%s\n", curr_line.c_str());
             line_index += 1;
             if (get_record_type(curr_line) == DATA)
             {
@@ -342,38 +337,57 @@ uint8_t HexUtility::calc_hex_checksum(const string& hex_record)
 }
 
 // get line function that handles dos and linux newlines, returns false when reach eof
-bool HexUtility::hu_getline(std::istream& file, std::string& str) 
+bool hu_getline(std::istream& file, std::string& str)
 {
     str.clear();
-    while(true)
+    while (true)
     {
         int c = file.get();
-		switch (c) 
+        switch (c)
         {
-			case '\n':
+            case '\n':
             {
-                return true;
-            }
-			case '\r':
-            {
-                if (file.get() == '\n')
+                if (!str.empty())
                 {
-					return true;
-				}
-            }	
-			case EOF:
+                    return true;
+                }
+                break;
+            }
+            case '\r':
+            {
+                break;
+            }
+            case EOF:
             {
                 // Also handle the case when the last line has no line ending
-				if (str.empty()) 
+                if (str.empty())
                 {
-					file.setstate(std::ios::eofbit);
-				}
+                    file.setstate(std::ios::eofbit);
+                }
                 return false;
             }
-			default:
+            default:
             {
                 str += (char)c;
-            }	
-		}
+                break;
+            }
+        }
+    }
+}
+
+void getline_test(string file_path)
+{
+    ifstream file;
+    file.open(file_path);
+    if (file.fail())
+    {
+        printf("file doesn't exist\n");
+        exit(EXIT_FAILURE);
+    }
+
+    string line = "";
+    while (hu_getline(file, line))
+    {
+        printf("LINE\t%s\n", line.c_str());
     }
 }

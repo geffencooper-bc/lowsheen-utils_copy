@@ -444,8 +444,8 @@ status_code IAP::upload_hex_file()
             }
             // reset the Kinetek and check for a heartbeat again
             sc->send_frame(KT::ESTOP_ID, KT::disable_kinetek_data, sizeof(KT::disable_kinetek_data));
-            usleep(2000000); 
-            sc->send_frame(KT::ESTOP_ID, KT::enable_kinetek_data, sizeof(KT::enable_kinetek_data)); 
+            usleep(2000000);
+            sc->send_frame(KT::ESTOP_ID, KT::enable_kinetek_data, sizeof(KT::enable_kinetek_data));
 
             // check for a heartbeat
             resp = sc->get_frame(KT::HEART_BEAT_ID, this, resp_call_back, LONG_WAIT_TIME);
