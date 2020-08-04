@@ -69,3 +69,5 @@ _CPack_Packages/
 install_manifest.txt
 *.deb
 vcis-util 
+kinetek-util
+src/version.h
