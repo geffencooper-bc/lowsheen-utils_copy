@@ -70,4 +70,8 @@ install_manifest.txt
 *.deb
 vcis-util
 version.h
-kinetekt-util
+kinetek-util
+
+# VScode
+.vscode
+
