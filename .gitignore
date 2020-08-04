@@ -68,4 +68,5 @@ CPackSourceConfig.cmake
 _CPack_Packages/
 install_manifest.txt
 *.deb
-vcis-util 
+vcis-util
+version.h
