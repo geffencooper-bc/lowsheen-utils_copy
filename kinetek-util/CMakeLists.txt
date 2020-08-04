@@ -25,11 +25,6 @@ set(SOURCES     ${STACKDRV_SRC}/CO_driver.c
                 ${APP_SRC}/IAP.cpp
 )
 
-add_custom_command(
-    OUTPUT ${CMAKE_CURRENT_SOURCE_DIR}/__df_1
-    COMMAND python ${PROJECT_SOURCE_DIR}/scripts/version.py
-)
-
 add_executable(${APP_NAME} ${SOURCES})
 
 target_compile_options(${APP_NAME} PUBLIC "-pthread")

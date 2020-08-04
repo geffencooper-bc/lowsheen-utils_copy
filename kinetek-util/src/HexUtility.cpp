@@ -17,6 +17,8 @@ using std::ios;
 // opens file and loads hex data like checksums, data size, etc
 HexUtility::HexUtility(const string& hex_file_path)
 {
+    this->hex_file_path = hex_file_path;
+
     // init member variables
     curr_line = "";
     is_first_8 = true;
@@ -92,6 +94,10 @@ int HexUtility::get_start_address(uint8_t* byte_array, uint8_t arr_size)
 // get the next can frame data from the hex file
 int HexUtility::get_next_8_bytes(uint8_t* byte_array, uint8_t arr_size)
 {
+    if(!hex_file.is_open())
+    {
+        hex_file.open(hex_file_path);
+    }
     if (arr_size < 8)
     {
         printf("Error: Array size is not big enough\n");
@@ -306,9 +312,8 @@ int HexUtility::load_hex_file_data()
         line_index += 1;
     }
 
-    // reset file stream pointer to top of file
-    hex_file.clear();
-    hex_file.seekg(0, ios::beg);
+    // close the file, reopen later when needed
+    hex_file.close();
 }
 
 void HexUtility::num_to_byte_list(int num, uint8_t* byte_array, uint8_t arr_size)
@@ -383,6 +388,7 @@ void getline_test(string file_path)
     string line = "";
     while (hu_getline(file, line))
     {
-        printf("LINE\t%s\n", line.c_str());
+        printf("%s", line.c_str());
     }
+    file.close();
 }
