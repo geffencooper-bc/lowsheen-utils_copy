@@ -10,10 +10,15 @@
 //==================================================================
 
 #include "IAP.h"
+#include "STUparam.h"
+
+// #define IAP
+#define STU_PARAM
 
 // arg 1 = file path, arg2 = iap_mode
 int main(int argc, char** argv)
 {
+    #ifdef IAP
     if (argc != 3)
     {
         printf("ARGS: [FILE PATH] [IAP MODE] (0 = selective, 1 = forced)");
@@ -51,4 +56,10 @@ int main(int argc, char** argv)
     {
         printf("Error: %i", status);
     }
+    #endif
+    
+    #ifdef STU_PARAM
+    STUparam stu;
+    stu.read_stu_params("stu_params.stu");
+    #endif
 }

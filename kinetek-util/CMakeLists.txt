@@ -17,15 +17,14 @@ include_directories(
                         ${CMAKE_CURRENT_BINARY_DIR}
 )
 
-set(SOURCES     ${STACKDRV_SRC}/CO_driver.c         
-               # ${STACKDRV_SRC}/CO_Linux_threads.c 
-                ${STACKDRV_SRC}/CO_notify_pipe.c   
-               # ${CANOPEN_SRC}/CANopen.c                          
+set(SOURCES     ${STACKDRV_SRC}/CO_driver.c        
+                ${STACKDRV_SRC}/CO_notify_pipe.c                         
                 ${APP_SRC}/main.cpp
                 ${APP_SRC}/SocketCanHelper.cpp
                 ${APP_SRC}/HexUtility.cpp
                 ${APP_SRC}/IAP.cpp
                 ${APP_SRC}/KinetekCodes.cpp
+                ${APP_SRC}/STUparam.cpp
 )
 
 # attempt to generate version.h if info changed

@@ -17,7 +17,7 @@
 #include <string>
 #include <fstream>
 #include <stdint.h>
-#include <iostream>
+#include <ostream>
 #include "SocketCanHelper.h"
 #include "KinetekCodes.h"
 
@@ -34,15 +34,14 @@ class STUparam
     STUparam();
     ~STUparam();
 
-    void read_stu_params(const string& output_file);
+    int read_stu_params(const string& output_file);
     void write_stu_params(const string& input_file);
 
     private:
-    bool is_first_8; // keeps track if reading bytes 0-7 or 8-15 of 16 bytes STU param line
     SocketCanHelper* sc; // helps to tx rx can frames
     KinetekCodes* kt;
 
-    friend void resp_call_back(
+    friend void resp_call_back_stu(
         void* msg,
         const CO_CANrxMsg_t* can_msg);  // the call back may need access to private member variables
 };
