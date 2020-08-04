@@ -68,6 +68,6 @@ CPackSourceConfig.cmake
 _CPack_Packages/
 install_manifest.txt
 *.deb
-vcis-util 
-kinetek-util
-src/version.h
+vcis-util
+version.h
+kinetekt-util
