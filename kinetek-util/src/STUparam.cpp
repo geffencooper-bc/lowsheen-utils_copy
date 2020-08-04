@@ -71,18 +71,16 @@ int STUparam::read_stu_params(const string& output_file)
     // next get the stu parameters
     int stu_row_i = 0;
     int current_checksum = 0;
+    CO_CANrxMsg_t respA;
+    CO_CANrxMsg_t respB;
     while(stu_row_i < NUM_STU_ROWS) // keep reading parameters until all rows read
     {
         // initialize read request data with according eeprom address and get the row response data
         kt->eeprom_access_read_request_data[3] = ROW_SIZE*stu_row_i;
-        usleep(5000);
         sc->send_frame(KinetekCodes::EEPROM_ACCESS_MESSAGE_ID, kt->eeprom_access_read_request_data, sizeof(kt->eeprom_access_read_request_data));
-        // does not work, uses same one under the hood (can rx msg can_msg)
-        CO_CANrxMsg_t respA;
-        CO_CANrxMsg_t respB;
-
-        memcpy(&respA, sc->get_frame(KinetekCodes::EEPROM_LINE_READ_RESPONSE_A_ID, this, resp_call_back_stu, 100000), sizeof(CO_CANrxMsg_t));
-        memcpy(&respB, sc->get_frame(KinetekCodes::EEPROM_LINE_READ_RESPONSE_B_ID, this, resp_call_back_stu, 100000), sizeof(CO_CANrxMsg_t));
+    
+        memcpy(&respA, sc->get_frame(KinetekCodes::EEPROM_LINE_READ_RESPONSE_A_ID, this, resp_call_back_stu, 1000), sizeof(CO_CANrxMsg_t));
+        memcpy(&respB, sc->get_frame(KinetekCodes::EEPROM_LINE_READ_RESPONSE_B_ID, this, resp_call_back_stu, 1000), sizeof(CO_CANrxMsg_t));
 
         // get the first 8 bytes of the row
         if(kt->get_response_type(respA.ident, respA.data, respA.DLC) != KinetekCodes::EEPROM_ACCESS_READ_RESPONSE)
