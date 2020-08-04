@@ -4,6 +4,8 @@ set(APP_NAME "vcis-util")
 
 set(CMAKE_BUILD_TYPE Debug)
 
+set(CMAKE_CURRENT_BINARY_DIR ${BUILD_OUTPUT_PATH})
+
 # default directory paths
 set(CANOPEN_SRC ${CMAKE_CURRENT_SOURCE_DIR}/../modules/CANopenNode) 
 set(STACK_SRC ${CANOPEN_SRC}/stack)
@@ -20,6 +22,7 @@ include_directories(
                         ${OBJ_DICT_SRC}
                         ${APPL_SRC}
                         ${CMAKE_CURRENT_BINARY_DIR}
+                        ${CMAKE_BINARY_DIR}
 )
 
 set(SOURCES     ${STACKDRV_SRC}/CO_driver.c         
@@ -47,22 +50,10 @@ set(SOURCES     ${STACKDRV_SRC}/CO_driver.c
                 ${APP_SRC}/main.c
 )
 
-# attempt to generate version.h if info changed
-add_custom_target(
-   gen_version_headers
-   DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/__df_1   # depend on non-existent file to force target to build every time
-)
-
-add_custom_command(
-    OUTPUT ${CMAKE_CURRENT_SOURCE_DIR}/__df_1
-    COMMAND python ${PROJECT_SOURCE_DIR}/scripts/version.py
-)
-
 # remove stopping compilation due to warnings caused by the auto-generated file OC_OD.c
 set_source_files_properties(${OBJ_DICT_SRC}/CO_OD.c PROPERTIES COMPILE_FLAGS -w)
 
 add_executable(${APP_NAME} ${SOURCES})
-add_dependencies(${APP_NAME} gen_version_headers)
 
 target_compile_options(${APP_NAME} PUBLIC "-pthread")
 

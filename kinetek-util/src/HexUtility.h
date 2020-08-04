@@ -109,6 +109,7 @@ class HexUtility
    private:
     ifstream hex_file;  // file is open for object lifetime
     string curr_line;   // file will be read line by line
+    string hex_file_path;
 
     bool is_first_8;  // reading 1st 8 data bytes or next 8 data bytes in hex record
     bool is_eof;

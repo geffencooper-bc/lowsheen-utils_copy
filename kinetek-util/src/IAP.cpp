@@ -17,7 +17,10 @@
 #ifdef PRINT_LOG
 #define LOG_PRINT(x) printf x
 #else
-#define LOG_PRINT(x) do {} while (0)
+#define LOG_PRINT(x) \
+    do               \
+    {                \
+    } while (0)
 #define PROGRESS_BAR  // show a progress bar instead
 #endif
 
