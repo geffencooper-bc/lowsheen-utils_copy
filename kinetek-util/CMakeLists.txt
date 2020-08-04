@@ -25,6 +25,7 @@ set(SOURCES     ${STACKDRV_SRC}/CO_driver.c
                 ${APP_SRC}/SocketCanHelper.cpp
                 ${APP_SRC}/HexUtility.cpp
                 ${APP_SRC}/IAP.cpp
+                ${APP_SRC}/KinetekCodes.cpp
 )
 
 # attempt to generate version.h if info changed

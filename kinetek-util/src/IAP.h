@@ -16,6 +16,7 @@
 
 #include "SocketCanHelper.h"
 #include "HexUtility.h"
+#include "KinetekCodes.h"
 
 // these codes are used to determine if to move on or not in the iap process
 enum status_code
@@ -91,6 +92,7 @@ class IAP
 
     SocketCanHelper* sc;  // helps with sending and receiving can messages
     HexUtility* ut;       // helps with reading hex file
+    KinetekCodes* kt;
 
     friend void resp_call_back(
         void* msg,

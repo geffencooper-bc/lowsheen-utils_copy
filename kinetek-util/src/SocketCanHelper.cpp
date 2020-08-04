@@ -129,6 +129,7 @@ CO_CANrxMsg_t* SocketCanHelper::get_frame(uint32_t can_id,
     memset(can_msg, 0, sizeof(can_msg));
 
     // setup desired time_out given ms input, 5ms by default
+    //time_out->it_interval.tv_sec = 5;
     time_out->it_value.tv_sec = wait_time / 1000;
     time_out->it_value.tv_nsec = (wait_time % 1000) * 1000000;
 
