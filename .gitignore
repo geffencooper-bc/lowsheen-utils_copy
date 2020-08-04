@@ -68,7 +68,9 @@ CPackSourceConfig.cmake
 _CPack_Packages/
 install_manifest.txt
 *.deb
-vcis-util
+vcis-util/vcis-util
+kinetek-util/kinetek-util
 version.h
-kinetek-util
 
+# VScode
+.vscode
