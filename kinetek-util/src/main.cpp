@@ -60,6 +60,6 @@ int main(int argc, char** argv)
     
     #ifdef STU_PARAM
     STUparam stu;
-    stu.read_stu_params("stu_params.stu");
+    stu.read_stu_params("OUT1.stu");
     #endif
 }

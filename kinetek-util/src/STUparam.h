@@ -20,6 +20,8 @@
 #include <ostream>
 #include "SocketCanHelper.h"
 #include "KinetekCodes.h"
+#include <iomanip>
+#include <iostream>
 
 using std::string;
 using std::ifstream;
@@ -31,10 +33,16 @@ using std::ofstream;
 class STUparam
 {
     public:
+    // initializes objects, starts up socket can
     STUparam();
+
+    // deallocates memory
     ~STUparam();
 
+    // gets stu parameters from kinetek and outputs to a file
     int read_stu_params(const string& output_file);
+
+    
     void write_stu_params(const string& input_file);
 
     private:

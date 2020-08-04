@@ -9,7 +9,7 @@
             "type": "cppdbg",
             "request": "launch",
             "program": "${workspaceFolder}/kinetek-util/kinetek-util",
-            "args": ["/home/geffen.cooper/hex_files/2.28.hex", "0"],
+            "args": [],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",
             "environment": [],
