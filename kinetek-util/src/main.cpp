@@ -12,13 +12,13 @@
 #include "IAP.h"
 #include "STUparam.h"
 
-// #define IAP
+//#define IAP_UTIL
 #define STU_PARAM
 
-// arg 1 = file path, arg2 = iap_mode
 int main(int argc, char** argv)
 {
-    #ifdef IAP
+    #ifdef IAP_UTIL
+    // arg 1 = file path, arg2 = iap_mode
     if (argc != 3)
     {
         printf("ARGS: [FILE PATH] [IAP MODE] (0 = selective, 1 = forced)");
@@ -59,8 +59,59 @@ int main(int argc, char** argv)
     #endif
     
     #ifdef STU_PARAM
+    // arg 1 = file path, arg2 = stu_mode
+    if (argc != 3)
+    {
+        printf("ARGS: [FILE PATH] [STU MODE] (0 = Read, 1 = Write)");
+        exit(EXIT_FAILURE);
+    }
+
+    int stu_mode = atoi(argv[2]);  // 0 = read, 1 = write
+    string file_path = argv[1];
+
     STUparam stu;
-    //stu.read_stu_params("OUT1.stu");
-    stu.write_stu_params("/home/brain/OUT1.stu");
+    if(stu_mode == 0)
+    {
+        STUparam::stu_status status = stu.read_stu_params(file_path);
+        if(status != STUparam::STU_READ_SUCCESS)
+        {
+            printf("Error: %i", status);
+        }
+        else
+        {
+            printf("SUCCESS\n");
+        }
+    }
+    else if(stu_mode == 1)
+    {
+        STUparam::stu_status status = stu.write_stu_params(file_path);
+        if(status != STUparam::STU_WRITE_SUCCESS)
+        {
+            printf("Error: %i", status);
+        }
+        else
+        {
+            printf("SUCCESS\n");
+        }
+    }
+    else
+    {
+        stu.calc_stu_checksum(file_path);
+    }
+    
+    // STUparam::stu_status status = stu.read_stu_params("OUT2.stu");
+    // if(status == STUparam::STU_READ_SUCCESS)
+    // {
+    //     status = stu.write_stu_params("/home/brain/OUT2.stu");
+    //     if(status == STUparam::STU_WRITE_SUCCESS)
+    //     {
+    //         printf("\nSUCCESS\n");
+    //     }
+    // }
+    // if(status != STUparam::STU_WRITE_SUCCESS)
+    // {
+    //     printf("Error: %i", status);
+    // }
+    
     #endif
 }
