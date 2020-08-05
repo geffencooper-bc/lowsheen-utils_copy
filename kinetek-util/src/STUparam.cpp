@@ -10,6 +10,7 @@
 //==================================================================
 
 #include "STUparam.h"
+#include "HexUtility.h"
 #include <memory>
 // debug print macro to see error messages
 #define PRINT_LOG
@@ -117,3 +118,96 @@ int STUparam::read_stu_params(const string& output_file)
     output.close(); // close the stu output file
 }
 
+int STUparam::write_stu_params(const string& input_file)
+{
+    int status = validate_stu_file(input_file);
+    if(status == -1)
+    {
+        LOG_PRINT(("BAD STU FILE"));
+        return status;
+    }
+    LOG_PRINT(("VALID STU FILE\n"));
+    // write stu file
+    // send request, then line part A and B
+    ifstream stu_file;
+    stu_file.open(input_file);
+    if(stu_file.fail())
+    {
+        LOG_PRINT(("CAN'T OPEN STU FILE\n"));
+        return -1;
+    }
+
+    string curr_line = "";
+    hu_getline(stu_file, curr_line); // skip the header
+    int curr_line_i = 0;
+    while(hu_getline(stu_file, curr_line))
+    {
+        kt->eeprom_access_write_request_data[3] = 16*curr_line_i;
+        stu_line_to_byte_array(curr_line, kt->eeprom_access_line_write_data, sizeof(kt->eeprom_access_line_write_data));
+        sc->send_frame(KinetekCodes::EEPROM_ACCESS_MESSAGE_ID, kt->eeprom_access_write_request_data, sizeof(kt->eeprom_access_write_request_data));
+        usleep(1000);
+        sc->send_frame(KinetekCodes::EEPROM_LINE_WRITE_A_ID, kt->eeprom_access_line_write_data, CAN_DATA_LEN);
+        usleep(1000);
+        sc->send_frame(KinetekCodes::EEPROM_LINE_WRITE_B_ID, kt->eeprom_access_line_write_data+8, CAN_DATA_LEN);
+        usleep(1000);
+
+        CO_CANrxMsg_t* resp = sc->get_frame(KinetekCodes::EEPROM_LINE_WRITE_RESPONSE_ID, this, resp_call_back_stu, 100000);
+        if(kt->get_response_type(resp->ident, resp->data, resp->DLC) != KinetekCodes::EEPROM_ACCESS_WRITE_RESPONSE)
+        {
+            LOG_PRINT(("NO WRITE RESPONSE"));
+            return -1;
+        }
+        curr_line_i++;
+    }
+    stu_file.close();
+    // reset the kinetek, check for error message
+    sc->send_frame(KinetekCodes::ESTOP_ID, kt->disable_kinetek_data, sizeof(kt->disable_kinetek_data));
+    usleep(2000000);  // sleep for 2 seconds
+    sc->send_frame(KinetekCodes::ESTOP_ID, kt->enable_kinetek_data, sizeof(kt->enable_kinetek_data));
+}
+
+int STUparam::validate_stu_file(const string& input_file)
+{
+    ifstream stu_file;
+    stu_file.open(input_file);
+    if(stu_file.fail())
+    {
+        LOG_PRINT(("CANT OPEN\n"));
+        return -1;
+    }
+
+    int curr_line_i = 0;
+    string curr_line = "";
+    hu_getline(stu_file, curr_line); // skip the header
+    while(hu_getline(stu_file, curr_line))
+    {
+        int line_checksum = 16*curr_line_i;
+        int expected_checksum = std::stoi(curr_line.substr(curr_line.size()-4, 4), 0, 16);
+        for(int i = 1; i < ROW_SIZE/2 + 1; i++)
+        {
+            line_checksum += std::stoi(curr_line.substr(i*6, 2), 0, 16) + std::stoi(curr_line.substr(i*6 + 2, 2), 0, 16);
+        }
+        if(line_checksum != expected_checksum)
+        {
+            LOG_PRINT(("BAD LINE CHECKSUM\n"));
+            return -1;
+        }
+        curr_line_i++;
+    }
+    stu_file.close();
+    return 0;
+}
+
+void STUparam::stu_line_to_byte_array(const string& stu_line, uint8_t* byte_array, uint8_t arr_size)
+{
+    if(arr_size < ROW_SIZE)
+    {
+        LOG_PRINT(("ARRAY SIZE TOO SMALL"));
+        exit(EXIT_FAILURE);
+    }
+    for(int i = 1; i < ROW_SIZE/2 + 1; i++)
+    {
+        byte_array[2*i - 2] = std::stoi(stu_line.substr(i*6, 2), 0, 16);
+        byte_array[2*i - 1] = std::stoi(stu_line.substr(i*6 + 2, 2), 0, 16);
+    }
+}

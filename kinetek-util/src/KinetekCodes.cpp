@@ -55,12 +55,18 @@
 // ----------------------- kinetek EEPROM ACCESS (STU REQUEST) data -------------------------
 // 0xFF = don't care bytes that are filled in at runtime
 
+    // ID = 0x00A
     uint8_t KinetekCodes::eeprom_access_read_request_data[8] = {0x01, 0x00, 0x00, 0xFF, 0x00, 0x00, 0x00, 0x00};
+    uint8_t KinetekCodes::eeprom_access_write_request_data[8] = {0x02, 0x00, 0x00, 0xFF, 0x00, 0x00, 0x00, 0x00};
 
-// ----------------------- kinetek EEPROM ACCESS (STU REQUEST) data -------------------------
+    // ID = 0x009 and 0x00E
+    uint8_t KinetekCodes::eeprom_access_line_write_data[16] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
+
+// ----------------------- kinetek EEPROM ACCESS (STU RESPONSE) data -------------------------
 // 0xFF = don't care bytes that are filled in at runtime
 
-    uint8_t KinetekCodes::eeprom_access_read_response_data[8] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
+    // ID = 0x091
+    // uint8_t KinetekCodes::eeprom_access_write_response_data[8] = {0x02, 0x00, 0x00, 0xFF, 0x00, 0x00, 0x00, 0x00};
 
 
 
@@ -162,8 +168,16 @@ KinetekCodes::kinetek_response KinetekCodes::get_response_type(uint32_t id, uint
     {
         return EEPROM_ACCESS_READ_RESPONSE;
     }
+    else if((std_can_id)id == EEPROM_LINE_WRITE_RESPONSE_ID)
+    {
+        if(array_compare(eeprom_access_write_request_data, sizeof(eeprom_access_write_request_data), data_array, arr_size))
+        {
+            return EEPROM_ACCESS_WRITE_RESPONSE;
+        }
+    }
     else
     {
         return NONE;
     }
+    return NONE;
 }

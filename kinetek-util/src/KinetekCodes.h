@@ -66,11 +66,14 @@ struct KinetekCodes
     enum std_can_id
     {
         KINETEK_COMMAND_ID = 0x001,
+        EEPROM_LINE_WRITE_A_ID = 0x009,
         EEPROM_ACCESS_MESSAGE_ID = 0x00A,
+        EEPROM_LINE_WRITE_B_ID = 0x00E,
         HEART_BEAT_ID = 0x080,
         KINETEK_RESPONSE_ID = 0x081,
         EEPROM_LINE_READ_RESPONSE_A_ID = 0x08B,
         EEPROM_LINE_READ_RESPONSE_B_ID = 0x08E,
+        EEPROM_LINE_WRITE_RESPONSE_ID = 0x091,
         ESTOP_ID = 0xAC1DC0DE
     };
 
@@ -95,6 +98,7 @@ struct KinetekCodes
 
         // general responses
         EEPROM_ACCESS_READ_RESPONSE,
+        EEPROM_ACCESS_WRITE_RESPONSE,
         HEART_BEAT
     };
 
@@ -136,7 +140,8 @@ struct KinetekCodes
     static uint8_t heart_beat_data[8];
     static uint8_t enter_iap_mode_selective_response_data[5];
     static uint8_t eeprom_access_read_request_data[8];
-    static uint8_t eeprom_access_read_response_data[8];
+    static uint8_t eeprom_access_write_request_data[8];
+    static uint8_t eeprom_access_line_write_data[16];
 
 
 // ============================================================ HELPER FUNCTION SECTION =============================================================================

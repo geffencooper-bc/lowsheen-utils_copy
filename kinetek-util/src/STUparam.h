@@ -42,8 +42,8 @@ class STUparam
     // gets stu parameters from kinetek and outputs to a file
     int read_stu_params(const string& output_file);
 
-    
-    void write_stu_params(const string& input_file);
+    // writes stu parameters from a file to the kinetek
+    int write_stu_params(const string& input_file);
 
     private:
     SocketCanHelper* sc; // helps to tx rx can frames
@@ -52,6 +52,9 @@ class STUparam
     friend void resp_call_back_stu(
         void* msg,
         const CO_CANrxMsg_t* can_msg);  // the call back may need access to private member variables
+
+    int validate_stu_file(const string& input_file);
+    void stu_line_to_byte_array(const string& stu_line, uint8_t* byte_array, uint8_t arr_size);
 };
 
 #endif
