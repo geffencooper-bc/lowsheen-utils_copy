@@ -11,6 +11,7 @@
 
 #include "STUparam.h"
 #include "HexUtility.h"
+#include <sstream>
 #include <memory>
 // debug print macro to see error messages
 #define PRINT_LOG
@@ -149,7 +150,14 @@ STUparam::stu_status STUparam::read_stu_params(const string& output_file)
 
         // write the row checksum to the stu file
         current_checksum += ROW_SIZE*stu_row_i;
-        stu_stream(output, current_checksum, 4) << '\n'; 
+        if(stu_row_i == NUM_STU_ROWS - 1)
+        {
+            stu_stream(output, current_checksum, 4);
+        }
+        else
+        {
+            stu_stream(output, current_checksum, 4) << '\n';
+        }
         stu_row_i++;
         current_checksum = 0;
     }
@@ -238,7 +246,7 @@ STUparam::stu_status STUparam::validate_stu_file(const string& input_file)
     {
         if(curr_line[i] == ',')
         {
-            header_checksum += std::stoi(value, 0, 16);
+            header_checksum += std::stoi(value);
             value = "";
             i++; // acount for the space
         }
@@ -248,24 +256,40 @@ STUparam::stu_status STUparam::validate_stu_file(const string& input_file)
         }
     }
     // compare the calculated checksum to the expected checksum
-    if(header_checksum != std::stoi(value, 0, 16))
+    if(header_checksum != std::stoi(value))
     {
         LOG_PRINT(("BAD HEADER CHECKSUM\n"));
         return INVALID_STU_FILE;
     }
 
-    // Check 3: azero-out the first 28 parameters
-    hu_getline(stu_file, curr_line); // line 1
-    hu_getline(stu_file, curr_line); // line 2
-    string start_params = curr_line.substr(42, 10); // grab parameters 28-32
+    // Check 3: zero-out the first 28 parameters, rewrite the file
+    string first_two_lines = curr_line + "\n";
+    hu_getline(stu_file, curr_line); // read stu line 1
+    hu_getline(stu_file, curr_line); // read stu line 2
+    first_two_lines += "0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000\n"; // first stu line zero
+    first_two_lines += "0010, 0000, 0000, 0000, 0000, 0000, 0000, " + curr_line.substr(42, 10); // grab parameters 28-32 from stu line 2
+
+    // get the sum of these parameters (row checksum)
     int start_params_sum = std::stoi(curr_line.substr(42, 2), 0, 16) + 
                            std::stoi(curr_line.substr(44, 2), 0, 16) +
                            std::stoi(curr_line.substr(48, 2), 0, 16) +
                            std::stoi(curr_line.substr(50, 2), 0, 16);
-    start_params += ", " + std::to_string(start_params_sum);
+    // append the row checksum
+    std::stringstream stream;
+    stream << std::hex << std::uppercase << std::setfill('0') << std::setw(4) << start_params_sum;
+    first_two_lines += ", " + stream.str() + "\n";
 
+    // get the rest of the file as a string and combine with edited first two lines
+    while(hu_getline(stu_file, curr_line))
+    {
+        first_two_lines += curr_line + "\n";
+    }
 
-
+    stu_file.clear();
+    stu_file.seekp(0, std::ios::beg);
+    stu_file << first_two_lines;
+    stu_file.close();
+    exit(EXIT_FAILURE);
     // Check 4: validate row checksums
     int curr_line_i = 0;
     int total_stu_checksum = 0;
@@ -307,37 +331,4 @@ int STUparam::stu_line_to_byte_array(const string& stu_line, uint8_t* byte_array
         sum += byte_array[2*i - 2] + byte_array[2*i - 1];
     }
     return sum;
-}
-
-int STUparam::calc_stu_checksum(const string& input_file)
-{
-    ifstream stu_file;
-    stu_file.open(input_file);
-    if(stu_file.fail())
-    {
-        LOG_PRINT(("CANT OPEN\n"));
-        return INVALID_STU_FILE;
-    }
-
-    int sum = 0;
-    string curr_line = "";
-    hu_getline(stu_file, curr_line); // skip the header and first line
-    hu_getline(stu_file, curr_line);
-    hu_getline(stu_file, curr_line);
-    // include parameters 28, 29, 30, 31
-    sum += std::stoi(curr_line.substr(42, 2), 0, 16) + 
-           std::stoi(curr_line.substr(44, 2), 0, 16) +
-           std::stoi(curr_line.substr(48, 2), 0, 16) +
-           std::stoi(curr_line.substr(50, 2), 0, 16);
-
-    // add line checksums for lines 0020 - 00D0
-    while(hu_getline(stu_file, curr_line))
-    {
-        if(curr_line.substr(0,4) == "00E0")
-        {
-            break;
-        }
-        sum += std::stoi(curr_line.substr(curr_line.size()-4, 4), 0, 16);
-    }
-    sum -= 0x5A0; // subtract the address bytes (0020-00D0) away
 }

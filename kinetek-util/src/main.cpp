@@ -94,10 +94,6 @@ int main(int argc, char** argv)
             printf("SUCCESS\n");
         }
     }
-    else
-    {
-        stu.calc_stu_checksum(file_path);
-    }
     
     // STUparam::stu_status status = stu.read_stu_params("OUT2.stu");
     // if(status == STUparam::STU_READ_SUCCESS)

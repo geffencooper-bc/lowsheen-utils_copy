@@ -36,7 +36,6 @@ using std::ofstream;
 class STUparam
 {
     public:
-    int calc_stu_checksum(const string& input_file);
     enum stu_status
     {
         INIT_CAN_FAIL = 0,
