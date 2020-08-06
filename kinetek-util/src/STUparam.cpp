@@ -173,7 +173,7 @@ STUparam::stu_status STUparam::write_stu_params(const string& input_file)
     stu_status status = validate_stu_file(input_file);
     if(status == INVALID_STU_FILE)
     {
-        LOG_PRINT(("BAD STU FILE"));
+        LOG_PRINT(("BAD STU FILE\n"));
         return status;
     }
 
@@ -303,7 +303,7 @@ STUparam::stu_status STUparam::validate_stu_file(const string& input_file)
         }
         if(line_checksum != expected_checksum)
         {
-            LOG_PRINT(("BAD LINE CHECKSUM\n"));
+            LOG_PRINT(("BAD CHECKSUM. LINE: %i\n", curr_line_i));
             return INVALID_STU_FILE;
         }
         total_stu_checksum += line_checksum - 16*curr_line_i; // don't include row address in pure stu checksum
