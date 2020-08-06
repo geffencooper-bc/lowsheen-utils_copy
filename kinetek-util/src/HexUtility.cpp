@@ -364,7 +364,12 @@ bool hu_getline(std::istream& file, std::string& str)
             }
             case EOF:
             {
-                return false;
+                // if the file does not end with a newline then don't want to return false till next call
+                if(str.empty())
+                {
+                    return false;
+                }
+                return true;
             }
             default:
             {

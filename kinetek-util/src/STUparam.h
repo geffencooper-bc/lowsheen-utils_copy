@@ -29,14 +29,15 @@ using std::ifstream;
 using std::ofstream;
 using std::stringstream;
 
-#define NUM_STU_ROWS 16
-#define ROW_SIZE 16 // bytes
-#define MAX_NUM_STU_PARAMS 255
+#define NUM_STU_ROWS 16 // 16 rows in a st file
+#define ROW_SIZE 16 // each row holds 16 stu parameters
+#define MAX_NUM_STU_PARAMS 254 // max stu params is 254 because last two bytes are checksum
 #define INITIAL_UNUSED_PARAMS 28 // first 28 params are runtime values
 
 class STUparam
 {
     public:
+    // these codes are used to determine if to continue stu process
     enum stu_status
     {
         INIT_CAN_FAIL = 0,
@@ -51,11 +52,14 @@ class STUparam
         STU_WRITE_SUCCESS
     };
 
-    // initializes objects, starts up socket can
+    // initializes objects
     STUparam();
 
     // deallocates memory
     ~STUparam();
+
+    // initialize the SocketCanHelper object and can communication
+    stu_status init_can(const char* channel_name);
 
     // gets stu parameters from kinetek and outputs to a file
     stu_status read_stu_params(const string& output_file);

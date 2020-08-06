@@ -70,44 +70,35 @@ int main(int argc, char** argv)
     string file_path = argv[1];
 
     STUparam stu;
-    if(stu_mode == 0)
+    STUparam::stu_status status = stu.init_can("can0");
+
+    if (status == INIT_CAN_SUCCESS)
     {
-        STUparam::stu_status status = stu.read_stu_params(file_path);
-        if(status != STUparam::STU_READ_SUCCESS)
+        if(stu_mode == 0)
         {
-            printf("Error: %i", status);
+            STUparam::stu_status status = stu.read_stu_params(file_path);
+            if(status != STUparam::STU_READ_SUCCESS)
+            {
+                printf("Error: %i", status);
+            }
+            else
+            {
+                printf("SUCCESS\n");
+            }
         }
-        else
+        else if(stu_mode == 1)
         {
-            printf("SUCCESS\n");
+            STUparam::stu_status status = stu.write_stu_params(file_path);
+            if(status != STUparam::STU_WRITE_SUCCESS)
+            {
+                printf("Error: %i", status);
+            }
+            else
+            {
+                printf("SUCCESS\n");
+            }
         }
     }
-    else if(stu_mode == 1)
-    {
-        STUparam::stu_status status = stu.write_stu_params(file_path);
-        if(status != STUparam::STU_WRITE_SUCCESS)
-        {
-            printf("Error: %i", status);
-        }
-        else
-        {
-            printf("SUCCESS\n");
-        }
-    }
-    
-    // STUparam::stu_status status = stu.read_stu_params("OUT2.stu");
-    // if(status == STUparam::STU_READ_SUCCESS)
-    // {
-    //     status = stu.write_stu_params("/home/brain/OUT2.stu");
-    //     if(status == STUparam::STU_WRITE_SUCCESS)
-    //     {
-    //         printf("\nSUCCESS\n");
-    //     }
-    // }
-    // if(status != STUparam::STU_WRITE_SUCCESS)
-    // {
-    //     printf("Error: %i", status);
-    // }
     
     #endif
 }
