@@ -63,14 +63,12 @@ STUparam::stu_status STUparam::read_stu_params(const string& output_file)
     }
     stringstream stu_string; // store stu output as stringstream for formatting
 
-    // Part 1: stu header
-    // first write a temporary STU header (can't get number of params till end) 
+    // Part 1: stu header 
     string stu_header = ""; // stores stu header until gets written at end
     int stu_header_checksum = 29; // controller id is always 29
     int num_params = MAX_NUM_STU_PARAMS - INITIAL_UNUSED_PARAMS; // start at max then subtract away unused params
 
     stu_header += "29, ";
-    
     // get the firmware version from heart beat page 9
     CO_CANrxMsg_t* resp =  sc->get_frame(KinetekCodes::HEART_BEAT_ID, this, resp_call_back_stu, 20000);
     while(resp->data[1] != 9) // wait till page 9 of heart beat
@@ -271,9 +269,9 @@ STUparam::stu_status STUparam::validate_stu_file(const string& input_file)
     int start_params_sum = std::stoi(curr_line.substr(42, 2), 0, 16) + 
                            std::stoi(curr_line.substr(44, 2), 0, 16) +
                            std::stoi(curr_line.substr(48, 2), 0, 16) +
-                           std::stoi(curr_line.substr(50, 2), 0, 16);
+                           std::stoi(curr_line.substr(50, 2), 0, 16) + ROW_SIZE;
     // append the row checksum
-    std::stringstream stream;
+    stringstream stream;
     stream << std::hex << std::uppercase << std::setfill('0') << std::setw(4) << start_params_sum;
     first_two_lines += ", " + stream.str() + "\n";
 
@@ -286,11 +284,14 @@ STUparam::stu_status STUparam::validate_stu_file(const string& input_file)
     stu_file.clear();
     stu_file.seekp(0, std::ios::beg);
     stu_file << first_two_lines;
-    stu_file.close();
-    exit(EXIT_FAILURE);
+
+    stu_file.clear();
+    stu_file.seekp(0, std::ios::beg); 
+
     // Check 4: validate row checksums
     int curr_line_i = 0;
     int total_stu_checksum = 0;
+    hu_getline(stu_file, curr_line); // start at line 1
     // read all lines in the file, calculate the row checksums, compare to expected checkums. Also increment pure stu checksum
     while(hu_getline(stu_file, curr_line))
     {
@@ -310,7 +311,6 @@ STUparam::stu_status STUparam::validate_stu_file(const string& input_file)
     }
     stu_file.close();
 
-    
     return VALID_STU_FILE;
 }
 
