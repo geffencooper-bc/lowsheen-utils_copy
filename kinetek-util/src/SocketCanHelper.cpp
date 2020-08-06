@@ -141,6 +141,7 @@ CO_CANrxMsg_t* SocketCanHelper::get_frame(uint32_t can_id,
     if (err < 0)
     {
         printf("Timer Error: %i\n", err);
+        exit(EXIT_FAILURE);
     }
 
     LOG_PRINT(("Getting Message-->"));

@@ -24,7 +24,7 @@ int main(int argc, char** argv)
 
     IAP iap;
     iap.load_hex_file(argv[1]);  // file path
-    iap.print();                 // hex file information
+    // iap.print();                 // hex file information, make a command line option
 
     // step 1: check if interface accessible
     status_code status = iap.init_can("can0");
@@ -42,13 +42,15 @@ int main(int argc, char** argv)
                 status = iap.upload_hex_file();
                 if (status == UPLOAD_COMPLETE)
                 {
-                    printf("\n\n====== SUCCSESS ======\n");
+                    printf("\n\n====== SUCCESS ======\n");
                 }
             }
         }
     }
     if (status != UPLOAD_COMPLETE)
     {
-        printf("Error: %i", status);
+        printf("Error: %s", iap.translate_status_code(status).c_str());
+        return -1;
     }
+    return 0;
 }

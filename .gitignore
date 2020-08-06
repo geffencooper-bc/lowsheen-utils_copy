@@ -71,6 +71,7 @@ install_manifest.txt
 vcis-util/vcis-util
 kinetek-util/kinetek-util
 version.h
+*.stu
 
 # VScode
 .vscode

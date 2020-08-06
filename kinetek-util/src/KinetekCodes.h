@@ -158,9 +158,8 @@ namespace KT
     // determines response based on can_id and data bytes
     iap_response get_response_type(uint32_t id, uint8_t* data_array, uint8_t arr_size)
     {
-        // only care if the last four bit match (last hex digit)
-        // first category of responses is IAP_RESPONSE
-        if ((id & 0b00001111) == 0x09)  // 0x69, 0x089
+        // first category of responses is IAP_RESPONSE which can be either 0x69, 0x089 based on iap state
+        if (id == 0x069 || id == 0x089)  
         {
             if (array_compare(ACK_32_bytes_data, sizeof(ACK_32_bytes_data), data_array, arr_size))
             {
@@ -218,7 +217,7 @@ namespace KT
             }
         }
         // only care if the last four bit match (last hex digit)
-        else if ((id & 0b00001111) == 0x07)  // 0x067, 0x087
+        else if (id & 0x07)  // 0x067, 0x087
         {
             if (data_array[2] == 0x5E)
                 return FW_VERSION_RESPONSE;

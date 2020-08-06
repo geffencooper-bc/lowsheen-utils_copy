@@ -74,6 +74,9 @@ class IAP
     // step three of IAP process, sends actual hex data
     status_code upload_hex_file();
 
+    // converts status code to human readable string
+    string translate_status_code(status_code code);
+
    private:
     // hex file data
     int data_size_bytes;  // number of data bytes in hex file
