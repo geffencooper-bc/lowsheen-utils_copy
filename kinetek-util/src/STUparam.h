@@ -27,6 +27,7 @@ using std::string;
 using std::fstream;
 using std::ifstream;
 using std::ofstream;
+using std::stringstream;
 
 #define NUM_STU_ROWS 16
 #define ROW_SIZE 16 // bytes

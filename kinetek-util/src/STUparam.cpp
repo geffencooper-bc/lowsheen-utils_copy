@@ -45,10 +45,10 @@ void resp_call_back_stu(void* obj, const CO_CANrxMsg_t* can_msg)
 }
 
 // formats stu data when writing to file
-ofstream& stu_stream(ofstream& os, int val, int fill_width)
+stringstream& stu_stream(stringstream& ss, int val, int fill_width)
 {
-    os << std::hex << std::uppercase << std::setfill('0') << std::setw(fill_width) << val;// << std::to_string(val);
-    return os;
+    ss << std::hex << std::uppercase << std::setfill('0') << std::setw(fill_width) << val;
+    return ss;
 }
 
 // gets stu parameters from kinetek and outputs to a file
@@ -61,14 +61,14 @@ STUparam::stu_status STUparam::read_stu_params(const string& output_file)
     {
         output.open(output_file); // create a new file
     }
+    stringstream stu_string; // store stu output as stringstream for formatting
 
     // Part 1: stu header
     // first write a temporary STU header (can't get number of params till end) 
     string stu_header = ""; // stores stu header until gets written at end
-    int stu_header_checksum = 0;
+    int stu_header_checksum = 29; // controller id is always 29
     int num_params = MAX_NUM_STU_PARAMS - INITIAL_UNUSED_PARAMS; // start at max then subtract away unused params
 
-    output << 29 << ", "; // Kinetek controller id is 29
     stu_header += "29, ";
     
     // get the firmware version from heart beat page 9
@@ -82,9 +82,7 @@ STUparam::stu_status STUparam::read_stu_params(const string& output_file)
             return NO_HEART_BEAT;
         }
     }
-
     // write the rest of the header: firmware version major/minor, number of params
-    output << std::to_string(resp->data[3]) << ", " << std::to_string(resp->data[4]) << ", " << "NUM PARAMS" << ", " << "CHECKSUM" << "\n";
     stu_header += std::to_string(resp->data[3]) + ", " + std::to_string(resp->data[4]) + ", ";
     stu_header_checksum += resp->data[3] + resp->data[4];
 
@@ -109,7 +107,7 @@ STUparam::stu_status STUparam::read_stu_params(const string& output_file)
             return READ_A_FAIL;
         }
 
-        stu_stream(output, ROW_SIZE*stu_row_i, 4) << ", "; // row address
+        stu_stream(stu_string, ROW_SIZE*stu_row_i, 4) << ", "; // row address
 
         for(int j = 0; j < respA.DLC; j+=2) // get the data from the row and increment checksum
         {
@@ -123,7 +121,7 @@ STUparam::stu_status STUparam::read_stu_params(const string& output_file)
                 num_params--;
             }
             current_checksum += respA.data[j] + respA.data[j+1];
-            stu_stream(output, respA.data[j], 2); stu_stream(output, respA.data[j+1], 2) << ", ";
+            stu_stream(stu_string, respA.data[j], 2); stu_stream(stu_string, respA.data[j+1], 2) << ", ";
         } 
 
         // get the second 8 bytes of the row
@@ -145,18 +143,18 @@ STUparam::stu_status STUparam::read_stu_params(const string& output_file)
                 num_params--;
             }
             current_checksum += respB.data[j] + respB.data[j+1];
-            stu_stream(output, respB.data[j], 2); stu_stream(output, respB.data[j+1], 2) << ", ";
+            stu_stream(stu_string, respB.data[j], 2); stu_stream(stu_string, respB.data[j+1], 2) << ", ";
         } 
 
         // write the row checksum to the stu file
         current_checksum += ROW_SIZE*stu_row_i;
         if(stu_row_i == NUM_STU_ROWS - 1)
         {
-            stu_stream(output, current_checksum, 4);
+            stu_stream(stu_string, current_checksum, 4);
         }
         else
         {
-            stu_stream(output, current_checksum, 4) << '\n';
+            stu_stream(stu_string, current_checksum, 4) << '\n';
         }
         stu_row_i++;
         current_checksum = 0;
@@ -164,9 +162,9 @@ STUparam::stu_status STUparam::read_stu_params(const string& output_file)
 
     // write the stu header
     stu_header_checksum += num_params;
-    stu_header += std::to_string(num_params) + std::to_string(stu_header_checksum) + "\n";
-    output.seekp(0, std::ios::beg); // set position to begining
-    output << stu_header;
+    stu_header += std::to_string(num_params) + ", " + std::to_string(stu_header_checksum) + "\n";
+
+    output << stu_header << stu_string.str();
     output.close(); // close the stu output file
     return STU_READ_SUCCESS;
 }
