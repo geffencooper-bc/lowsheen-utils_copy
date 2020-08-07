@@ -217,10 +217,16 @@ namespace KT
                 return KT_CALCULATED_PAGE_CHECKSUM;
             }
         }
-        // only care if the last four bit match (last hex digit)
-        else if (id & 0x07)  // 0x067, 0x087
+        // fw revision response can be either 0x69, 0x089 based on iap state
+        else if (id == 0x067 || id == 0x087)  // 0x067, 0x087
         {
+            if (data_array[2] == 0x05E)
+            {
                 return FW_VERSION_RESPONSE;
+            }
+        }
+        else if ((std_can_id)id == KINETEK_RESPONSE_ID) // 0x081
+        {
             if (array_compare(enter_iap_mode_selective_response_data, sizeof(enter_iap_mode_selective_response_data),
                               data_array, arr_size))
             {
