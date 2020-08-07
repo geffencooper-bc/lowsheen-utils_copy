@@ -111,8 +111,8 @@ STUparam::stu_status STUparam::read_stu_params(const string& output_file)
         kt->eeprom_access_read_request_data[3] = ROW_SIZE*stu_row_i;
         sc->send_frame(KinetekCodes::EEPROM_ACCESS_MESSAGE_ID, kt->eeprom_access_read_request_data, sizeof(kt->eeprom_access_read_request_data));
     
-        memcpy(&respA, sc->get_frame(KinetekCodes::EEPROM_LINE_READ_RESPONSE_A_ID, this, resp_call_back_stu, 1000), sizeof(CO_CANrxMsg_t));
-        memcpy(&respB, sc->get_frame(KinetekCodes::EEPROM_LINE_READ_RESPONSE_B_ID, this, resp_call_back_stu, 1000), sizeof(CO_CANrxMsg_t));
+        memcpy(&respA, sc->get_frame(KinetekCodes::EEPROM_LINE_READ_RESPONSE_A_ID, this, resp_call_back_stu, 100), sizeof(CO_CANrxMsg_t));
+        memcpy(&respB, sc->get_frame(KinetekCodes::EEPROM_LINE_READ_RESPONSE_B_ID, this, resp_call_back_stu, 100), sizeof(CO_CANrxMsg_t));
 
         // validate response A, first 8 bytes
         if(kt->get_response_type(respA.ident, respA.data, respA.DLC) != KinetekCodes::EEPROM_ACCESS_READ_RESPONSE)
@@ -239,6 +239,7 @@ STUparam::stu_status STUparam::write_stu_params(const string& input_file)
         curr_line_i++;
     }
     stu_file.close();
+
     // reset the kinetek, check for error message
     sc->send_frame(KinetekCodes::ESTOP_ID, kt->disable_kinetek_data, sizeof(kt->disable_kinetek_data));
     usleep(2000000);  // sleep for 2 seconds
@@ -383,4 +384,35 @@ int STUparam::stu_line_to_byte_array(const string& stu_line, uint8_t* byte_array
         sum += byte_array[2*i - 2] + byte_array[2*i - 1];
     }
     return sum;
+}
+
+// gets a single stu parameter during runtime
+int STUparam::get_stu_param(uint8_t param_num)
+{
+    sc->send_frame(KinetekCodes::READ_STU_PARAM_ID, &param_num, 1);
+    CO_CANrxMsg_t respA, respB;
+    memcpy(&respA, sc->get_frame(KinetekCodes::STU_PARAM_DATA_A_ID, this, resp_call_back_stu, 100), sizeof(CO_CANrxMsg_t));
+    memcpy(&respB, sc->get_frame(KinetekCodes::STU_PARAM_DATA_B_ID, this, resp_call_back_stu, 100), sizeof(CO_CANrxMsg_t));
+
+    if(kt->get_response_type(respA.ident, respA.data, respA.DLC) != KinetekCodes::STU_PARAM_READ_RESPONSE)
+    {
+        LOG_PRINT(("DID NOT RECEIVE DATA A\n"));
+        return STU_PARAM_A_FAIL;
+    }
+    uint8_t value = respA.data[4];
+    return value;
+
+}
+
+// changes a single stu param during runtime
+int STUparam::change_stu_param(uint8_t param_num, uint8_t new_value)
+{
+    uint8_t write[3] = {param_num, 0x0, new_value};
+    sc->send_frame(KinetekCodes::WRITE_STU_PARAM_ID, write, sizeof(write));
+    CO_CANrxMsg_t* resp = sc->get_frame(KinetekCodes::STU_PARAM_WRITE_RESPONSE_ID, this, resp_call_back_stu, 500);
+    if(kt->get_response_type(resp->ident, resp->data, resp->DLC) != KinetekCodes::STU_PARAM_WRITE_RESPONSE)
+    {
+        LOG_PRINT(("DID NOT RECEIVE WRITE CONFIRM\n"));
+        return STU_WRITE_PARAM_FAIL;
+    }
 }

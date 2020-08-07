@@ -175,6 +175,14 @@ KinetekCodes::kinetek_response KinetekCodes::get_response_type(uint32_t id, uint
             return EEPROM_ACCESS_WRITE_RESPONSE;
         }
     }
+    else if((std_can_id)id == STU_PARAM_DATA_A_ID || (std_can_id)id == STU_PARAM_DATA_B_ID)
+    {
+        return STU_PARAM_READ_RESPONSE;
+    }
+    else if((std_can_id)id == STU_PARAM_WRITE_RESPONSE_ID)
+    {
+        return STU_PARAM_WRITE_RESPONSE;
+    }
     else
     {
         return NONE;

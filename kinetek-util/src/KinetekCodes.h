@@ -66,12 +66,17 @@ struct KinetekCodes
     enum std_can_id
     {
         KINETEK_COMMAND_ID = 0x001,
+        READ_STU_PARAM_ID = 0x006,
         EEPROM_LINE_WRITE_A_ID = 0x009,
         EEPROM_ACCESS_MESSAGE_ID = 0x00A,
+        WRITE_STU_PARAM_ID = 0x00B,
         EEPROM_LINE_WRITE_B_ID = 0x00E,
         HEART_BEAT_ID = 0x080,
         KINETEK_RESPONSE_ID = 0x081,
+        STU_PARAM_DATA_A_ID = 0x085,
+        STU_PARAM_DATA_B_ID = 0x086,
         EEPROM_LINE_READ_RESPONSE_A_ID = 0x08B,
+        STU_PARAM_WRITE_RESPONSE_ID = 0x08C,
         EEPROM_LINE_READ_RESPONSE_B_ID = 0x08E,
         EEPROM_LINE_WRITE_RESPONSE_ID = 0x091,
         ESTOP_ID = 0xAC1DC0DE
@@ -99,6 +104,8 @@ struct KinetekCodes
         // general responses
         EEPROM_ACCESS_READ_RESPONSE,
         EEPROM_ACCESS_WRITE_RESPONSE,
+        STU_PARAM_READ_RESPONSE,
+        STU_PARAM_WRITE_RESPONSE,
         HEART_BEAT
     };
 

@@ -49,7 +49,10 @@ class STUparam
         VALID_STU_FILE,
         WRITE_FAIL,
         STU_READ_SUCCESS,
-        STU_WRITE_SUCCESS
+        STU_WRITE_SUCCESS,
+        STU_PARAM_A_FAIL,
+        STU_PARAM_B_FAIL,
+        STU_WRITE_PARAM_FAIL
     };
 
     // initializes objects
@@ -66,6 +69,12 @@ class STUparam
 
     // writes stu parameters from a file to the kinetek
     stu_status write_stu_params(const string& input_file);
+
+    // gets a single stu parameter during runtime
+    int get_stu_param(uint8_t param_num);
+
+    // changes a single stu param during runtime
+    int change_stu_param(uint8_t param_num, uint8_t new_value);
 
     private:
     SocketCanHelper* sc; // helps to tx/rx can frames
