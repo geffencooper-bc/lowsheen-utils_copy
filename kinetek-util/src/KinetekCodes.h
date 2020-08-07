@@ -220,11 +220,7 @@ namespace KT
         // only care if the last four bit match (last hex digit)
         else if (id & 0x07)  // 0x067, 0x087
         {
-            if (data_array[2] == 0x5E)
                 return FW_VERSION_RESPONSE;
-        }
-        else if ((std_can_id)id == KINETEK_RESPONSE_ID)  // 0x081
-        {
             if (array_compare(enter_iap_mode_selective_response_data, sizeof(enter_iap_mode_selective_response_data),
                               data_array, arr_size))
             {
