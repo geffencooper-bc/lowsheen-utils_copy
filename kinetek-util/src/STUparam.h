@@ -37,23 +37,6 @@ using std::stringstream;
 class STUparam
 {
     public:
-    // these codes are used to determine if to continue stu process
-    enum stu_status
-    {
-        INIT_CAN_FAIL = 0,
-        INIT_CAN_SUCCESS,
-        NO_HEART_BEAT,
-        READ_A_FAIL,
-        READ_B_FAIL,
-        INVALID_STU_FILE,
-        VALID_STU_FILE,
-        WRITE_FAIL,
-        STU_READ_SUCCESS,
-        STU_WRITE_SUCCESS,
-        STU_PARAM_A_FAIL,
-        STU_PARAM_B_FAIL,
-        STU_WRITE_PARAM_FAIL
-    };
 
     // initializes objects
     STUparam();

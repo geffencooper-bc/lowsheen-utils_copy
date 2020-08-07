@@ -18,30 +18,6 @@
 #include "HexUtility.h"
 #include "KinetekCodes.h"
 
-// these codes are used to determine if to move on or not in the iap process
-enum status_code
-{
-    INIT_CAN_FAIL = 0,
-    INIT_CAN_SUCCESS,
-    IAP_MODE_FAIL,
-    IAP_MODE_SUCCESS,
-    FW_VERSION_REQUEST_FAIL,
-    SEND_BYTES_FAIL,
-    SEND_START_ADDRESS_FAIL,
-    SEND_CHECKSUM_FAIL,
-    SEND_DATA_SIZE_FAIL,
-    INIT_PACKET_SUCCESS,
-    PACKET_SENT_SUCCESS,
-    PACKET_SENT_FAIL,
-    PAGE_CHECKSUM_FAIL,
-    END_OF_FILE_CODE,
-    PACKET_RESENT_FAIL,
-    TOTAL_CHECKSUM_FAIL,
-    NO_HEART_BEAT,
-    END_OF_FILE_FAIL,
-    UPLOAD_COMPLETE
-};
-
 #define PACKET_SIZE 32  // number of bytes in a packet (4 can frames)
 #define PAGE_SIZE 32    // number of packets in a page (128 can frames)
 
