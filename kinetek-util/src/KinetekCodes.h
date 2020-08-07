@@ -56,7 +56,7 @@ namespace KT
         KINETEK_COMMAND_ID = 0x001,
         HEART_BEAT_ID = 0x080,
         KINETEK_RESPONSE_ID = 0x081,
-        ESTOP_ID = 0xAC1DC0DE
+        XT_CAN_ID = 0xAC1DC0DE
     };
 
     // Kinetek iap responses to iap requests
@@ -80,10 +80,11 @@ namespace KT
 
     // =======================================================================================================
 
-    // commands to toggle the estop line and turn on/off the Kinetek
+    // xt_can commands
 
     uint8_t enable_kinetek_data[2] = {0x02, 0x02};
     uint8_t disable_kinetek_data[2] = {0x02, 0x01};
+    uint8_t exit_xt_can_data[2] = {0x02, 0x00};
 
 // =======================================================================================================
 

@@ -77,6 +77,9 @@ class IAP
     // converts status code to human readable string
     string translate_status_code(status_code code);
 
+    // reset the xt_can app
+    void reset_xt_can();
+
    private:
     // hex file data
     int data_size_bytes;  // number of data bytes in hex file

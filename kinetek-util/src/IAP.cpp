@@ -204,11 +204,11 @@ status_code IAP::put_in_iap_mode(bool forced_mode)
     else
     {
         // first reset the Kinetek by toggling the estop line
-        sc->send_frame(KT::ESTOP_ID, KT::disable_kinetek_data, sizeof(KT::disable_kinetek_data));
+        sc->send_frame(KT::XT_CAN_ID, KT::disable_kinetek_data, sizeof(KT::disable_kinetek_data));
         usleep(2000000);  // sleep for 2 seconds
 
         // turn on the kinetek and repeatedly send the force enter iap mode command
-        sc->send_frame(KT::ESTOP_ID, KT::enable_kinetek_data, sizeof(KT::enable_kinetek_data));
+        sc->send_frame(KT::XT_CAN_ID, KT::enable_kinetek_data, sizeof(KT::enable_kinetek_data));
         sc->send_frame(KT::FORCE_ENTER_IAP_MODE_IAP, KT::enter_iap_mode_forced_data,
                        sizeof(KT::enter_iap_mode_forced_data));
 
@@ -734,4 +734,9 @@ string IAP::translate_status_code(status_code code)
             return "The hex file was uploaded successfully";
         }
     }
+}
+
+void IAP::reset_xt_can()
+{
+    sc->send_frame(KT::XT_CAN_ID, KT::exit_xt_can_data, sizeof(KT::exit_xt_can_data));
 }

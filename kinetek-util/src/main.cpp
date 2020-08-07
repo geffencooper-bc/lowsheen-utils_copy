@@ -14,9 +14,9 @@
 // arg 1 = file path, arg2 = iap_mode
 int main(int argc, char** argv)
 {
-    if (argc != 3)
+    if (argc < 2)
     {
-        printf("ARGS: [FILE PATH] [IAP MODE] (0 = selective, 1 = forced)");
+        printf("ARGS: [FILE PATH] [IAP MODE (default forced)] (0 = selective, 1 = forced)");
         exit(EXIT_FAILURE);
     }
 
@@ -24,7 +24,7 @@ int main(int argc, char** argv)
 
     IAP iap;
     iap.load_hex_file(argv[1]);  // file path
-    // iap.print();                 // hex file information, make a command line option
+    iap.print();                 // hex file information, make a command line option
 
     // step 1: check if interface accessible
     status_code status = iap.init_can("can0");
@@ -50,7 +50,7 @@ int main(int argc, char** argv)
     if (status != UPLOAD_COMPLETE)
     {
         printf("Error: %s", iap.translate_status_code(status).c_str());
-        return -1;
+        exit(EXIT_FAILURE);
     }
     return 0;
 }
