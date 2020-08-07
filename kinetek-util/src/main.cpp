@@ -52,3 +52,5 @@ int main(int argc, char** argv)
         printf("Error: %s", iap.translate_status_code(status).c_str());
         exit(EXIT_FAILURE);
     }
+    return 0;
+}
