@@ -13,9 +13,10 @@
 
 KinetekUtility::KinetekUtility()
 {
+    ku_data = new KU::CanDataList;
+    sc = new SocketCanHelper;
     iap = new IAP(sc, ku_data);
     stu = new STUparam(sc, ku_data);
-    ku_data = new KU::CanDataList;
 }
 
 KinetekUtility::~KinetekUtility()
@@ -33,6 +34,7 @@ KU::StatusCode KinetekUtility::init_can(const char* channel_name)
     {
         return KU::INIT_CAN_FAIL;
     }
+    can_initialized = true;
     return KU::INIT_CAN_SUCCESS;
 }
 

@@ -16,8 +16,6 @@
 
 int main(int argc, char** argv)
 {
-    
-    #ifdef STU_PARAM
     // arg 1 = file path, arg2 = stu_mode
     // if (argc != 3)
     // {
@@ -67,6 +65,4 @@ int main(int argc, char** argv)
     KinetekUtility ku;
     ku.init_can("can0");
     ku.run_iap("/home/brain/2.27.hex", 1);
-    
-    #endif
 }
