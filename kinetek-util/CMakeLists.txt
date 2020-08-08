@@ -18,12 +18,13 @@ include_directories(
 )
 
 set(SOURCES     ${STACKDRV_SRC}/CO_driver.c        
-                ${STACKDRV_SRC}/CO_notify_pipe.c                         
+                ${STACKDRV_SRC}/CO_notify_pipe.c 
+                ${APP_SRC}/KinetekUtility.cpp                      
                 ${APP_SRC}/main.cpp
                 ${APP_SRC}/SocketCanHelper.cpp
                 ${APP_SRC}/HexUtility.cpp
                 ${APP_SRC}/IAP.cpp
-                ${APP_SRC}/KinetekCodes.cpp
+                ${APP_SRC}/KinetekUtilityCodes.cpp
                 ${APP_SRC}/STUparam.cpp
 )
 

@@ -9,14 +9,14 @@
 // https://info.braincorp.com/open-source-attributions
 //==================================================================
 
-// a class to facilitate the IAP process
+// a class is the  IAP tool and is used to update the Kinetek's firmware
 
 #ifndef IAP_H
 #define IAP_H
 
 #include "SocketCanHelper.h"
 #include "HexUtility.h"
-#include "KinetekCodes.h"
+#include "KinetekUtilityCodes.h"
 
 #define PACKET_SIZE 32  // number of bytes in a packet (4 can frames)
 #define PAGE_SIZE 32    // number of packets in a page (128 can frames)
@@ -24,13 +24,13 @@
 class IAP
 {
    public:
-    // init member variables
-    IAP();
+    // init member variables, IAP needs access to the Kinetek Utility can data
+    IAP(SocketCanHelper* sc, KU::CanDataList* ku_data);
 
     // deallocate memory
     ~IAP();
 
-    // initialize hex_utility object and read in needed hex file info
+    // initialize hex_utility object and reads in needed hex file info
     void load_hex_file(string file_path);
 
     // prints out hex file info
@@ -39,21 +39,18 @@ class IAP
     // shows upload status in terminal
     void progress_bar(int current, int total, int bar_length = 20);
 
-    // sets up socket can helper object, channel name is usually "can0"
-    status_code init_can(const char* channel_name);
-
-    // step one of IAP process, uses selective mode by default
-    status_code put_in_iap_mode(bool forced_mode = false);
+    // step one of IAP process, uses forced mode by default
+    KU::StatusCode put_in_iap_mode(bool forced_mode);
 
     // step two of IAP process, send hex file data size, checksum, start address etc
-    status_code send_init_frames();
+    KU::StatusCode send_init_frames();
 
     // step three of IAP process, sends actual hex data
-    status_code upload_hex_file();
+    KU::StatusCode upload_hex_file();
 
    private:
     // hex file data
-    int data_size_bytes;  // number of data bytes in hex file
+    int hex_data_size;  // number of data bytes in hex file
     int start_address;
     int total_checksum;
     int last_packet_size;
@@ -68,17 +65,20 @@ class IAP
 
     SocketCanHelper* sc;  // helps with sending and receiving can messages
     HexUtility* ut;       // helps with reading hex file
-    KinetekCodes* kt;
+    KU::CanDataList* ku_data;
 
-    friend void resp_call_back(
+    // the call back may need access to private member variables
+    friend void IAP_resp_call_back(
         void* msg,
-        const CO_CANrxMsg_t* can_msg);  // the call back may need access to private member variables
-    status_code send_hex_packet(
-        bool is_retry = false);  // sends the next 32 bytes of hex data, called by upload_hex_file
+        const CO_CANrxMsg_t* can_msg);  
+
+    // sends the next 32 bytes of hex data, called by upload_hex_file
+    KU::StatusCode send_hex_packet(
+        bool is_retry = false);
 
     // determines which IAP state have entered into and if need to adjust can ids
     // wait_time specifies timeout value, Note: iap state is independent of iap mode (forced vs selective)
-    status_code check_iap_state(int wait_time);
+    KU::StatusCode check_iap_state(int wait_time);
 
     uint8_t set_7th;
     uint8_t iap_can_id_mask;

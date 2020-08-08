@@ -18,10 +18,10 @@
 #include <fstream>
 #include <stdint.h>
 #include <ostream>
-#include "SocketCanHelper.h"
-#include "KinetekCodes.h"
 #include <iomanip>
 #include <iostream>
+#include "SocketCanHelper.h"
+#include "KinetekUtilityCodes.h"
 
 using std::string;
 using std::fstream;
@@ -39,19 +39,19 @@ class STUparam
     public:
 
     // initializes objects
-    STUparam();
+    STUparam(SocketCanHelper* sc, KU::CanDataList* ku_data);
 
     // deallocates memory
     ~STUparam();
 
     // initialize the SocketCanHelper object and can communication
-    stu_status init_can(const char* channel_name);
+    KU::StatusCode init_can(const char* channel_name);
 
     // gets stu parameters from kinetek and outputs to a file
-    stu_status read_stu_params(const string& output_file);
+    KU::StatusCode read_stu_params(const string& output_file);
 
     // writes stu parameters from a file to the kinetek
-    stu_status write_stu_params(const string& input_file);
+    KU::StatusCode write_stu_params(const string& input_file);
 
     // gets a single stu parameter during runtime
     int get_stu_param(uint8_t param_num);
@@ -61,13 +61,16 @@ class STUparam
 
     private:
     SocketCanHelper* sc; // helps to tx/rx can frames
-    KinetekCodes* kt; // stores kinetek can ids/data frames
+    KU::CanDataList* ku_data; // stores kinetek can ids/data frames
 
+    // the call back may need access to private member variables
     friend void resp_call_back_stu(
         void* msg,
-        const CO_CANrxMsg_t* can_msg);  // the call back may need access to private member variables
+        const CO_CANrxMsg_t* can_msg);  
 
-    stu_status validate_stu_file(const string& input_file); // confirms checksums before uploading file
+    // confirms checksums before uploading file
+    KU::StatusCode validate_stu_file(const string& input_file); 
+
     // converts a line in a stu file into an array of bytes, return sum of the bytes
     int stu_line_to_byte_array(const string& stu_line, uint8_t* byte_array, uint8_t arr_size);
 };

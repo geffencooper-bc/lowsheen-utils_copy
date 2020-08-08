@@ -22,29 +22,28 @@
 #define LOG_PRINT(x) do {} while (0)
 #endif
 
-// initializes objects, starts up socket can
-STUparam::STUparam()
+// needs access to socket can helper and Kinetek Utility can data
+STUparam::STUparam(SocketCanHelper* sc, KU::CanDataList* ku_data)
 {
-    sc = new SocketCanHelper;
-    kt = new KinetekCodes;
+    if(sc == nullptr)
+    {
+        PRINT_LOG(("Socket Can Helper is not initialized\n"));
+        exit(EXIT_FAILURE);
+    }
+    this->sc = sc;
+
+    if(ku_data == nullptr)
+    {
+        PRINT_LOG(("Kinetek Utility CanDataList is not initialized\n"));
+        exit(EXIT_FAILURE);
+    }
+    this->ku_data = ku_data;
 }
 
 // deallocate memory
 STUparam::~STUparam()
 {
-    delete sc;
-    delete kt;
-}
-
-// initialize the SocketCanHelper object and can communication
-STUparam::stu_status STUparam::init_can(const char* channel_name)
-{
-    int err = sc->init_socketcan(channel_name);
-    if (err == -1)
-    {
-        return INIT_CAN_FAIL;
-    }
-    return INIT_CAN_SUCCESS;
+    
 }
 
 // callback function for received messages, not used as of now
@@ -61,7 +60,7 @@ stringstream& stu_stream(stringstream& ss, int val, int fill_width)
 }
 
 // gets stu parameters from kinetek and outputs to a file
-STUparam::stu_status STUparam::read_stu_params(const string& output_file)
+KU::StatusCode STUparam::read_stu_params(const string& output_file)
 {
     // try to open the file(will overwrite), if DNE then create a new file  
     ofstream output;
@@ -193,10 +192,10 @@ STUparam::stu_status STUparam::read_stu_params(const string& output_file)
     return STU_READ_SUCCESS;
 }
 
-STUparam::stu_status STUparam::write_stu_params(const string& input_file)
+KU::StatusCode STUparam::write_stu_params(const string& input_file)
 {
     // make sure the stu file is valid
-    stu_status status = validate_stu_file(input_file);
+    KU::StatusCode status = validate_stu_file(input_file);
     if(status == INVALID_STU_FILE)
     {
         LOG_PRINT(("BAD STU FILE\n"));
@@ -248,7 +247,7 @@ STUparam::stu_status STUparam::write_stu_params(const string& input_file)
     return STU_WRITE_SUCCESS;
 }
 
-STUparam::stu_status STUparam::validate_stu_file(const string& input_file)
+KU::StatusCode STUparam::validate_stu_file(const string& input_file)
 {
     // Check 1: try to open the file
     fstream stu_file;

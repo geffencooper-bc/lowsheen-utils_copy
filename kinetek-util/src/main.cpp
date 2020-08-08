@@ -9,8 +9,7 @@
 // https://info.braincorp.com/open-source-attributions
 //==================================================================
 
-#include "IAP.h"
-#include "STUparam.h"
+#include "KinetekUtility.h"
 
 //#define IAP_UTIL
 #define STU_PARAM
