@@ -8,10 +8,15 @@
 #include "STUparam.h"
 #include "KinetekUtilityCodes.h"
 
-// This class is the interface and entry point into the kinetek tools.
-// This class can be used in two ways:
-// If the Kinetek Utility is being used by running the executable in the shell
-// then parse_args can be called with the command line arguments.
+// This class is the interface and entry point into the kinetek tools
+// and can be used in two ways:
+
+// 1. If the Kinetek Utility is being used by running the executable in the shell
+// then parse_args can be called with the command line arguments. parse_args will
+// then call the according functions to run the desried tool.
+
+// 2. If the Kinetek Utility is being used as a "library", then init_can and the 
+// the desired function under "tools" can be called directly.
 class KinetekUtility
 {
     public:
@@ -29,6 +34,7 @@ class KinetekUtility
     // translates a status code into a human readable string
     string translate_status_code(KU::StatusCode status);
 
+    // tools
     void run_iap();
     void run_stu();
 

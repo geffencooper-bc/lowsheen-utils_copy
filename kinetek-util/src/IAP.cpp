@@ -206,7 +206,7 @@ KU::StatusCode IAP::put_in_iap_mode(bool forced_mode)
     {
         // first reset the Kinetek by toggling the estop line
         sc->send_frame(KU::XT_CAN_REQUEST_ID, ku_data->disable_kinetek_data, sizeof(ku_data->disable_kinetek_data));
-        usleep(2000000);  // sleep for 2 seconds
+        usleep(2500000);  // sleep for 2 seconds
 
         // turn on the kinetek and repeatedly send the force enter iap mode command
         sc->send_frame(KU::XT_CAN_REQUEST_ID, ku_data->enable_kinetek_data, sizeof(ku_data->enable_kinetek_data));
