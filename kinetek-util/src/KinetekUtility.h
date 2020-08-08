@@ -35,8 +35,11 @@ class KinetekUtility
     string translate_status_code(KU::StatusCode status);
 
     // tools
-    void run_iap();
-    void run_stu();
+    KU::StatusCode run_iap(const string& file_path, bool iap_mode);
+    KU::StatusCode read_stu_to_file(const string& file_path);
+    KU::StatusCode write_stu_from_file(const string& file_path);
+    KU::StatusCode read_stu_param(uint8_t param_num);
+    KU::StatusCode write_stu_param(uint8_t param_num);
 
     private:
     SocketCanHelper* sc;

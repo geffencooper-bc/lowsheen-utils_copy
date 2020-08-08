@@ -412,6 +412,6 @@ int STUparam::change_stu_param(uint8_t param_num, uint8_t new_value)
     if(ku_data->get_response_type(resp->ident, resp->data, resp->DLC) != KU::SINGLE_STU_PARAM_WRITE_RESPONSE)
     {
         LOG_PRINT(("DID NOT RECEIVE WRITE CONFIRM\n"));
-        return KC::STU_PARAM_WRITE_FAIL;
+        return KU::STU_PARAM_WRITE_FAIL;
     }
 }

@@ -83,13 +83,13 @@ void IAP::load_hex_file(string file_path)
 // sanity check to make sure reading file correctly
 void IAP::print()
 {
-    printf("\n");
-    printf("\n================= IAP DETAILS ===============");
-    printf("\nHEX FILE DATA SIZE:             %i bytes", hex_data_size);
-    printf("\nHEX FILE DATA TOTAL CHECKSUM:   %08X", total_checksum);
-    printf("\nSTART ADDRESS:                  %08X", start_address);
-    printf("\nLAST PACKET SIZE:               %i", last_packet_size);
-    printf("\n=============================================\n");
+    PRINT_LOG(("\n"));
+    PRINT_LOG(("\n================= IAP DETAILS ==============="));
+    PRINT_LOG(("\nHEX FILE DATA SIZE:             %i bytes", hex_data_size));
+    PRINT_LOG(("\nHEX FILE DATA TOTAL CHECKSUM:   %08X", total_checksum));
+    PRINT_LOG(("\nSTART ADDRESS:                  %08X", start_address));
+    PRINT_LOG(("\nLAST PACKET SIZE:               %i", last_packet_size));
+    PRINT_LOG(("\n=============================================\n"));
 }
 
 // displays upload progress as a growing arrow
