@@ -199,11 +199,11 @@ namespace KU
 
 // ============================================================ OTHER CODES SECTION =============================================
    
-    // these codes are used to determine the status of the kinetek utility
+    // these codes are used to determine the status of the kinetek utility, make all negative
     enum StatusCode
     {
         // IAP status codes
-        IAP_MODE_FAIL = 0,
+        IAP_MODE_FAIL = -100,
         IAP_MODE_SUCCESS,
         FW_VERSION_REQUEST_FAIL,
         SEND_BYTES_FAIL,
@@ -231,12 +231,16 @@ namespace KU
         STU_PARAM_READ_A_FAIL,
         STU_PARAM_READ_B_FAIL,
         STU_PARAM_WRITE_FAIL,
+        STU_PARAM_READ_FAIL,
+        STU_PARAM_WRITE_SUCCESS,
+        STU_PARAM_READ_SUCCESS,
 
         // Standard status codes
         INIT_CAN_FAIL,
         INIT_CAN_SUCCESS,
         NO_HEART_BEAT,
-        KU_INIT_ERROR
+        KU_INIT_ERROR,
+        NO_ERROR
     };
 };
 

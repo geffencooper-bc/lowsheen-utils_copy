@@ -29,7 +29,7 @@ using std::ifstream;
 using std::ofstream;
 using std::stringstream;
 
-#define NUM_STU_ROWS 16 // 16 rows in a st file
+#define NUM_STU_ROWS 16 // 16 rows in a stu file
 #define ROW_SIZE 16 // each row holds 16 stu parameters
 #define MAX_NUM_STU_PARAMS 254 // max stu params is 254 because last two bytes are checksum
 #define INITIAL_UNUSED_PARAMS 28 // first 28 params are runtime values
@@ -44,27 +44,24 @@ class STUparam
     // deallocates memory
     ~STUparam();
 
-    // initialize the SocketCanHelper object and can communication
-    KU::StatusCode init_can(const char* channel_name);
-
     // gets stu parameters from kinetek and outputs to a file
     KU::StatusCode read_stu_params(const string& output_file);
 
     // writes stu parameters from a file to the kinetek
     KU::StatusCode write_stu_params(const string& input_file);
 
-    // gets a single stu parameter during runtime
+    // gets a single stu parameter during runtime, returns stu param value
     int get_stu_param(uint8_t param_num);
 
     // changes a single stu param during runtime
-    int change_stu_param(uint8_t param_num, uint8_t new_value);
+    KU::StatusCode set_stu_param(uint8_t param_num, uint8_t new_value);
 
     private:
     SocketCanHelper* sc; // helps to tx/rx can frames
     KU::CanDataList* ku_data; // stores kinetek can ids/data frames
 
     // the call back may need access to private member variables
-    friend void resp_call_back_stu(
+    friend void STU_resp_call_back(
         void* msg,
         const CO_CANrxMsg_t* can_msg);  
 

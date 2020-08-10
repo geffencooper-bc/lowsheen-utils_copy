@@ -16,53 +16,44 @@
 
 int main(int argc, char** argv)
 {
-    // arg 1 = file path, arg2 = stu_mode
-    // if (argc != 3)
-    // {
-    //     printf("ARGS: [FILE PATH] [STU MODE] (0 = Read, 1 = Write)");
-    //     exit(EXIT_FAILURE);
-    // }
-
-    // int stu_mode = atoi(argv[2]);  // 0 = read, 1 = write
-    // string file_path = argv[1];
-
-    // STUparam stu;
-    // STUparam::stu_status status = stu.init_can("can0");
-
-    // if (status == INIT_CAN_SUCCESS)
-    // {
-    //     if(stu_mode == 0)
-    //     {
-    //         STUparam::stu_status status = stu.read_stu_params(file_path);
-    //         if(status != STUparam::STU_READ_SUCCESS)
-    //         {
-    //             printf("Error: %i", status);
-    //         }
-    //         else
-    //         {
-    //             printf("SUCCESS\n");
-    //         }
-    //     }
-    //     else if(stu_mode == 1)
-    //     {
-    //         STUparam::stu_status status = stu.write_stu_params(file_path);
-    //         if(status != STUparam::STU_WRITE_SUCCESS)
-    //         {
-    //             printf("Error: %i", status);
-    //         }
-    //         else
-    //         {
-    //             printf("SUCCESS\n");
-    //         }
-    //     }
-    // }
-    // STUparam stu;
-    // STUparam::stu_status status = stu.init_can("can0");
-    // printf("BRUSH S LIMIT: %i\n", stu.get_stu_param(4));
-    // stu.change_stu_param(4, 148);
-    // printf("BRUSH S LIMIT: %i", stu.get_stu_param(4));
-
     KinetekUtility ku;
-    ku.init_can("can0");
-    ku.run_iap("/home/brain/2.27.hex", 1);
+    KU::StatusCode status = ku.init_can("can0");
+    if(status == KU::INIT_CAN_SUCCESS)
+    {
+        status = ku.run_iap("/home/brain/2.27.hex", 1);
+        if(status == KU::UPLOAD_COMPLETE)
+        {
+            usleep(3500000);
+            status = ku.run_iap("/home/brain/2.28.hex", 0);
+            if(status == KU::UPLOAD_COMPLETE)
+            {
+                usleep(3500000);
+                status = ku.read_stu_to_file("read_test.stu");
+                if(status == KU::STU_FILE_READ_SUCCESS)
+                {
+                    usleep(1500000);
+                    status = ku.write_stu_from_file("read_test.stu");
+                    if(status == KU::STU_FILE_WRITE_SUCCESS)
+                    {
+                        usleep(1500000);
+                        status = ku.write_stu_param(4, 147);
+                        if(status == KU::STU_PARAM_WRITE_SUCCESS)
+                        {
+                            status = ku.read_stu_param(4);
+                        }
+                    }
+                }
+            }   
+
+        }
+    }
+    if(status == KU::STU_PARAM_READ_SUCCESS)
+    {
+        printf("SUCCESS: %s", ku.translate_status_code(status).c_str());
+    }
+    else
+    {
+        printf("ERROR: %s", ku.translate_status_code(status).c_str());
+    }
+    
 }

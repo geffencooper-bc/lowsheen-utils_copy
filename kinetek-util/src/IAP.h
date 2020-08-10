@@ -24,7 +24,7 @@
 class IAP
 {
    public:
-    // init member variables, IAP needs access to the Kinetek Utility can data
+    // init member variables, IAP needs access to the Kinetek Utility can data and socket can helper
     IAP(SocketCanHelper* sc, KU::CanDataList* ku_data);
 
     // deallocate memory
@@ -47,6 +47,9 @@ class IAP
 
     // step three of IAP process, sends actual hex data
     KU::StatusCode upload_hex_file();
+
+    // clear the member variables
+    void clear();
 
    private:
     // hex file data

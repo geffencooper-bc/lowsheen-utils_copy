@@ -15,10 +15,8 @@ using std::stoi;
 using std::ios;
 
 // opens file and loads hex data like checksums, data size, etc
-HexUtility::HexUtility(const string& hex_file_path)
+HexUtility::HexUtility()
 {
-    this->hex_file_path = hex_file_path;
-
     // init member variables
     curr_line = "";
     is_first_8 = true;
@@ -26,21 +24,15 @@ HexUtility::HexUtility(const string& hex_file_path)
     hex_file_data_size = 0;
     total_checksum = 0;
     start_address = 0;
-
-    // try to open the hex file and load the data
-    hex_file.open(hex_file_path);
-    if (hex_file.fail())
-    {
-        printf("Invalid File Path\n");
-        exit(EXIT_FAILURE);
-    }
-    load_hex_file_data();
 }
 
 // close file, nothing to deallocate
 HexUtility::~HexUtility()
 {
-    hex_file.close();
+    if(hex_file.is_open())
+    {
+        hex_file.close();
+    }
 }
 
 // get the number of data bytes in the hex file
@@ -115,6 +107,7 @@ int HexUtility::get_next_8_bytes(uint8_t* byte_array, uint8_t arr_size)
     if (record_type == END_OF_FILE || record_type == START_LINEAR_AR)
     {
         is_eof = true;
+        hex_file.close();
         return -1;
     }
 
@@ -179,6 +172,17 @@ int HexUtility::get_next_8_bytes(uint8_t* byte_array, uint8_t arr_size)
             return sum;
         }
     }
+}
+
+void HexUtility::clear()
+{
+    // init member variables
+    curr_line = "";
+    is_first_8 = true;
+    is_eof = false;
+    hex_file_data_size = 0;
+    total_checksum = 0;
+    start_address = 0;
 }
 
 // -------------- helper funcs --------------------
@@ -261,8 +265,23 @@ int HexUtility::get_record_checksum(const string& hex_line)
 }
 
 // read through entire hex file and grab neccessary information
-int HexUtility::load_hex_file_data()
+int HexUtility::load_hex_file_data(const string& hex_file_path)
 {
+    this->hex_file_path = hex_file_path;
+
+    // try to open the hex file and load the data
+    if(hex_file.is_open())
+    {
+        printf("HEX FILE ALREADY OPEN\n");
+        exit(EXIT_FAILURE);
+    }
+    hex_file.open(hex_file_path);
+    if (hex_file.fail())
+    {
+        printf("Invalid File Path\n");
+        exit(EXIT_FAILURE);
+    }
+
     // buffer to hold next 16 data bytes in the hex file
     uint8_t byte_list[HEX_DATA_RECORD_LEN];
     int line_index = 0;

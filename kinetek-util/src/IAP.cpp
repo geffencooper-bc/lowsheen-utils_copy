@@ -29,19 +29,19 @@
 #define MEDIUM_WAIT_TIME 100  // ms
 #define SHORT_WAIT_TIME 10    // ms
 
-// init member variables, IAP needs access to the Kinetek Utility can data
+// init member variables, IAP needs access to the Kinetek Utility can data and socket can helper
 IAP::IAP(SocketCanHelper* sc, KU::CanDataList* ku_data)
 {
     if(sc == nullptr)
     {
-        PRINT_LOG(("Socket Can Helper is not initialized\n"));
+        LOG_PRINT(("Socket Can Helper is not initialized\n"));
         exit(EXIT_FAILURE);
     }
     this->sc = sc;
 
     if(ku_data == nullptr)
     {
-        PRINT_LOG(("Kinetek Utility CanDataList is not initialized\n"));
+        LOG_PRINT(("Kinetek Utility CanDataList is not initialized\n"));
         exit(EXIT_FAILURE);
     }
     this->ku_data = ku_data;
@@ -56,6 +56,7 @@ IAP::IAP(SocketCanHelper* sc, KU::CanDataList* ku_data)
 
     set_7th = 0;                   // 0 by default
     iap_can_id_mask = 0b00001111;  // only want four lsb
+    ut = nullptr;
 }
 
 // deallocate memory
@@ -67,8 +68,19 @@ IAP::~IAP()
 // init hex utility object and grab needed data from hex file
 void IAP::load_hex_file(string file_path)
 {
-    // loads hex file
-    ut = new HexUtility(file_path);
+    if(ut == nullptr)
+    {
+        ut = new HexUtility();
+    }
+    else
+    {
+        // already called before this, reset member variables
+        clear();
+    }
+    
+
+    // initialize the hex utility object by loading the hex file
+    ut->load_hex_file_data(file_path);
 
     // initialize iap request data frames using hex file info
     hex_data_size = ut->get_file_data_size(ku_data->hex_data_size_data + 1, KT_DATA_SIZE_LEN);
@@ -83,13 +95,13 @@ void IAP::load_hex_file(string file_path)
 // sanity check to make sure reading file correctly
 void IAP::print()
 {
-    PRINT_LOG(("\n"));
-    PRINT_LOG(("\n================= IAP DETAILS ==============="));
-    PRINT_LOG(("\nHEX FILE DATA SIZE:             %i bytes", hex_data_size));
-    PRINT_LOG(("\nHEX FILE DATA TOTAL CHECKSUM:   %08X", total_checksum));
-    PRINT_LOG(("\nSTART ADDRESS:                  %08X", start_address));
-    PRINT_LOG(("\nLAST PACKET SIZE:               %i", last_packet_size));
-    PRINT_LOG(("\n=============================================\n"));
+    LOG_PRINT(("\n"));
+    LOG_PRINT(("\n================= IAP DETAILS ==============="));
+    LOG_PRINT(("\nHEX FILE DATA SIZE:             %i bytes", hex_data_size));
+    LOG_PRINT(("\nHEX FILE DATA TOTAL CHECKSUM:   %08X", total_checksum));
+    LOG_PRINT(("\nSTART ADDRESS:                  %08X", start_address));
+    LOG_PRINT(("\nLAST PACKET SIZE:               %i", last_packet_size));
+    LOG_PRINT(("\n=============================================\n"));
 }
 
 // displays upload progress as a growing arrow
@@ -651,4 +663,19 @@ KU::StatusCode IAP::send_hex_packet(bool is_retry)
             }
         }
     }
+}
+
+void IAP::clear()
+{
+    hex_data_size = 0;
+    packet_count = 0;
+    page_count = 0;
+    num_bytes_uploaded = 0;
+    curr_page_cs = 0;
+    in_iap_mode = false;
+    memset(current_packet, 0, sizeof(current_packet));
+
+    set_7th = 0;                   // 0 by default
+    iap_can_id_mask = 0b00001111;  // only want four lsb
+    ut->clear();
 }

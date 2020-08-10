@@ -39,7 +39,10 @@ class KinetekUtility
     KU::StatusCode read_stu_to_file(const string& file_path);
     KU::StatusCode write_stu_from_file(const string& file_path);
     KU::StatusCode read_stu_param(uint8_t param_num);
-    KU::StatusCode write_stu_param(uint8_t param_num);
+    KU::StatusCode write_stu_param(uint8_t param_num, uint8_t new_value);
+
+    // reset xt_can
+    KU::StatusCode reset_xt_can();
 
     private:
     SocketCanHelper* sc;

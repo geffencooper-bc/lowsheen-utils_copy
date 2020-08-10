@@ -77,11 +77,14 @@ enum record_indices
 class HexUtility
 {
    public:
-    // opens file, then loads hex data like checksums, data size, etc
-    HexUtility(const string& hex_file_path);
+    // init member variables
+    HexUtility();
 
     // closes file
     ~HexUtility();
+
+    // resets member variables
+    void clear();
 
     // parameters: >= 4 byte array to be filled with hex file data size.
     // return: data size as an int
@@ -105,6 +108,9 @@ class HexUtility
     // Note: array size determines representation (if to add extra 0x00 filler)
     // ex: 1000 in hex is 0x3E8 --> {0x03, 0xE8}
     void num_to_byte_list(int num, uint8_t* byte_array, uint8_t arr_size);
+
+    // reads through hex file and initializes iap parameters
+    int load_hex_file_data(const string& hex_file_path);
 
    private:
     ifstream hex_file;  // file is open for object lifetime
@@ -135,7 +141,6 @@ class HexUtility
 
     // converts a string of bytes "AABBCCDD" to an array of bytes {0xAA, 0xBB, 0xCC, 0xDD}
     int data_string_to_byte_list(const string& hex_data, uint8_t* byte_array, uint8_t arr_size);
-    int load_hex_file_data();
     uint8_t calc_hex_checksum(const string& hex_record);
 };
 

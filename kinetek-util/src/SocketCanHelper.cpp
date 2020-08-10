@@ -144,8 +144,6 @@ CO_CANrxMsg_t* SocketCanHelper::get_frame(uint32_t can_id,
         printf("Timer Error: %i\n", err);
     }
 
-    LOG_PRINT(("Getting Message-->"));
-
     // initialize the rx message object
     err = CO_CANrxBufferInit(can_module, 0, can_id, can_id_mask, 0, obj, call_back);
 
@@ -155,6 +153,8 @@ CO_CANrxMsg_t* SocketCanHelper::get_frame(uint32_t can_id,
         exit(EXIT_FAILURE);
     }
 
+    LOG_PRINT(("Getting Message-->"));
+    
     // waits until receive specified can id or until timer ends (blocking function)
     CO_CANrxWait(can_module, timer_fd, can_msg);
 

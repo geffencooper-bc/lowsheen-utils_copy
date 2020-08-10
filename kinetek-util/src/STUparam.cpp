@@ -13,6 +13,7 @@
 #include "HexUtility.h"
 #include <sstream>
 #include <memory>
+
 // debug print macro to see error messages
 #define PRINT_LOG
 
@@ -47,7 +48,7 @@ STUparam::~STUparam()
 }
 
 // callback function for received messages, not used as of now
-void resp_call_back_stu(void* obj, const CO_CANrxMsg_t* can_msg)
+void STU_resp_call_back(void* obj, const CO_CANrxMsg_t* can_msg)
 {
     // nothing needed
 }
@@ -73,19 +74,18 @@ KU::StatusCode STUparam::read_stu_params(const string& output_file)
     stringstream stu_string; // store total stu output as stringstream for formatting
 
     // Part 1: get the stu header 
-    string stu_header = ""; // stores stu header until gets written at end
+    string stu_header = "";
     int stu_header_checksum = 0;
     int num_params = MAX_NUM_STU_PARAMS - INITIAL_UNUSED_PARAMS; // start at max then subtract away unused params
-    printf("NUM STU: %i\n", num_params);
     // Kinetek id is always 29
     stu_header += "29, ";
     stu_header_checksum += 29;
 
     // get the firmware version from heart beat page 9
-    CO_CANrxMsg_t* resp =  sc->get_frame(KU::HEART_BEAT_ID, this, resp_call_back_stu, 20000);
+    CO_CANrxMsg_t* resp =  sc->get_frame(KU::HEART_BEAT_ID, this, STU_resp_call_back, 20000);
     while(resp->data[1] != 9)
     {
-        resp =  sc->get_frame(KU::HEART_BEAT_ID, this, resp_call_back_stu, 20000);
+        resp =  sc->get_frame(KU::HEART_BEAT_ID, this, STU_resp_call_back, 20000);
         if(ku_data->get_response_type(resp->ident, resp->data, resp->DLC) != KU::HEART_BEAT)
         {
             LOG_PRINT(("NO HEART BEAT\n"));
@@ -110,8 +110,8 @@ KU::StatusCode STUparam::read_stu_params(const string& output_file)
         ku_data->eeprom_access_read_request_data[3] = ROW_SIZE*stu_row_i;
         sc->send_frame(KU::EEPROM_ACCESS_MESSAGE_ID, ku_data->eeprom_access_read_request_data, sizeof(ku_data->eeprom_access_read_request_data));
     
-        memcpy(&respA, sc->get_frame(KU::EEPROM_LINE_READ_A_RESPONSE_ID, this, resp_call_back_stu, 100), sizeof(CO_CANrxMsg_t));
-        memcpy(&respB, sc->get_frame(KU::EEPROM_LINE_READ_B_RESPONSE_ID, this, resp_call_back_stu, 100), sizeof(CO_CANrxMsg_t));
+        memcpy(&respA, sc->get_frame(KU::EEPROM_LINE_READ_A_RESPONSE_ID, this, STU_resp_call_back, 100), sizeof(CO_CANrxMsg_t));
+        memcpy(&respB, sc->get_frame(KU::EEPROM_LINE_READ_B_RESPONSE_ID, this, STU_resp_call_back, 100), sizeof(CO_CANrxMsg_t));
 
         // validate response A, first 8 bytes
         if(ku_data->get_response_type(respA.ident, respA.data, respA.DLC) != KU::EEPROM_ACCESS_READ_RESPONSE)
@@ -220,8 +220,8 @@ KU::StatusCode STUparam::write_stu_params(const string& input_file)
     while(hu_getline(stu_file, curr_line)) // keep writing until go through all lines, or fail
     {
         ku_data->eeprom_access_write_request_data[3] = 16*curr_line_i; // fill in address
-        // convert the row into an array of bytes
         stu_line_to_byte_array(curr_line, ku_data->eeprom_access_line_write_data, sizeof(ku_data->eeprom_access_line_write_data));
+
         sc->send_frame(KU::EEPROM_ACCESS_MESSAGE_ID, ku_data->eeprom_access_write_request_data, sizeof(ku_data->eeprom_access_write_request_data));
         usleep(1000);
         sc->send_frame(KU::EEPROM_LINE_WRITE_A_REQUEST_ID, ku_data->eeprom_access_line_write_data, CAN_DATA_LEN);
@@ -229,7 +229,7 @@ KU::StatusCode STUparam::write_stu_params(const string& input_file)
         sc->send_frame(KU::EEPROM_LINE_WRITE_B_REQUEST_ID, ku_data->eeprom_access_line_write_data+8, CAN_DATA_LEN);
         usleep(1000);
 
-        CO_CANrxMsg_t* resp = sc->get_frame(KU::EEPROM_LINE_WRITE_RESPONSE_ID, this, resp_call_back_stu, 100000);
+        CO_CANrxMsg_t* resp = sc->get_frame(KU::EEPROM_LINE_WRITE_RESPONSE_ID, this, STU_resp_call_back, 100000);
         if(ku_data->get_response_type(resp->ident, resp->data, resp->DLC) != KU::EEPROM_ACCESS_WRITE_RESPONSE)
         {
             LOG_PRINT(("NO WRITE RESPONSE"));
@@ -241,9 +241,8 @@ KU::StatusCode STUparam::write_stu_params(const string& input_file)
 
     // reset the kinetek, check for error message
     sc->send_frame(KU::XT_CAN_REQUEST_ID, ku_data->disable_kinetek_data, sizeof(ku_data->disable_kinetek_data));
-    usleep(2500000);  // sleep for 2 seconds
+    usleep(2500000);  // sleep for 2.5 seconds
     sc->send_frame(KU::XT_CAN_REQUEST_ID, ku_data->enable_kinetek_data, sizeof(ku_data->enable_kinetek_data));
-    // check for errors?
     return KU::STU_FILE_WRITE_SUCCESS;
 }
 
@@ -390,8 +389,8 @@ int STUparam::get_stu_param(uint8_t param_num)
 {
     sc->send_frame(KU::SINGLE_STU_PARAM_READ_REQUEST_ID, &param_num, 1);
     CO_CANrxMsg_t respA, respB;
-    memcpy(&respA, sc->get_frame(KU::SINGLE_STU_PARAM_READ_A_RESPONSE_ID, this, resp_call_back_stu, 100), sizeof(CO_CANrxMsg_t));
-    memcpy(&respB, sc->get_frame(KU::SINGLE_STU_PARAM_READ_B_RESPONSE_ID, this, resp_call_back_stu, 100), sizeof(CO_CANrxMsg_t));
+    memcpy(&respA, sc->get_frame(KU::SINGLE_STU_PARAM_READ_A_RESPONSE_ID, this, STU_resp_call_back, 100), sizeof(CO_CANrxMsg_t));
+    memcpy(&respB, sc->get_frame(KU::SINGLE_STU_PARAM_READ_B_RESPONSE_ID, this, STU_resp_call_back, 100), sizeof(CO_CANrxMsg_t));
 
     if(ku_data->get_response_type(respA.ident, respA.data, respA.DLC) != KU::SINGLE_STU_PARAM_READ_RESPONSE)
     {
@@ -400,18 +399,18 @@ int STUparam::get_stu_param(uint8_t param_num)
     }
     uint8_t value = respA.data[4];
     return value;
-
 }
 
 // changes a single stu param during runtime
-int STUparam::change_stu_param(uint8_t param_num, uint8_t new_value)
+KU::StatusCode STUparam::set_stu_param(uint8_t param_num, uint8_t new_value)
 {
     uint8_t write[3] = {param_num, 0x0, new_value};
     sc->send_frame(KU::SINGLE_STU_PARAM_WRITE_REQUEST_ID, write, sizeof(write));
-    CO_CANrxMsg_t* resp = sc->get_frame(KU::SINGLE_STU_PARAM_WRITE_RESPONSE_ID, this, resp_call_back_stu, 500);
+    CO_CANrxMsg_t* resp = sc->get_frame(KU::SINGLE_STU_PARAM_WRITE_RESPONSE_ID, this, STU_resp_call_back, 500);
     if(ku_data->get_response_type(resp->ident, resp->data, resp->DLC) != KU::SINGLE_STU_PARAM_WRITE_RESPONSE)
     {
         LOG_PRINT(("DID NOT RECEIVE WRITE CONFIRM\n"));
         return KU::STU_PARAM_WRITE_FAIL;
     }
+    return KU::STU_PARAM_READ_SUCCESS;
 }
