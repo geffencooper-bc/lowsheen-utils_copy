@@ -105,7 +105,7 @@ KU::StatusCode STUparam::read_stu_params(const string& output_file)
     // keep reading parameters until all rows read
     while(stu_row_i < NUM_STU_ROWS)
     {
-        PRINT_LOG(("READING ROW %i\n", stu_row_i));
+        //PRINT_LOG(("READING ROW %i\n", stu_row_i));
         // initialize read request data with according eeprom address and get the row response data
         ku_data->eeprom_access_read_request_data[3] = ROW_SIZE*stu_row_i;
         sc->send_frame(KU::EEPROM_ACCESS_MESSAGE_ID, ku_data->eeprom_access_read_request_data, sizeof(ku_data->eeprom_access_read_request_data));
@@ -179,7 +179,6 @@ KU::StatusCode STUparam::read_stu_params(const string& output_file)
         }
         stu_row_i++;
         row_checksum = 0;
-        printf("NUM STU: %i\n", num_params);
     }
 
     // complete the stu header
@@ -350,7 +349,8 @@ KU::StatusCode STUparam::validate_stu_file(const string& input_file)
         }
         if(line_checksum != expected_checksum)
         {
-            LOG_PRINT(("BAD CHECKSUM. LINE: %i\n", curr_line_i));
+            LOG_PRINT(("BAD CHECKSUM. LINE: %04X\n", curr_line_i));
+            LOG_PRINT(("Expected: %i Actual: %i\n", expected_checksum, line_checksum));
             return KU::INVALID_STU_FILE;
         }
         curr_line_i++;
@@ -360,6 +360,7 @@ KU::StatusCode STUparam::validate_stu_file(const string& input_file)
     if(std::stoi(last_4_bytes, 0, 16) != __builtin_bswap16(total_stu_checksum))
     {
         LOG_PRINT(("BAD TOTAL STU CHECKSUM"));
+        LOG_PRINT(("Expected: %04X Actual: %04X\n", std::stoi(last_4_bytes, 0, 16), total_stu_checksum));
         return KU::INVALID_STU_FILE;
     }
 

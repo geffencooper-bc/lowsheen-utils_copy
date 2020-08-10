@@ -163,6 +163,14 @@ string KinetekUtility::translate_status_code(KU::StatusCode status)
         {
             return "Could not write stu param successfully";
         }
+        case KU::STU_PARAM_READ_SUCCESS:
+        {
+            return "The stu parameter was read successfully";
+        }
+        case KU::STU_PARAM_WRITE_SUCCESS:
+        {
+            return "The stu parameter was written successfully";
+        }
         case KU::NO_ERROR:
         {
             return "No error";
@@ -176,9 +184,9 @@ string KinetekUtility::translate_status_code(KU::StatusCode status)
 
 KU::StatusCode KinetekUtility::run_iap(const string& file_path, bool iap_mode)
 {
-    delete sc; 
-    sc = new SocketCanHelper; 
-    sc->init_socketcan("can0");
+    // delete sc; 
+    // sc = new SocketCanHelper; 
+    // sc->init_socketcan("can0");
     // step 1: check if interface accessible
     if(!can_initialized)
     {
@@ -214,9 +222,9 @@ KU::StatusCode KinetekUtility::run_iap(const string& file_path, bool iap_mode)
 
 KU::StatusCode KinetekUtility::read_stu_to_file(const string& file_path)
 {
-    delete sc; 
-    sc = new SocketCanHelper; 
-    sc->init_socketcan("can0");
+    // delete sc; 
+    // sc = new SocketCanHelper; 
+    // sc->init_socketcan("can0");
     // step 1: check if interface accessible
     if(!can_initialized)
     {
@@ -229,10 +237,12 @@ KU::StatusCode KinetekUtility::read_stu_to_file(const string& file_path)
     if(status != KU::STU_FILE_READ_SUCCESS)
     {
         PRINT_LOG(("Error: %s", translate_status_code(status).c_str()));
+        return KU::STU_FILE_READ_FAIL;
     }
     else
     {
         PRINT_LOG(("Success: %s", translate_status_code(status).c_str()));
+        return KU::STU_FILE_READ_SUCCESS;
     }
 }
 
@@ -250,10 +260,12 @@ KU::StatusCode KinetekUtility::write_stu_from_file(const string& file_path)
     if(status != KU::STU_FILE_WRITE_SUCCESS)
     {
         PRINT_LOG(("Error: %s", translate_status_code(status).c_str()));
+        return KU::STU_FILE_WRITE_FAIL;
     }
     else
     {
         PRINT_LOG(("Success: %s", translate_status_code(status).c_str()));
+        return KU::STU_FILE_WRITE_SUCCESS;
     }
 }
 

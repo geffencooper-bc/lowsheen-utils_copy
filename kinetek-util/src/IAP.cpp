@@ -339,6 +339,7 @@ KU::StatusCode IAP::upload_hex_file()
                 {
                     LOG_PRINT(("KT CALCULATED PAGE_CHECKSUM TIMEOUT\n"));
                 }
+                memcpy(ku_data->kt_calculated_page_checksum_data, resp->data, KT_CS_LEN);
             }
 
             // convert page checksum into a list of bytes, copy it into the data of a page checksum frame
@@ -359,7 +360,7 @@ KU::StatusCode IAP::upload_hex_file()
                     LOG_PRINT(("last effort compare\n"));
                     // if don't receive cs frame, may have missed it, as a last effort compare the KT calculated CS and
                     // your calculated CS
-                    if (ku_data->array_compare(ku_data->page_checksum_data + 1, KT_CS_LEN, resp->data + 1, KT_CS_LEN) == false)
+                    if (ku_data->array_compare(ku_data->page_checksum_data + 1, KT_CS_LEN, ku_data->kt_calculated_page_checksum_data + 1, KT_CS_LEN) == false)
                     {
                         LOG_PRINT(("PAGE_CHECKSUM TIMEOUT\n"));
                         return KU::PAGE_CHECKSUM_FAIL;

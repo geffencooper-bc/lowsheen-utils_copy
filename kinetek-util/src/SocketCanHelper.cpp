@@ -85,7 +85,9 @@ int SocketCanHelper::send_frame(uint32_t can_id, uint8_t* data, uint8_t data_len
     if (can_id > 0x7FF)  // largest 11 bit id
     {
         tx1 = &can_module->txArray[0];
-        tx1->ident = can_id;
+        tx1->ident = ((uint32_t)can_id & 0x07FFU)
+                      | ((uint32_t)(((uint32_t)data_len & 0xFU) << 12U))
+                      | ((uint32_t)(0 ? 0x8000U : 0U));
         tx1->DLC = data_len;
         tx1->ident = can_id;
 
@@ -154,7 +156,7 @@ CO_CANrxMsg_t* SocketCanHelper::get_frame(uint32_t can_id,
     }
 
     LOG_PRINT(("Getting Message-->"));
-    
+
     // waits until receive specified can id or until timer ends (blocking function)
     CO_CANrxWait(can_module, timer_fd, can_msg);
 
