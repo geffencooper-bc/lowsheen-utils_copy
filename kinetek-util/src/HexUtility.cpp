@@ -107,7 +107,10 @@ int HexUtility::get_next_8_bytes(uint8_t* byte_array, uint8_t arr_size)
     if (record_type == END_OF_FILE || record_type == START_LINEAR_AR)
     {
         is_eof = true;
-        hex_file.close();
+        if(hex_file.is_open())
+        {
+            hex_file.close();
+        }
         return -1;
     }
 
@@ -332,7 +335,10 @@ int HexUtility::load_hex_file_data(const string& hex_file_path)
     }
 
     // close the file, reopen later when needed
-    hex_file.close();
+    if(hex_file.is_open())
+    {
+        hex_file.close();
+    }
 }
 
 void HexUtility::num_to_byte_list(int num, uint8_t* byte_array, uint8_t arr_size)
@@ -414,5 +420,8 @@ void getline_test(string file_path)
     {
         printf("%s", line.c_str());
     }
-    file.close();
+    if(file.is_open())
+    {
+        file.close();
+    }
 }

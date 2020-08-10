@@ -85,9 +85,7 @@ int SocketCanHelper::send_frame(uint32_t can_id, uint8_t* data, uint8_t data_len
     if (can_id > 0x7FF)  // largest 11 bit id
     {
         tx1 = &can_module->txArray[0];
-        tx1->ident = ((uint32_t)can_id & 0x07FFU)
-                      | ((uint32_t)(((uint32_t)data_len & 0xFU) << 12U))
-                      | ((uint32_t)(0 ? 0x8000U : 0U));
+        tx1->ident = can_id;
         tx1->DLC = data_len;
         tx1->ident = can_id;
 
@@ -131,10 +129,9 @@ CO_CANrxMsg_t* SocketCanHelper::get_frame(uint32_t can_id,
                                           uint32_t can_id_mask)
 {
     // zero out the last receive message
-    memset(can_msg, 0, sizeof(CO_CANrxMsg_t));
+    memset(can_msg, 0, sizeof(can_msg));
 
     // setup desired time_out given ms input, 5ms by default
-    //time_out->it_interval.tv_sec = 5;
     time_out->it_value.tv_sec = wait_time / 1000;
     time_out->it_value.tv_nsec = (wait_time % 1000) * 1000000;
 
@@ -144,7 +141,10 @@ CO_CANrxMsg_t* SocketCanHelper::get_frame(uint32_t can_id,
     if (err < 0)
     {
         printf("Timer Error: %i\n", err);
+        exit(EXIT_FAILURE);
     }
+
+    LOG_PRINT(("Getting Message-->"));
 
     // initialize the rx message object
     err = CO_CANrxBufferInit(can_module, 0, can_id, can_id_mask, 0, obj, call_back);
@@ -154,8 +154,6 @@ CO_CANrxMsg_t* SocketCanHelper::get_frame(uint32_t can_id,
         printf("Receive Error: %i\t", err);
         exit(EXIT_FAILURE);
     }
-
-    LOG_PRINT(("Getting Message-->"));
 
     // waits until receive specified can id or until timer ends (blocking function)
     CO_CANrxWait(can_module, timer_fd, can_msg);

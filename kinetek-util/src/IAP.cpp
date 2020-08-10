@@ -225,7 +225,7 @@ KU::StatusCode IAP::put_in_iap_mode(bool forced_mode)
         sc->send_frame(KU::FORCE_ENTER_IAP_MODE_ID, ku_data->force_enter_iap_mode_data,
                        sizeof(ku_data->force_enter_iap_mode_data));
 
-        KU::StatusCode iap_status = check_iap_state(3);  // want to check the iap state quickly (3ms timeout)
+        KU::StatusCode iap_status = check_iap_state(2);  // want to check the iap state quickly (3ms timeout)
         int count = 0;
         while (iap_status != KU::IAP_MODE_SUCCESS)
         {
@@ -236,7 +236,7 @@ KU::StatusCode IAP::put_in_iap_mode(bool forced_mode)
             }
             sc->send_frame(KU::FORCE_ENTER_IAP_MODE_ID, ku_data->force_enter_iap_mode_data,
                            sizeof(ku_data->force_enter_iap_mode_data));
-            iap_status = check_iap_state(3);
+            iap_status = check_iap_state(2);
             count++;
         }
     }
@@ -320,7 +320,7 @@ KU::StatusCode IAP::upload_hex_file()
     {
 // update the progress bar
 #ifdef PROGRESS_BAR
-        progress_bar(num_bytes_uploaded, data_size_bytes);
+        progress_bar(num_bytes_uploaded, hex_data_size);
 #endif
 
         // reached the end of a page
@@ -360,8 +360,10 @@ KU::StatusCode IAP::upload_hex_file()
                     LOG_PRINT(("last effort compare\n"));
                     // if don't receive cs frame, may have missed it, as a last effort compare the KT calculated CS and
                     // your calculated CS
-                    if (ku_data->array_compare(ku_data->page_checksum_data + 1, KT_CS_LEN, ku_data->kt_calculated_page_checksum_data + 1, KT_CS_LEN) == false)
+                    if (ku_data->array_compare(ku_data->page_checksum_data + 1, KT_CS_LEN, resp->data + 1, KT_CS_LEN) == false)
                     {
+                        printf("host\t%02X %02X %02X %02X\n", ku_data->page_checksum_data[1], ku_data->page_checksum_data[2], ku_data->page_checksum_data[3], ku_data->page_checksum_data[4]);
+                        printf("kt  \t%02X %02X %02X %02X\n", ku_data->kt_calculated_page_checksum_data[1], ku_data->kt_calculated_page_checksum_data[2], ku_data->kt_calculated_page_checksum_data[3], ku_data->kt_calculated_page_checksum_data[4]);
                         LOG_PRINT(("PAGE_CHECKSUM TIMEOUT\n"));
                         return KU::PAGE_CHECKSUM_FAIL;
                     }

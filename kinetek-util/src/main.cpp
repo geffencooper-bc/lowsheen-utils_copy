@@ -23,8 +23,8 @@ int main(int argc, char** argv)
         status = ku.run_iap("/home/brain/2.27.hex", 1);
         if(status == KU::UPLOAD_COMPLETE)
         {
-            // usleep(3500000);
-            // status = ku.run_iap("/home/brain/2.28.hex", 0);
+            usleep(4500000);
+            status = ku.run_iap("/home/brain/2.28.hex", 0);
             // if(status == KU::UPLOAD_COMPLETE)
             // {
             //     usleep(3500000);
