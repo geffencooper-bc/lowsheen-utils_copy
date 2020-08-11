@@ -329,6 +329,7 @@ static struct argp_option options[] =
     {"read_stu", 'r', "FILENAME", 0, "Read STU params to a file"},
     {"write_stu", 'w', "FILENAME", 0, "Write STU params from a file"},
     {"update", 'u', "FILENAME", 0, "Update the Kinetek firmware"},
+    {"cycle_xt", 'c', 0, 0, "Reset xt_can"},
     { 0 } 
 };
 
@@ -365,6 +366,11 @@ static int parse_opt (int key, char *arg, struct argp_state *state)
             ku->run_iap(string(arg), 1);
             break;
         } 
+        case 'c':
+        {
+            ku->reset_xt_can();
+            break;
+        }
         case 'v':
         {
             if(param_num < 0)
