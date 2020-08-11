@@ -68,8 +68,7 @@ uint8_t CanDataList::reset_xt_can_data[2] = {0x02, 0x00};
 // ID = 0x80
 uint8_t CanDataList::heart_beat_data[8] = {0x1D, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
 
-// ============================================= Helper Functions
-// =========================================================
+// ========================================== Helper Functions ==========================================
 
 // checks if two data arrays are equivalent
 bool CanDataList::array_compare(uint8_t* expected,

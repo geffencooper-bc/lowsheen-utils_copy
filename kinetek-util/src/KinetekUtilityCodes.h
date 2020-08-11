@@ -23,8 +23,7 @@
 // Kinetek Utility Namespace
 namespace KU
 {
-// ==================================================== CAN ID SECTION
-// ===========================================================
+// =============================================== CAN ID SECTION ==========================================
 
 /*
    NOTE about IAP (firmware download mode):
@@ -114,8 +113,7 @@ namespace KU
         HEART_BEAT
     };
 
-    // ================================================= DATA SECTION
-    // =======================================================================
+// ========================================== DATA SECTION ==========================================
     /*
         The kinetek utility data frames are represented as static member variables of the KUFrameData struct
         so that they are only created once in memory and are shared by all instances of this struct.
@@ -183,8 +181,7 @@ namespace KU
         // ID = 0x080
         static uint8_t heart_beat_data[8];
 
-        // ========================================================= HELPER FUNCTION SECTION
-        // ==========================================
+// ========================================== HELPER FUNCTION SECTION ==========================================
 
         // checks if two data arrays are equivalent
         bool array_compare(uint8_t* expected, uint8_t num_bytes_expected, uint8_t* actual, uint8_t num_bytes_actual);
@@ -193,8 +190,7 @@ namespace KU
         KinetekResponse get_response_type(uint32_t can_id, uint8_t* data_array, uint8_t arr_size);
     };
 
-    // ============================================================ OTHER CODES SECTION
-    // =============================================
+// ========================================== OTHER CODES SECTION ==========================================
 
     // these codes are used to determine the status of the kinetek utility, make all negative
     enum StatusCode
