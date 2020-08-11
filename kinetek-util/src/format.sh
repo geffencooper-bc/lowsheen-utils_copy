@@ -40,7 +40,7 @@ fi
 
 # check for ifdefs in code because it is too easy to accidentally to use #ifdef instead of #if when checking a feature flag
 # whitelisted patterns are removed by using "grep -v ..."
-files_with_ifdefs=$(grep ifdef $source_files | grep -v "__cplusplus" | grep -v "__GNUC__" | grep -v NDEBUG | grep -v "stm32f4xx_hal_conf.h" | grep -v "stm32fxx_STLparam.h" | grep -v "stm32f4xx_STLsupport.cpp" | grep -v "/CMakeFiles/" | grep -v "__clang__" | grep -v "_CFFI_" | grep -v "GIT_COMMIT_HASH" | grep -v "ENABLE_SAFETY_VALUE_CORRECTION_REPORTING" | grep -v "IAP.cpp" | grep -v "SocketCanHelper.cpp")
+files_with_ifdefs=$(grep ifdef $source_files | grep -v "__cplusplus" | grep -v "__GNUC__" | grep -v NDEBUG | grep -v "stm32f4xx_hal_conf.h" | grep -v "stm32fxx_STLparam.h" | grep -v "stm32f4xx_STLsupport.cpp" | grep -v "/CMakeFiles/" | grep -v "__clang__" | grep -v "_CFFI_" | grep -v "GIT_COMMIT_HASH" | grep -v "ENABLE_SAFETY_VALUE_CORRECTION_REPORTING" | grep -v "IAP.cpp" | grep -v "SocketCanHelper.cpp" | grep -v "main.cpp" | grep -v "STUparam.cpp" | grep -v "KinetekUtility.cpp")
 if [ ! -z "$files_with_ifdefs" ]; then
     echo "Non-whitelisted ifdefs found!"
     echo "$files_with_ifdefs"

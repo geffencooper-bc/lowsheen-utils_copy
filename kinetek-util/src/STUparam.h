@@ -29,15 +29,14 @@ using std::ifstream;
 using std::ofstream;
 using std::stringstream;
 
-#define NUM_STU_ROWS 16 // 16 rows in a stu file
-#define ROW_SIZE 16 // each row holds 16 stu parameters
-#define MAX_NUM_STU_PARAMS 254 // max stu params is 254 because last two bytes are checksum
-#define INITIAL_UNUSED_PARAMS 28 // first 28 params are runtime values
+#define NUM_STU_ROWS 16           // 16 rows in a stu file
+#define ROW_SIZE 16               // each row holds 16 stu parameters
+#define MAX_NUM_STU_PARAMS 254    // max stu params is 254 because last two bytes are checksum
+#define INITIAL_UNUSED_PARAMS 28  // first 28 params are runtime values
 
 class STUparam
 {
-    public:
-
+   public:
     // initializes objects
     STUparam(SocketCanHelper* sc, KU::CanDataList* ku_data);
 
@@ -56,17 +55,15 @@ class STUparam
     // changes a single stu param during runtime
     KU::StatusCode set_stu_param(uint8_t param_num, uint8_t new_value);
 
-    private:
-    SocketCanHelper* sc; // helps to tx/rx can frames
-    KU::CanDataList* ku_data; // stores kinetek can ids/data frames
+   private:
+    SocketCanHelper* sc;       // helps to tx/rx can frames
+    KU::CanDataList* ku_data;  // stores kinetek can ids/data frames
 
     // the call back may need access to private member variables
-    friend void STU_resp_call_back(
-        void* msg,
-        const CO_CANrxMsg_t* can_msg);  
+    friend void STU_resp_call_back(void* msg, const CO_CANrxMsg_t* can_msg);
 
     // confirms checksums before uploading file
-    KU::StatusCode validate_stu_file(const string& input_file); 
+    KU::StatusCode validate_stu_file(const string& input_file);
 
     // converts a line in a stu file into an array of bytes, return sum of the bytes
     int stu_line_to_byte_array(const string& stu_line, uint8_t* byte_array, uint8_t arr_size);

@@ -32,14 +32,14 @@
 // init member variables, IAP needs access to the Kinetek Utility can data and socket can helper
 IAP::IAP(SocketCanHelper* sc, KU::CanDataList* ku_data)
 {
-    if(sc == nullptr)
+    if (sc == nullptr)
     {
         LOG_PRINT(("Socket Can Helper is not initialized\n"));
         exit(EXIT_FAILURE);
     }
     this->sc = sc;
 
-    if(ku_data == nullptr)
+    if (ku_data == nullptr)
     {
         LOG_PRINT(("Kinetek Utility CanDataList is not initialized\n"));
         exit(EXIT_FAILURE);
@@ -68,7 +68,7 @@ IAP::~IAP()
 // init hex utility object and grab needed data from hex file
 void IAP::load_hex_file(string file_path)
 {
-    if(ut == nullptr)
+    if (ut == nullptr)
     {
         ut = new HexUtility();
     }
@@ -77,7 +77,6 @@ void IAP::load_hex_file(string file_path)
         // already called before this, reset member variables
         clear();
     }
-    
 
     // initialize the hex utility object by loading the hex file
     ut->load_hex_file_data(file_path);
@@ -85,7 +84,8 @@ void IAP::load_hex_file(string file_path)
     // initialize iap request data frames using hex file info
     hex_data_size = ut->get_file_data_size(ku_data->hex_data_size_data + 1, KT_DATA_SIZE_LEN);
     total_checksum = ut->get_total_cs(ku_data->total_checksum_data + 1, KT_CS_LEN);  // sent as an init frame
-    ut->get_total_cs(ku_data->calculate_total_checksum_data + 1, KT_CS_LEN, true);   // sent after upload in little endian
+    ut->get_total_cs(ku_data->calculate_total_checksum_data + 1, KT_CS_LEN,
+                     true);  // sent after upload in little endian
     start_address = ut->get_start_address(ku_data->start_address_data + 1, KT_ADDRESS_LEN);
 
     // // Kinetek needs to know last packet size
@@ -135,7 +135,7 @@ void IAP_resp_call_back(void* obj, const CO_CANrxMsg_t* can_msg)
    different but related set of CAN IDs (have the same function). State 1 uses the CAN
    IDs defined in the IAP section of KU_can_id. State 2 uses the same CAN IDs with
    a slight modification for REQUESTS and RESPONSES as shown below.
-   
+
    REQUESTS: (State 1 can id) | 01000000 (set the 7th bit high).
    RESPONSES: Since the 4 least significant bits are the same for RESPONSES for both states,
    the can id will have a bit mask of 00001111 --> (can id) & 00001111.
@@ -347,7 +347,8 @@ KU::StatusCode IAP::upload_hex_file()
             ku_data->page_checksum_data[6] = page_count + 1;
 
             // send the page checksum frame to the kinetek, wait for confirmation, wait twice if need to
-            sc->send_frame(KU::IAP_REQUEST_ID | set_7th, ku_data->page_checksum_data, sizeof(ku_data->page_checksum_data));
+            sc->send_frame(KU::IAP_REQUEST_ID | set_7th, ku_data->page_checksum_data,
+                           sizeof(ku_data->page_checksum_data));
             resp = sc->get_frame(KU::IAP_RESPONSE_ID, this, IAP_resp_call_back, MEDIUM_WAIT_TIME, iap_can_id_mask);
 
             if (ku_data->get_response_type(resp->ident, resp->data, resp->DLC) != KU::CALCULATE_PAGE_CHECKSUM_RESPONSE)
@@ -355,15 +356,22 @@ KU::StatusCode IAP::upload_hex_file()
                 // try again
                 resp = sc->get_frame(KU::IAP_RESPONSE_ID, this, IAP_resp_call_back, MEDIUM_WAIT_TIME, iap_can_id_mask);
 
-                if (ku_data->get_response_type(resp->ident, resp->data, resp->DLC) != KU::CALCULATE_PAGE_CHECKSUM_RESPONSE)
+                if (ku_data->get_response_type(resp->ident, resp->data, resp->DLC) !=
+                    KU::CALCULATE_PAGE_CHECKSUM_RESPONSE)
                 {
                     LOG_PRINT(("last effort compare\n"));
                     // if don't receive cs frame, may have missed it, as a last effort compare the KT calculated CS and
                     // your calculated CS
-                    if (ku_data->array_compare(ku_data->page_checksum_data + 1, KT_CS_LEN, resp->data + 1, KT_CS_LEN) == false)
+                    if (ku_data->array_compare(ku_data->page_checksum_data + 1, KT_CS_LEN, resp->data + 1, KT_CS_LEN) ==
+                        false)
                     {
-                        printf("host\t%02X %02X %02X %02X\n", ku_data->page_checksum_data[1], ku_data->page_checksum_data[2], ku_data->page_checksum_data[3], ku_data->page_checksum_data[4]);
-                        printf("kt  \t%02X %02X %02X %02X\n", ku_data->kt_calculated_page_checksum_data[1], ku_data->kt_calculated_page_checksum_data[2], ku_data->kt_calculated_page_checksum_data[3], ku_data->kt_calculated_page_checksum_data[4]);
+                        printf("host\t%02X %02X %02X %02X\n", ku_data->page_checksum_data[1],
+                               ku_data->page_checksum_data[2], ku_data->page_checksum_data[3],
+                               ku_data->page_checksum_data[4]);
+                        printf("kt  \t%02X %02X %02X %02X\n", ku_data->kt_calculated_page_checksum_data[1],
+                               ku_data->kt_calculated_page_checksum_data[2],
+                               ku_data->kt_calculated_page_checksum_data[3],
+                               ku_data->kt_calculated_page_checksum_data[4]);
                         LOG_PRINT(("PAGE_CHECKSUM TIMEOUT\n"));
                         return KU::PAGE_CHECKSUM_FAIL;
                     }
@@ -435,14 +443,16 @@ KU::StatusCode IAP::upload_hex_file()
             ku_data->page_checksum_data[6] = page_count + 1;
 
             // send last page checksum
-            sc->send_frame(KU::IAP_REQUEST_ID | set_7th, ku_data->page_checksum_data, sizeof(ku_data->page_checksum_data));
+            sc->send_frame(KU::IAP_REQUEST_ID | set_7th, ku_data->page_checksum_data,
+                           sizeof(ku_data->page_checksum_data));
             resp = sc->get_frame(KU::IAP_RESPONSE_ID, this, IAP_resp_call_back, MEDIUM_WAIT_TIME, iap_can_id_mask);
 
             if (ku_data->get_response_type(resp->ident, resp->data, resp->DLC) != KU::CALCULATE_PAGE_CHECKSUM_RESPONSE)
             {
                 // try again
                 resp = sc->get_frame(KU::IAP_RESPONSE_ID, this, IAP_resp_call_back, MEDIUM_WAIT_TIME);
-                if (ku_data->get_response_type(resp->ident, resp->data, resp->DLC) != KU::CALCULATE_PAGE_CHECKSUM_RESPONSE)
+                if (ku_data->get_response_type(resp->ident, resp->data, resp->DLC) !=
+                    KU::CALCULATE_PAGE_CHECKSUM_RESPONSE)
                 {
                     LOG_PRINT(("PAGE_CHECKSUM TIMEOUT\n"));
                     return KU::PAGE_CHECKSUM_FAIL;
@@ -649,8 +659,8 @@ KU::StatusCode IAP::send_hex_packet(bool is_retry)
                     if (ku_data->get_response_type(resp->ident, resp->data, resp->DLC) != KU::ACK_32_BYTES)
                     {
                         // try again
-                        resp =
-                            sc->get_frame(KU::IAP_RESPONSE_ID, this, IAP_resp_call_back, MEDIUM_WAIT_TIME, iap_can_id_mask);
+                        resp = sc->get_frame(KU::IAP_RESPONSE_ID, this, IAP_resp_call_back, MEDIUM_WAIT_TIME,
+                                             iap_can_id_mask);
                         if (ku_data->get_response_type(resp->ident, resp->data, resp->DLC) != KU::ACK_32_BYTES)
                         {
                             return KU::PACKET_SENT_FAIL;

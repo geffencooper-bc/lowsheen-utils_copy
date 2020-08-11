@@ -9,7 +9,6 @@
 // https://info.braincorp.com/open-source-attributions
 //==================================================================
 
-
 #ifndef KINETEK_CODES_H
 #define KINETEK_CODES_H
 
@@ -17,15 +16,15 @@
 
 // This file holds Kinetek information (can ids, can data), helper functions,
 // and status codes used by kinetek utility tools to decipher can messages.
-// For details about how Kinetek can frame data is structured, see 
+// For details about how Kinetek can frame data is structured, see
 // "CAN Message Keycode Runtime Ram Usage and ICON Log 2019 05 17 1444.xlsx"
 // at this confluence page:https://braincorporation.atlassian.net/wiki/spaces/FCE/pages/865009733/Kinetek-Util
 
 // Kinetek Utility Namespace
 namespace KU
 {
-
-// ==================================================== CAN ID SECTION ===========================================================
+// ==================================================== CAN ID SECTION
+// ===========================================================
 
 /*
    NOTE about IAP (firmware download mode):
@@ -34,7 +33,7 @@ namespace KU
    different but related set of CAN IDs (have the same function). State 1 uses the CAN
    IDs defined in the IAP section of KU_can_id. State 2 uses the same CAN IDs with
    a slight modification for REQUESTS and RESPONSES as shown below.
-   
+
    REQUESTS: (State 1 can id) | 01000000 (set the 7th bit high).
    RESPONSES: Since the 4 least significant bits are the same for RESPONSES for both states,
    the can id will have a bit mask of 00001111 --> (can id) & 00001111.
@@ -43,27 +42,26 @@ namespace KU
 #define KINETEK_STATUS_1_ID 0x080  // if in IAP state 1 then REQUESTS same, RESPONSES &= 00001111
 #define KINETEK_STATUS_2_ID 0x060  // if in IAP state 2 then REQUESTS |= 01000000, RESPONSES &= 00001111
 
-// All the CAN IDs used by kinetek-utility app, divided into sections
+    // All the CAN IDs used by kinetek-utility app, divided into sections
     enum CanId
     {
         // ----------------- IAP Section ----------------
         // State 1 IDs                     // State 2 IDs
         //                  REQUEST IDs
-        FW_VERSION_REQUEST_ID = 0x005,     // 0x045
-        IAP_REQUEST_ID = 0x008,            // 0x048
-        SEND_FRAME_1_ID = 0x00F,           // 0x04F
-        SEND_FRAME_2_ID = 0x010,           // 0x050
-        SEND_FRAME_3_ID = 0x011,           // 0x051
-        SEND_FRAME_4_ID = 0x012,           // 0x052
-        RESEND_FRAME_1_ID = 0x013,         // 0x053
-        RESEND_FRAME_2_ID = 0x014,         // 0x054
-        RESEND_FRAME_3_ID = 0x015,         // 0x055
-        RESEND_FRAME_4_ID = 0x016,         // 0x056
-        FORCE_ENTER_IAP_MODE_ID = 0x048,   // 0x048
+        FW_VERSION_REQUEST_ID = 0x005,    // 0x045
+        IAP_REQUEST_ID = 0x008,           // 0x048
+        SEND_FRAME_1_ID = 0x00F,          // 0x04F
+        SEND_FRAME_2_ID = 0x010,          // 0x050
+        SEND_FRAME_3_ID = 0x011,          // 0x051
+        SEND_FRAME_4_ID = 0x012,          // 0x052
+        RESEND_FRAME_1_ID = 0x013,        // 0x053
+        RESEND_FRAME_2_ID = 0x014,        // 0x054
+        RESEND_FRAME_3_ID = 0x015,        // 0x055
+        RESEND_FRAME_4_ID = 0x016,        // 0x056
+        FORCE_ENTER_IAP_MODE_ID = 0x048,  // 0x048
         //                RESPONSE IDs
-        FW_VERSION_RESPONSE_ID = 0x087,    // 0x067
-        IAP_RESPONSE_ID = 0x089,           // 0x069
-
+        FW_VERSION_RESPONSE_ID = 0x087,  // 0x067
+        IAP_RESPONSE_ID = 0x089,         // 0x069
 
         // ---------------- STU Section -----------------
         EEPROM_ACCESS_MESSAGE_ID = 0x00A,
@@ -79,7 +77,6 @@ namespace KU
         SINGLE_STU_PARAM_WRITE_RESPONSE_ID = 0x08C,
         EEPROM_LINE_READ_B_RESPONSE_ID = 0x08E,
         EEPROM_LINE_WRITE_RESPONSE_ID = 0x091,
-
 
         // --------- Standard Message Section ----------
         KINETEK_REQUEST_ID = 0x001,
@@ -117,24 +114,24 @@ namespace KU
         HEART_BEAT
     };
 
-// ================================================= DATA SECTION =======================================================================
-/*
-    The kinetek utility data frames are represented as static member variables of the KUFrameData struct
-    so that they are only created once in memory and are shared by all instances of this struct.
-*/
+    // ================================================= DATA SECTION
+    // =======================================================================
+    /*
+        The kinetek utility data frames are represented as static member variables of the KUFrameData struct
+        so that they are only created once in memory and are shared by all instances of this struct.
+    */
     struct CanDataList
     {
+// IAP length constants
+#define KT_ADDRESS_LEN 4    // address data is 4 bytes
+#define KT_CS_LEN 4         // checksum data is 4 bytes
+#define KT_DATA_SIZE_LEN 4  // file data size is 4 bytes
 
-    // IAP length constants
-    #define KT_ADDRESS_LEN 4    // address data is 4 bytes
-    #define KT_CS_LEN 4         // checksum data is 4 bytes
-    #define KT_DATA_SIZE_LEN 4  // file data size is 4 bytes
-
-    // --------------------------- IAP data ---------------------
+        // --------------------------- IAP data ---------------------
         //                    IAP REQUEST data
         // ID = 0x001
         static uint8_t enter_iap_mode_selective_data[5];
-        
+
         // ID = 0x005/0x045
         static uint8_t fw_version_request_data[8];
 
@@ -147,7 +144,7 @@ namespace KU
         static uint8_t end_of_file_data[8];
         static uint8_t calculate_total_checksum_data[8];
         static uint8_t page_checksum_data[8];
-        
+
         //                   IAP RESPONSE data
         // ID = 0x060/0x080
         static uint8_t in_iap_mode_data[5];
@@ -169,8 +166,7 @@ namespace KU
         // ID = 0x81
         static uint8_t enter_iap_mode_selective_response_data[5];
 
-
-    // -------------------- STU data ---------------------------
+        // -------------------- STU data ---------------------------
         // ID = 0x00A
         static uint8_t eeprom_access_read_request_data[8];
         static uint8_t eeprom_access_write_request_data[8];
@@ -178,8 +174,7 @@ namespace KU
         // ID = 0x009 and 0x00E
         static uint8_t eeprom_access_line_write_data[16];
 
-
-    // ------------------- Standard data -----------------------
+        // ------------------- Standard data -----------------------
         // ID = 0xAC1DCODE
         static uint8_t enable_kinetek_data[2];
         static uint8_t disable_kinetek_data[2];
@@ -188,7 +183,8 @@ namespace KU
         // ID = 0x080
         static uint8_t heart_beat_data[8];
 
-    // ========================================================= HELPER FUNCTION SECTION ==========================================    
+        // ========================================================= HELPER FUNCTION SECTION
+        // ==========================================
 
         // checks if two data arrays are equivalent
         bool array_compare(uint8_t* expected, uint8_t num_bytes_expected, uint8_t* actual, uint8_t num_bytes_actual);
@@ -197,8 +193,9 @@ namespace KU
         KinetekResponse get_response_type(uint32_t can_id, uint8_t* data_array, uint8_t arr_size);
     };
 
-// ============================================================ OTHER CODES SECTION =============================================
-   
+    // ============================================================ OTHER CODES SECTION
+    // =============================================
+
     // these codes are used to determine the status of the kinetek utility, make all negative
     enum StatusCode
     {

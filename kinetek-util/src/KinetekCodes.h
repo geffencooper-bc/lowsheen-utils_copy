@@ -160,7 +160,7 @@ namespace KT
     iap_response get_response_type(uint32_t id, uint8_t* data_array, uint8_t arr_size)
     {
         // first category of responses is IAP_RESPONSE which can be either 0x69, 0x089 based on iap state
-        if (id == 0x069 || id == 0x089)  
+        if (id == 0x069 || id == 0x089)
         {
             if (array_compare(ACK_32_bytes_data, sizeof(ACK_32_bytes_data), data_array, arr_size))
             {
@@ -225,7 +225,7 @@ namespace KT
                 return FW_VERSION_RESPONSE;
             }
         }
-        else if ((std_can_id)id == KINETEK_RESPONSE_ID) // 0x081
+        else if ((std_can_id)id == KINETEK_RESPONSE_ID)  // 0x081
         {
             if (array_compare(enter_iap_mode_selective_response_data, sizeof(enter_iap_mode_selective_response_data),
                               data_array, arr_size))

@@ -29,7 +29,7 @@ HexUtility::HexUtility()
 // close file, nothing to deallocate
 HexUtility::~HexUtility()
 {
-    if(hex_file.is_open())
+    if (hex_file.is_open())
     {
         hex_file.close();
     }
@@ -107,7 +107,7 @@ int HexUtility::get_next_8_bytes(uint8_t* byte_array, uint8_t arr_size)
     if (record_type == END_OF_FILE || record_type == START_LINEAR_AR)
     {
         is_eof = true;
-        if(hex_file.is_open())
+        if (hex_file.is_open())
         {
             hex_file.close();
         }
@@ -273,7 +273,7 @@ int HexUtility::load_hex_file_data(const string& hex_file_path)
     this->hex_file_path = hex_file_path;
 
     // try to open the hex file and load the data
-    if(hex_file.is_open())
+    if (hex_file.is_open())
     {
         printf("HEX FILE ALREADY OPEN\n");
         exit(EXIT_FAILURE);
@@ -335,7 +335,7 @@ int HexUtility::load_hex_file_data(const string& hex_file_path)
     }
 
     // close the file, reopen later when needed
-    if(hex_file.is_open())
+    if (hex_file.is_open())
     {
         hex_file.close();
     }
@@ -390,7 +390,7 @@ bool hu_getline(std::istream& file, std::string& str)
             case EOF:
             {
                 // if the file does not end with a newline then don't want to return false till next call
-                if(str.empty())
+                if (str.empty())
                 {
                     return false;
                 }
@@ -420,7 +420,7 @@ void getline_test(string file_path)
     {
         printf("%s", line.c_str());
     }
-    if(file.is_open())
+    if (file.is_open())
     {
         file.close();
     }

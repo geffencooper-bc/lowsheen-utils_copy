@@ -15,11 +15,11 @@
 // then parse_args can be called with the command line arguments. parse_args will
 // then call the according functions to run the desried tool.
 
-// 2. If the Kinetek Utility is being used as a "library", then init_can and the 
+// 2. If the Kinetek Utility is being used as a "library", then init_can and the
 // the desired function under "tools" can be called directly.
 class KinetekUtility
 {
-    public:
+   public:
     // init objects
     KinetekUtility();
 
@@ -44,13 +44,13 @@ class KinetekUtility
     // reset xt_can
     KU::StatusCode reset_xt_can();
 
-    private:
+   private:
     SocketCanHelper* sc;
-    KU::CanDataList* ku_data; // holds all can data used by the utilities
+    KU::CanDataList* ku_data;  // holds all can data used by the utilities
     IAP* iap;
     STUparam* stu;
 
-    bool can_initialized; // keeps track of whether init_can has been called
+    bool can_initialized;  // keeps track of whether init_can has been called
 };
 
 #endif

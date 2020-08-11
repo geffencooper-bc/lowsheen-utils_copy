@@ -51,12 +51,6 @@ class IAP
     // clear the member variables
     void clear();
 
-    // converts status code to human readable string
-    string translate_status_code(status_code code);
-
-    // reset the xt_can app
-    void reset_xt_can();
-
    private:
     // hex file data
     int hex_data_size;  // number of data bytes in hex file
@@ -77,13 +71,10 @@ class IAP
     KU::CanDataList* ku_data;
 
     // the call back may need access to private member variables
-    friend void IAP_resp_call_back(
-        void* msg,
-        const CO_CANrxMsg_t* can_msg);  
+    friend void IAP_resp_call_back(void* msg, const CO_CANrxMsg_t* can_msg);
 
     // sends the next 32 bytes of hex data, called by upload_hex_file
-    KU::StatusCode send_hex_packet(
-        bool is_retry = false);
+    KU::StatusCode send_hex_packet(bool is_retry = false);
 
     // determines which IAP state have entered into and if need to adjust can ids
     // wait_time specifies timeout value, Note: iap state is independent of iap mode (forced vs selective)
