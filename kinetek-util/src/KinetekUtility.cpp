@@ -1,4 +1,5 @@
 #include "KinetekUtility.h"
+#include <argp.h>
 
 #define PRINT_LOG
 
@@ -184,13 +185,10 @@ string KinetekUtility::translate_status_code(KU::StatusCode status)
 
 KU::StatusCode KinetekUtility::run_iap(const string& file_path, bool iap_mode)
 {
-    // delete sc; 
-    // sc = new SocketCanHelper; 
-    // sc->init_socketcan("can0");
     // step 1: check if interface accessible
     if(!can_initialized)
     {
-        PRINT_LOG(("Can not initialized. Call init_can\n"));
+        LOG_PRINT(("Can not initialized. Call init_can\n"));
         return KU::INIT_CAN_FAIL;
     }
 
@@ -209,13 +207,13 @@ KU::StatusCode KinetekUtility::run_iap(const string& file_path, bool iap_mode)
             status = iap->upload_hex_file();
             if (status == KU::UPLOAD_COMPLETE)
             {
-                PRINT_LOG(("\n\n====== SUCCSESS ======\n"));
+                LOG_PRINT(("\n\n====== SUCCSESS ======\n"));
             }
         }
     }
     if (status != KU::UPLOAD_COMPLETE)
     {
-        PRINT_LOG(("Error: %s", translate_status_code(status).c_str()));
+        LOG_PRINT(("Error: %s", translate_status_code(status).c_str()));
     }
     return status;
 }
@@ -225,7 +223,7 @@ KU::StatusCode KinetekUtility::read_stu_to_file(const string& file_path)
     // step 1: check if interface accessible
     if(!can_initialized)
     {
-        PRINT_LOG(("Can not initialized. Call init_can\n"));
+        LOG_PRINT(("Can not initialized. Call init_can\n"));
         return KU::INIT_CAN_FAIL;
     }
 
@@ -233,12 +231,12 @@ KU::StatusCode KinetekUtility::read_stu_to_file(const string& file_path)
     KU::StatusCode status = stu->read_stu_params(file_path);
     if(status != KU::STU_FILE_READ_SUCCESS)
     {
-        PRINT_LOG(("Error: %s", translate_status_code(status).c_str()));
+        LOG_PRINT(("Error: %s", translate_status_code(status).c_str()));
         return KU::STU_FILE_READ_FAIL;
     }
     else
     {
-        PRINT_LOG(("Success: %s", translate_status_code(status).c_str()));
+        LOG_PRINT(("Success: %s", translate_status_code(status).c_str()));
         return KU::STU_FILE_READ_SUCCESS;
     }
 }
@@ -249,37 +247,37 @@ KU::StatusCode KinetekUtility::write_stu_from_file(const string& file_path)
     // step 1: check if interface accessible
     if(!can_initialized)
     {
-        PRINT_LOG(("Can not initialized. Call init_can\n"));
+        LOG_PRINT(("Can not initialized. Call init_can\n"));
         return KU::INIT_CAN_FAIL;
     }
     // step 2: write the stu params to the file
     KU::StatusCode status = stu->write_stu_params(file_path);
     if(status != KU::STU_FILE_WRITE_SUCCESS)
     {
-        PRINT_LOG(("Error: %s", translate_status_code(status).c_str()));
+        LOG_PRINT(("Error: %s", translate_status_code(status).c_str()));
         return KU::STU_FILE_WRITE_FAIL;
     }
     else
     {
-        PRINT_LOG(("Success: %s", translate_status_code(status).c_str()));
+        LOG_PRINT(("Success: %s", translate_status_code(status).c_str()));
         return KU::STU_FILE_WRITE_SUCCESS;
     }
 }
 
 // read stu param
-KU::StatusCode KinetekUtility::read_stu_param(uint8_t param_num)
+KU::StatusCode KinetekUtility::get_stu_param(uint8_t param_num)
 {
     // step 1: check if interface accessible
     if(!can_initialized)
     {
-        PRINT_LOG(("Can not initialized. Call init_can\n"));
+        LOG_PRINT(("Can not initialized. Call init_can\n"));
         return KU::INIT_CAN_FAIL;
     }
     // step 2: read stu param
     int param_value = stu->get_stu_param(param_num);
     if(param_value < 0)
     {
-        PRINT_LOG(("Error: %s", translate_status_code((KU::StatusCode)param_value).c_str()));
+        LOG_PRINT(("Error: %s", translate_status_code((KU::StatusCode)param_value).c_str()));
         return KU::STU_PARAM_READ_FAIL;
     }
     printf("STU PARAM #%i: %i\n", param_num, param_value);
@@ -287,23 +285,23 @@ KU::StatusCode KinetekUtility::read_stu_param(uint8_t param_num)
 }
 
 // write stu param
-KU::StatusCode KinetekUtility::write_stu_param(uint8_t param_num, uint8_t new_value)
+KU::StatusCode KinetekUtility::set_stu_param(uint8_t param_num, uint8_t new_value)
 {
     // step 1: check if interface accessible
     if(!can_initialized)
     {
-        PRINT_LOG(("Can not initialized. Call init_can\n"));
+        LOG_PRINT(("Can not initialized. Call init_can\n"));
         return KU::INIT_CAN_FAIL;
     }
     // step 2: write stu param
     KU::StatusCode status = stu->set_stu_param(param_num, new_value);
-    if(status < 0)
+    if(status != KU::STU_PARAM_WRITE_SUCCESS)
     {
-        PRINT_LOG(("Error: %s", translate_status_code(status)));
+        LOG_PRINT(("Error: %s", translate_status_code(status).c_str()));
     }
     else
     {
-        PRINT_LOG(("Success: %s", translate_status_code(status)));
+        LOG_PRINT(("Success: %s", translate_status_code(status).c_str()));
     }
     return status;
 }
@@ -313,10 +311,76 @@ KU::StatusCode KinetekUtility::reset_xt_can()
     // step 1: check if interface accessible
     if(!can_initialized)
     {
-        PRINT_LOG(("Can not initialized. Call init_can\n"));
+        LOG_PRINT(("Can not initialized. Call init_can\n"));
         return KU::INIT_CAN_FAIL;
     }   
 
     sc->send_frame(KU::XT_CAN_REQUEST_ID, ku_data->reset_xt_can_data, sizeof(ku_data->reset_xt_can_data));
     return KU::NO_ERROR;
+}
+
+// ===================================== Argument Parsing ================================================
+
+static struct argp_option options[] = 
+{
+    {"set_param", 's', "PARAM#", 0, "Set a STU param, [-s PARAM# -v VAL]"},
+    {"get_param", 'g', "PARAM#", 0, "Get a STU param"},
+    {"value", 'v', "VAL", 0, "STU param value (used with set_param)"},
+    {"read_stu", 'r', "FILENAME", 0, "Read STU params to a file"},
+    {"write_stu", 'w', "FILENAME", 0, "Write STU params from a file"},
+    {"update", 'u', "FILENAME", 0, "Update the Kinetek firmware"},
+    { 0 } 
+};
+
+// callback function
+static int parse_opt (int key, char *arg, struct argp_state *state)
+{
+    KinetekUtility* ku = (KinetekUtility*)(state->input);
+    static int param_num = -1;
+    switch (key) 
+    { 
+        case 's': 
+        {
+            param_num = atoi(arg);
+            break; 
+        } 
+        case 'g': 
+        {
+            int ar = atoi(arg);
+            ku->get_stu_param(ar);
+            break; 
+        } 
+        case 'r': 
+        {
+            ku->read_stu_to_file(string(arg));
+            break; 
+        } 
+        case 'w': 
+        {
+            ku->write_stu_from_file(string(arg));
+            break; 
+        }
+        case 'u':
+        {
+            ku->run_iap(string(arg), 1);
+            break;
+        } 
+        case 'v':
+        {
+            if(param_num < 0)
+            {
+                printf("Need to provide a parameter number and a value\n");
+            }
+            int ar = atoi(arg);
+            ku->set_stu_param(param_num, ar);
+            break;
+        }
+    } 
+    return 0;
+}
+
+int KinetekUtility::parse_args(int argc, char** argv)
+{
+    struct argp argp = { options, parse_opt };
+    return argp_parse (&argp, argc, argv, 0, 0, this); 
 }

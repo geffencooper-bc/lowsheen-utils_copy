@@ -421,5 +421,5 @@ KU::StatusCode STUparam::set_stu_param(uint8_t param_num, uint8_t new_value)
         LOG_PRINT(("DID NOT RECEIVE WRITE CONFIRM\n"));
         return KU::STU_PARAM_WRITE_FAIL;
     }
-    return KU::STU_PARAM_READ_SUCCESS;
+    return KU::STU_PARAM_WRITE_SUCCESS;
 }

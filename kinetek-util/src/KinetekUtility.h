@@ -26,7 +26,7 @@ class KinetekUtility
     ~KinetekUtility();
 
     // parses the command line input and runs the correct function
-    void parse_args(int argc, char** argv);
+    int parse_args(int argc, char** argv);
 
     // sets up socket can helper object and connects to can interface, channel name is usually "can0"
     KU::StatusCode init_can(const char* channel_name);
@@ -38,8 +38,8 @@ class KinetekUtility
     KU::StatusCode run_iap(const string& file_path, bool iap_mode);
     KU::StatusCode read_stu_to_file(const string& file_path);
     KU::StatusCode write_stu_from_file(const string& file_path);
-    KU::StatusCode read_stu_param(uint8_t param_num);
-    KU::StatusCode write_stu_param(uint8_t param_num, uint8_t new_value);
+    KU::StatusCode get_stu_param(uint8_t param_num);
+    KU::StatusCode set_stu_param(uint8_t param_num, uint8_t new_value);
 
     // reset xt_can
     KU::StatusCode reset_xt_can();
