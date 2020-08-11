@@ -9,48 +9,63 @@
 // https://info.braincorp.com/open-source-attributions
 //==================================================================
 
-#include "IAP.h"
+#include "KinetekUtility.h"
 
-// arg 1 = file path, arg2 = iap_mode
+//#define LIB_EXAMPLE
+ #define CL_EXAMPLE
+
 int main(int argc, char** argv)
 {
-    if (argc < 2)
+    // the command line example shows how to use the kinetek utility through the command line
+    #ifdef CL_EXAMPLE
+    KinetekUtility ku;
+    ku.init_can("can0");
+    ku.parse_args(argc, argv);
+    #endif
+
+
+    // the library example shows how to use the kinetek utility through direct functions calls
+    #ifdef LIB_EXAMPLE
+    // first create the kinetek utility object and initialize can
+    KinetekUtility ku;
+    KU::StatusCode status = ku.init_can("can0");
+    if(status == KU::INIT_CAN_SUCCESS)
     {
-        printf("ARGS: [FILE PATH] [IAP MODE (default forced)] (0 = selective, 1 = forced)");
-        exit(EXIT_FAILURE);
-    }
-
-    int iap_type = atoi(argv[2]);  // 0 = selective, 1 = forced
-
-    IAP iap;
-    iap.load_hex_file(argv[1]);  // file path
-    iap.print();                 // hex file information, make a command line option
-
-    // step 1: check if interface accessible
-    status_code status = iap.init_can("can0");
-    if (status == INIT_CAN_SUCCESS)
-    {
-        // step 2: put Kinetek into IAP mode (fw download mode)
-        status = iap.put_in_iap_mode(iap_type);
-        if (status == IAP_MODE_SUCCESS)
+        // update the kinetek fw using forced mode
+        status = ku.run_iap("/home/brain/2.27.hex", 1);
+        if(status == KU::UPLOAD_COMPLETE)
         {
-            // step 3: send initialization frames (hex file size, checksum, start address, etc)
-            status = iap.send_init_frames();
-            if (status == INIT_PACKET_SUCCESS)
+            // update the kinetek fw using selective mode
+            status = ku.run_iap("/home/brain/2.28.hex", 0);
+            if(status == KU::UPLOAD_COMPLETE)
             {
-                // step 4: upload the hex file
-                status = iap.upload_hex_file();
-                if (status == UPLOAD_COMPLETE)
+                // read the stu parameters to a file
+                status = ku.read_stu_to_file("read_test.stu");
+                if(status == KU::STU_FILE_READ_SUCCESS)
                 {
-                    printf("\n\n====== SUCCESS ======\n");
+                    // write the stu parameters from a file
+                    status = ku.write_stu_from_file("read_test.stu");
+                    if(status == KU::STU_FILE_WRITE_SUCCESS)
+                    {
+                        // change a single stu parameter 
+                        status = ku.write_stu_param(4, 150);
+                        if(status == KU::STU_PARAM_WRITE_SUCCESS)
+                        {
+                            // get a single stu parameter
+                            status = ku.read_stu_param(4);
+                        }
+                    }
                 }
-            }
+            }   
         }
     }
-    if (status != UPLOAD_COMPLETE)
+    if(status == KU::STU_PARAM_READ_SUCCESS)
     {
-        printf("Error: %s", iap.translate_status_code(status).c_str());
-        exit(EXIT_FAILURE);
+        printf("SUCCESS: %s\n", ku.translate_status_code(status).c_str());
     }
-    return 0;
+    else
+    {
+        printf("ERROR: %s\n", ku.translate_status_code(status).c_str());
+    }
+    #endif
 }

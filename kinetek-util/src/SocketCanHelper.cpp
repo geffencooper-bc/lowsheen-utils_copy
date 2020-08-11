@@ -156,14 +156,21 @@ CO_CANrxMsg_t* SocketCanHelper::get_frame(uint32_t can_id,
     }
 
     // waits until receive specified can id or until timer ends (blocking function)
-    CO_CANrxWait(can_module, timer_fd, can_msg);
+    err = CO_CANrxWait(can_module, timer_fd, can_msg);
 
-    LOG_PRINT(("Id: %02X\t", can_msg->ident));
-    for (uint8_t i = 0; i < can_msg->DLC; i++)
+    if (err < 0)
     {
-        LOG_PRINT(("%02X ", can_msg->data[i]));
+        LOG_PRINT(("TIME OUT\n"));
     }
-    LOG_PRINT(("\n"));
+    else
+    {
+        LOG_PRINT(("Id: %02X\t", can_msg->ident));
+        for (uint8_t i = 0; i < can_msg->DLC; i++)
+        {
+            LOG_PRINT(("%02X ", can_msg->data[i]));
+        }
+        LOG_PRINT(("\n"));
+    }
 
     return can_msg;
 }
