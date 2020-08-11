@@ -222,9 +222,6 @@ KU::StatusCode KinetekUtility::run_iap(const string& file_path, bool iap_mode)
 
 KU::StatusCode KinetekUtility::read_stu_to_file(const string& file_path)
 {
-    // delete sc; 
-    // sc = new SocketCanHelper; 
-    // sc->init_socketcan("can0");
     // step 1: check if interface accessible
     if(!can_initialized)
     {

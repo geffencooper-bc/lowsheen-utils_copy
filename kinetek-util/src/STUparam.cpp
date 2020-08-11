@@ -242,6 +242,14 @@ KU::StatusCode STUparam::write_stu_params(const string& input_file)
     sc->send_frame(KU::XT_CAN_REQUEST_ID, ku_data->disable_kinetek_data, sizeof(ku_data->disable_kinetek_data));
     usleep(2500000);  // sleep for 2.5 seconds
     sc->send_frame(KU::XT_CAN_REQUEST_ID, ku_data->enable_kinetek_data, sizeof(ku_data->enable_kinetek_data));
+    CO_CANrxMsg_t* resp = sc->get_frame(KU::HEART_BEAT_ID, this, STU_resp_call_back, 500);
+    {
+        if (ku_data->get_response_type(resp->ident, resp->data, resp->DLC) != KU::HEART_BEAT)
+        {
+            LOG_PRINT(("No Heart Beat detected\n"));
+            return KU::STU_FILE_WRITE_FAIL;
+        }
+    }
     return KU::STU_FILE_WRITE_SUCCESS;
 }
 

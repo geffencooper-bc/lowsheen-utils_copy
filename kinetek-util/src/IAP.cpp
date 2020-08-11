@@ -124,7 +124,7 @@ void IAP::progress_bar(int current, int total, int bar_length)
 }
 
 // callback function for received messages, not used as of now
-void resp_call_back(void* obj, const CO_CANrxMsg_t* can_msg)
+void IAP_resp_call_back(void* obj, const CO_CANrxMsg_t* can_msg)
 {
     // nothing needed
 }
@@ -148,7 +148,7 @@ void resp_call_back(void* obj, const CO_CANrxMsg_t* can_msg)
 KU::StatusCode IAP::check_iap_state(int wait_time)
 {
     // check if in IAP state 1, if yes then set_7th = 0 and can ids are unchanged
-    CO_CANrxMsg_t* resp = sc->get_frame(KINETEK_STATUS_1_ID, this, resp_call_back, wait_time);
+    CO_CANrxMsg_t* resp = sc->get_frame(KINETEK_STATUS_1_ID, this, IAP_resp_call_back, wait_time);
     if (ku_data->get_response_type(resp->ident, resp->data, resp->DLC) == KU::IN_IAP_MODE)
     {
         LOG_PRINT(("\nSTATE ID: %02X\n", resp->ident));
@@ -158,7 +158,7 @@ KU::StatusCode IAP::check_iap_state(int wait_time)
     // check if in IAP state 2, if yes then set_7th = 0b01000000 and can ids changed
     else
     {
-        resp = sc->get_frame(KINETEK_STATUS_2_ID, this, resp_call_back, wait_time);
+        resp = sc->get_frame(KINETEK_STATUS_2_ID, this, IAP_resp_call_back, wait_time);
         if (ku_data->get_response_type(resp->ident, resp->data, resp->DLC) == KU::IN_IAP_MODE)
         {
             LOG_PRINT(("\nSTATE ID: %02X\n", resp->ident));
@@ -184,7 +184,7 @@ KU::StatusCode IAP::put_in_iap_mode(bool forced_mode)
     if (!forced_mode)
     {
         // wait for a heart beat before trying soft reset
-        CO_CANrxMsg_t* resp = sc->get_frame(KU::HEART_BEAT_ID, this, resp_call_back, LONG_WAIT_TIME);
+        CO_CANrxMsg_t* resp = sc->get_frame(KU::HEART_BEAT_ID, this, IAP_resp_call_back, LONG_WAIT_TIME);
         {
             if (ku_data->get_response_type(resp->ident, resp->data, resp->DLC) != KU::HEART_BEAT)
             {
@@ -196,12 +196,12 @@ KU::StatusCode IAP::put_in_iap_mode(bool forced_mode)
         // next do soft reset by sending selective download command
         sc->send_frame(KU::KINETEK_REQUEST_ID, ku_data->enter_iap_mode_selective_data,
                        sizeof(ku_data->enter_iap_mode_selective_data));
-        resp = sc->get_frame(KU::KINETEK_RESPONSE_ID, this, resp_call_back, MEDIUM_WAIT_TIME);
+        resp = sc->get_frame(KU::KINETEK_RESPONSE_ID, this, IAP_resp_call_back, MEDIUM_WAIT_TIME);
 
         if (ku_data->get_response_type(resp->ident, resp->data, resp->DLC) != KU::ENTER_IAP_MODE_SELECTIVE_RESPONSE)
         {
             // try again
-            resp = sc->get_frame(KU::KINETEK_RESPONSE_ID, this, resp_call_back, MEDIUM_WAIT_TIME);
+            resp = sc->get_frame(KU::KINETEK_RESPONSE_ID, this, IAP_resp_call_back, MEDIUM_WAIT_TIME);
             if (ku_data->get_response_type(resp->ident, resp->data, resp->DLC) != KU::ENTER_IAP_MODE_SELECTIVE_RESPONSE)
             {
                 LOG_PRINT(("Selective FW Request time out\n"));
@@ -250,7 +250,7 @@ KU::StatusCode IAP::send_init_frames()
     sc->send_frame(KU::FW_VERSION_REQUEST_ID | set_7th, ku_data->fw_version_request_data,
                    sizeof(ku_data->fw_version_request_data));
     CO_CANrxMsg_t* resp =
-        sc->get_frame(KU::FW_VERSION_RESPONSE_ID, this, resp_call_back, MEDIUM_WAIT_TIME, iap_can_id_mask);
+        sc->get_frame(KU::FW_VERSION_RESPONSE_ID, this, IAP_resp_call_back, MEDIUM_WAIT_TIME, iap_can_id_mask);
 
     if (ku_data->get_response_type(resp->ident, resp->data, resp->DLC) != KU::FW_VERSION_RESPONSE)
     {
@@ -264,7 +264,7 @@ KU::StatusCode IAP::send_init_frames()
     usleep(1000);
     // next send  a request to sent bytes
     sc->send_frame(KU::IAP_REQUEST_ID | set_7th, ku_data->send_bytes_data, sizeof(ku_data->send_bytes_data));
-    resp = sc->get_frame(KU::IAP_RESPONSE_ID, this, resp_call_back, MEDIUM_WAIT_TIME, iap_can_id_mask);
+    resp = sc->get_frame(KU::IAP_RESPONSE_ID, this, IAP_resp_call_back, MEDIUM_WAIT_TIME, iap_can_id_mask);
 
     if (ku_data->get_response_type(resp->ident, resp->data, resp->DLC) != KU::SEND_BYTES_RESPONSE)
     {
@@ -276,7 +276,7 @@ KU::StatusCode IAP::send_init_frames()
     usleep(1000);
     // next send the start address
     sc->send_frame(KU::IAP_REQUEST_ID | set_7th, ku_data->start_address_data, sizeof(ku_data->start_address_data));
-    resp = sc->get_frame(KU::IAP_RESPONSE_ID, this, resp_call_back, MEDIUM_WAIT_TIME, iap_can_id_mask);
+    resp = sc->get_frame(KU::IAP_RESPONSE_ID, this, IAP_resp_call_back, MEDIUM_WAIT_TIME, iap_can_id_mask);
 
     if (ku_data->get_response_type(resp->ident, resp->data, resp->DLC) != KU::START_ADDRESS_RESPONSE)
     {
@@ -288,7 +288,7 @@ KU::StatusCode IAP::send_init_frames()
     usleep(1000);
     // next send the total checksum
     sc->send_frame(KU::IAP_REQUEST_ID | set_7th, ku_data->total_checksum_data, sizeof(ku_data->total_checksum_data));
-    resp = sc->get_frame(KU::IAP_RESPONSE_ID, this, resp_call_back, MEDIUM_WAIT_TIME, iap_can_id_mask);
+    resp = sc->get_frame(KU::IAP_RESPONSE_ID, this, IAP_resp_call_back, MEDIUM_WAIT_TIME, iap_can_id_mask);
 
     if (ku_data->get_response_type(resp->ident, resp->data, resp->DLC) != KU::TOTAL_CHECKSUM_RESPONSE)
     {
@@ -300,7 +300,7 @@ KU::StatusCode IAP::send_init_frames()
     usleep(1000);
     // finally send the data size
     sc->send_frame(KU::IAP_REQUEST_ID | set_7th, ku_data->hex_data_size_data, sizeof(ku_data->hex_data_size_data));
-    resp = sc->get_frame(KU::IAP_RESPONSE_ID, this, resp_call_back, MEDIUM_WAIT_TIME, iap_can_id_mask);
+    resp = sc->get_frame(KU::IAP_RESPONSE_ID, this, IAP_resp_call_back, MEDIUM_WAIT_TIME, iap_can_id_mask);
 
     if (ku_data->get_response_type(resp->ident, resp->data, resp->DLC) != KU::HEX_DATA_SIZE_RESPONSE)
     {
@@ -330,11 +330,11 @@ KU::StatusCode IAP::upload_hex_file()
 
             // wait for Kinetek to send page checksum, try twice. If don't receive can still get confirmation by sending
             // page checksum
-            CO_CANrxMsg_t* resp = sc->get_frame(iap_state, this, resp_call_back, MEDIUM_WAIT_TIME);
+            CO_CANrxMsg_t* resp = sc->get_frame(iap_state, this, IAP_resp_call_back, MEDIUM_WAIT_TIME);
             if (ku_data->get_response_type(resp->ident, resp->data, resp->DLC) != KU::KT_CALCULATED_PAGE_CHECKSUM)
             {
                 // try again
-                resp = sc->get_frame(iap_state, this, resp_call_back, MEDIUM_WAIT_TIME);
+                resp = sc->get_frame(iap_state, this, IAP_resp_call_back, MEDIUM_WAIT_TIME);
                 if (ku_data->get_response_type(resp->ident, resp->data, resp->DLC) != KU::KT_CALCULATED_PAGE_CHECKSUM)
                 {
                     LOG_PRINT(("KT CALCULATED PAGE_CHECKSUM TIMEOUT\n"));
@@ -348,12 +348,12 @@ KU::StatusCode IAP::upload_hex_file()
 
             // send the page checksum frame to the kinetek, wait for confirmation, wait twice if need to
             sc->send_frame(KU::IAP_REQUEST_ID | set_7th, ku_data->page_checksum_data, sizeof(ku_data->page_checksum_data));
-            resp = sc->get_frame(KU::IAP_RESPONSE_ID, this, resp_call_back, MEDIUM_WAIT_TIME, iap_can_id_mask);
+            resp = sc->get_frame(KU::IAP_RESPONSE_ID, this, IAP_resp_call_back, MEDIUM_WAIT_TIME, iap_can_id_mask);
 
             if (ku_data->get_response_type(resp->ident, resp->data, resp->DLC) != KU::CALCULATE_PAGE_CHECKSUM_RESPONSE)
             {
                 // try again
-                resp = sc->get_frame(KU::IAP_RESPONSE_ID, this, resp_call_back, MEDIUM_WAIT_TIME, iap_can_id_mask);
+                resp = sc->get_frame(KU::IAP_RESPONSE_ID, this, IAP_resp_call_back, MEDIUM_WAIT_TIME, iap_can_id_mask);
 
                 if (ku_data->get_response_type(resp->ident, resp->data, resp->DLC) != KU::CALCULATE_PAGE_CHECKSUM_RESPONSE)
                 {
@@ -410,12 +410,12 @@ KU::StatusCode IAP::upload_hex_file()
 
             sc->send_frame(KU::IAP_REQUEST_ID | set_7th, ku_data->end_of_file_data, sizeof(ku_data->end_of_file_data));
             CO_CANrxMsg_t* resp =
-                sc->get_frame(KU::IAP_RESPONSE_ID, this, resp_call_back, MEDIUM_WAIT_TIME, iap_can_id_mask);
+                sc->get_frame(KU::IAP_RESPONSE_ID, this, IAP_resp_call_back, MEDIUM_WAIT_TIME, iap_can_id_mask);
 
             if (ku_data->get_response_type(resp->ident, resp->data, resp->DLC) != KU::END_OF_HEX_FILE_RESPONSE)
             {
                 // try again
-                resp = sc->get_frame(KU::IAP_RESPONSE_ID, this, resp_call_back, MEDIUM_WAIT_TIME, iap_can_id_mask);
+                resp = sc->get_frame(KU::IAP_RESPONSE_ID, this, IAP_resp_call_back, MEDIUM_WAIT_TIME, iap_can_id_mask);
                 if (ku_data->get_response_type(resp->ident, resp->data, resp->DLC) != KU::END_OF_HEX_FILE_RESPONSE)
                 {
                     LOG_PRINT(("END_OF_FILE TIMEOUT\n"));
@@ -424,7 +424,7 @@ KU::StatusCode IAP::upload_hex_file()
             }
 
             // wait for the kinetek to send its calculated page checksum
-            resp = sc->get_frame(iap_state, this, resp_call_back, MEDIUM_WAIT_TIME);
+            resp = sc->get_frame(iap_state, this, IAP_resp_call_back, MEDIUM_WAIT_TIME);
             if (ku_data->get_response_type(resp->ident, resp->data, resp->DLC) != KU::KT_CALCULATED_PAGE_CHECKSUM)
             {
                 LOG_PRINT(("KT_CALCULATED_PAGE_CHECKSUM TIMEOUT\n"));
@@ -436,12 +436,12 @@ KU::StatusCode IAP::upload_hex_file()
 
             // send last page checksum
             sc->send_frame(KU::IAP_REQUEST_ID | set_7th, ku_data->page_checksum_data, sizeof(ku_data->page_checksum_data));
-            resp = sc->get_frame(KU::IAP_RESPONSE_ID, this, resp_call_back, MEDIUM_WAIT_TIME, iap_can_id_mask);
+            resp = sc->get_frame(KU::IAP_RESPONSE_ID, this, IAP_resp_call_back, MEDIUM_WAIT_TIME, iap_can_id_mask);
 
             if (ku_data->get_response_type(resp->ident, resp->data, resp->DLC) != KU::CALCULATE_PAGE_CHECKSUM_RESPONSE)
             {
                 // try again
-                resp = sc->get_frame(KU::IAP_RESPONSE_ID, this, resp_call_back, MEDIUM_WAIT_TIME);
+                resp = sc->get_frame(KU::IAP_RESPONSE_ID, this, IAP_resp_call_back, MEDIUM_WAIT_TIME);
                 if (ku_data->get_response_type(resp->ident, resp->data, resp->DLC) != KU::CALCULATE_PAGE_CHECKSUM_RESPONSE)
                 {
                     LOG_PRINT(("PAGE_CHECKSUM TIMEOUT\n"));
@@ -451,7 +451,7 @@ KU::StatusCode IAP::upload_hex_file()
             // send total checksum
             sc->send_frame(KU::IAP_REQUEST_ID | set_7th, ku_data->calculate_total_checksum_data,
                            sizeof(ku_data->calculate_total_checksum_data));
-            resp = sc->get_frame(KU::IAP_RESPONSE_ID, this, resp_call_back, MEDIUM_WAIT_TIME, iap_can_id_mask);
+            resp = sc->get_frame(KU::IAP_RESPONSE_ID, this, IAP_resp_call_back, MEDIUM_WAIT_TIME, iap_can_id_mask);
 
             if (ku_data->get_response_type(resp->ident, resp->data, resp->DLC) != KU::CALCULATE_TOTAL_CHECKSUM_RESPONSE)
             {
@@ -460,7 +460,7 @@ KU::StatusCode IAP::upload_hex_file()
             }
 
             // check for a heartbeat
-            resp = sc->get_frame(KU::HEART_BEAT_ID, this, resp_call_back, LONG_WAIT_TIME);
+            resp = sc->get_frame(KU::HEART_BEAT_ID, this, IAP_resp_call_back, LONG_WAIT_TIME);
             if (ku_data->get_response_type(resp->ident, resp->data, resp->DLC) != KU::HEART_BEAT)
             {
                 LOG_PRINT(("HEART_BEAT TIMEOUT\n"));
@@ -470,7 +470,7 @@ KU::StatusCode IAP::upload_hex_file()
             usleep(3000);
 
             // check for a heartbeat again
-            resp = sc->get_frame(KU::HEART_BEAT_ID, this, resp_call_back, LONG_WAIT_TIME);
+            resp = sc->get_frame(KU::HEART_BEAT_ID, this, IAP_resp_call_back, LONG_WAIT_TIME);
             if (ku_data->get_response_type(resp->ident, resp->data, resp->DLC) != KU::HEART_BEAT)
             {
                 LOG_PRINT(("HEART_BEAT TIMEOUT\n"));
@@ -497,10 +497,10 @@ KU::StatusCode IAP::send_hex_packet(bool is_retry)
         usleep(3000);  // delay to prevent TX overflow
         sc->send_frame(KU::RESEND_FRAME_4_ID | set_7th, current_packet + 24, sizeof(data));
         CO_CANrxMsg_t* resp =
-            sc->get_frame(KU::IAP_RESPONSE_ID, this, resp_call_back, SHORT_WAIT_TIME, iap_can_id_mask);
+            sc->get_frame(KU::IAP_RESPONSE_ID, this, IAP_resp_call_back, SHORT_WAIT_TIME, iap_can_id_mask);
         if (ku_data->get_response_type(resp->ident, resp->data, resp->DLC) != KU::ACK_32_BYTES)
         {
-            resp = sc->get_frame(KU::IAP_RESPONSE_ID, this, resp_call_back, SHORT_WAIT_TIME, iap_can_id_mask);
+            resp = sc->get_frame(KU::IAP_RESPONSE_ID, this, IAP_resp_call_back, SHORT_WAIT_TIME, iap_can_id_mask);
             if (ku_data->get_response_type(resp->ident, resp->data, resp->DLC) != KU::ACK_32_BYTES)
             {
                 return KU::PACKET_RESENT_FAIL;
@@ -594,12 +594,12 @@ KU::StatusCode IAP::send_hex_packet(bool is_retry)
                             usleep(3000);  // delay to prevent TX overflow
                             sc->send_frame(KU::SEND_FRAME_4_ID | set_7th, current_packet + CAN_DATA_LEN * frame_count,
                                            CAN_DATA_LEN);
-                            CO_CANrxMsg_t* resp = sc->get_frame(KU::IAP_RESPONSE_ID, this, resp_call_back,
+                            CO_CANrxMsg_t* resp = sc->get_frame(KU::IAP_RESPONSE_ID, this, IAP_resp_call_back,
                                                                 MEDIUM_WAIT_TIME, iap_can_id_mask);
                             if (ku_data->get_response_type(resp->ident, resp->data, resp->DLC) != KU::ACK_32_BYTES)
                             {
                                 // try again
-                                resp = sc->get_frame(KU::IAP_RESPONSE_ID, this, resp_call_back, MEDIUM_WAIT_TIME,
+                                resp = sc->get_frame(KU::IAP_RESPONSE_ID, this, IAP_resp_call_back, MEDIUM_WAIT_TIME,
                                                      iap_can_id_mask);
                                 if (ku_data->get_response_type(resp->ident, resp->data, resp->DLC) != KU::ACK_32_BYTES)
                                 {
@@ -645,12 +645,12 @@ KU::StatusCode IAP::send_hex_packet(bool is_retry)
                     usleep(3000);  // delay to prevent TX overflow
                     sc->send_frame(KU::SEND_FRAME_4_ID | set_7th, data, sizeof(data));
                     CO_CANrxMsg_t* resp =
-                        sc->get_frame(KU::IAP_RESPONSE_ID, this, resp_call_back, MEDIUM_WAIT_TIME, iap_can_id_mask);
+                        sc->get_frame(KU::IAP_RESPONSE_ID, this, IAP_resp_call_back, MEDIUM_WAIT_TIME, iap_can_id_mask);
                     if (ku_data->get_response_type(resp->ident, resp->data, resp->DLC) != KU::ACK_32_BYTES)
                     {
                         // try again
                         resp =
-                            sc->get_frame(KU::IAP_RESPONSE_ID, this, resp_call_back, MEDIUM_WAIT_TIME, iap_can_id_mask);
+                            sc->get_frame(KU::IAP_RESPONSE_ID, this, IAP_resp_call_back, MEDIUM_WAIT_TIME, iap_can_id_mask);
                         if (ku_data->get_response_type(resp->ident, resp->data, resp->DLC) != KU::ACK_32_BYTES)
                         {
                             return KU::PACKET_SENT_FAIL;

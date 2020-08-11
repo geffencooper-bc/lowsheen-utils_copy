@@ -20,31 +20,27 @@ int main(int argc, char** argv)
     KU::StatusCode status = ku.init_can("can0");
     if(status == KU::INIT_CAN_SUCCESS)
     {
-        status = ku.run_iap("/home/brain/2.27.hex", 1);
-        if(status == KU::UPLOAD_COMPLETE)
-        {
-            usleep(4500000);
-            status = ku.run_iap("/home/brain/2.28.hex", 0);
-            // if(status == KU::UPLOAD_COMPLETE)
-            // {
-            //     usleep(3500000);
-            //     status = ku.read_stu_to_file("read_test.stu");
-            //     if(status == KU::STU_FILE_READ_SUCCESS)
-            //     {
-            //         usleep(1500000);
-            //         status = ku.write_stu_from_file("read_test.stu");
-            //         if(status == KU::STU_FILE_WRITE_SUCCESS)
-            //         {
-            //             usleep(1500000);
-            //             status = ku.write_stu_param(4, 150);
-            //             if(status == KU::STU_PARAM_WRITE_SUCCESS)
-            //             {
-            //                 status = ku.read_stu_param(4);
-            //             }
-            //         }
-            //     }
-            // }   
-        }
+        // status = ku.run_iap("/home/brain/2.27.hex", 1);
+        // if(status == KU::UPLOAD_COMPLETE)
+        // {
+        //     status = ku.run_iap("/home/brain/2.28.hex", 0);
+        //     if(status == KU::UPLOAD_COMPLETE)
+        //     {
+                // status = ku.read_stu_to_file("read_test.stu");
+                // if(status == KU::STU_FILE_READ_SUCCESS)
+                // {
+                    status = ku.write_stu_from_file("read_test.stu");
+                    if(status == KU::STU_FILE_WRITE_SUCCESS)
+                    {
+                        status = ku.write_stu_param(4, 150);
+                        if(status == KU::STU_PARAM_WRITE_SUCCESS)
+                        {
+                            status = ku.read_stu_param(4);
+                        }
+                    }
+                //}
+        //     }   
+        // }
     }
     if(status == KU::STU_PARAM_READ_SUCCESS)
     {
