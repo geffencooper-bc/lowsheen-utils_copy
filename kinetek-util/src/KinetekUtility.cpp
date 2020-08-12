@@ -18,6 +18,7 @@ KinetekUtility::KinetekUtility()
     sc = new SocketCanHelper;
     iap = new IAP(sc, ku_data);
     stu = new STUparam(sc, ku_data);
+    ld = new LiveData(sc, ku_data);
     can_initialized = false;
     can_interface = "can0"; // can0 by default
 }
@@ -553,4 +554,9 @@ int KinetekUtility::parse_args(int argc, char** argv)
 {
     struct argp argp = {options, parse_opt};
     return argp_parse(&argp, argc, argv, 0, 0, this);
+}
+
+KU::StatusCode KinetekUtility::get_live_data()
+{
+    return ld->update_heartbeat();
 }
