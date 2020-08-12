@@ -424,6 +424,11 @@ int STUparam::get_stu_param(uint8_t param_num)
 // changes a single stu param during runtime
 KU::StatusCode STUparam::set_stu_param(uint8_t param_num, uint8_t new_value)
 {
+    if(new_value > 255)
+    {
+        LOG_PRINT(("VALUE TOO LARGE\n"));
+        exit(EXIT_FAILURE);
+    }
     uint8_t write[3] = {param_num, 0x0, new_value};
     sc->send_frame(KU::SINGLE_STU_PARAM_WRITE_REQUEST_ID, write, sizeof(write));
     CO_CANrxMsg_t* resp = sc->get_frame(KU::SINGLE_STU_PARAM_WRITE_RESPONSE_ID, this, STU_resp_call_back, 500);

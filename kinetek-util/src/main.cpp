@@ -17,17 +17,17 @@
 int main(int argc, char** argv)
 {
 // the command line example shows how to use the kinetek utility through the command line
-#ifdef CL_EXAMPLE
+//#ifdef CL_EXAMPLE
     KinetekUtility ku;
-    ku.init_can("can0");
     ku.parse_args(argc, argv);
-#endif
+//#endif
 
 // the library example shows how to use the kinetek utility through direct functions calls
 #ifdef LIB_EXAMPLE
     // first create the kinetek utility object and initialize can
     KinetekUtility ku;
-    KU::StatusCode status = ku.init_can("can0");
+    ku.set_can_interface("can0");
+    KU::StatusCode status = ku.init_can();
     if (status == KU::INIT_CAN_SUCCESS)
     {
         // update the kinetek fw using forced mode

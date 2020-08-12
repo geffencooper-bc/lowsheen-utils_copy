@@ -28,8 +28,8 @@ class KinetekUtility
     // parses the command line input and runs the correct function
     int parse_args(int argc, char** argv);
 
-    // sets up socket can helper object and connects to can interface, channel name is usually "can0"
-    KU::StatusCode init_can(const char* channel_name);
+    // sets up socket can helper object and connects to can interface, channel name defaults to "can0"
+    KU::StatusCode init_can();
 
     // translates a status code into a human readable string
     string translate_status_code(KU::StatusCode status);
@@ -44,6 +44,11 @@ class KinetekUtility
     // reset xt_can
     KU::StatusCode reset_xt_can();
 
+    void set_can_interface(const string& interface)
+    {
+        can_interface = interface;
+    }
+
    private:
     SocketCanHelper* sc;
     KU::CanDataList* ku_data;  // holds all can data used by the utilities
@@ -51,6 +56,7 @@ class KinetekUtility
     STUparam* stu;
 
     bool can_initialized;  // keeps track of whether init_can has been called
+    string can_interface;;
 };
 
 #endif
