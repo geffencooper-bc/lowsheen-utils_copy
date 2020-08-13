@@ -97,7 +97,7 @@ KU::StatusCode LiveData::update_heartbeat()
         {
             case 1:
             {
-                //printf("%s=== PAGE 1 ===\n", TLC);
+                // /printf("=== PAGE 1 ===\n");
                 // copy the page data into the temp variable
                 memcpy(&temp.page1, resp->data+2, sizeof(temp.page1));
                 // std::chrono::steady_clock::time_point begin;
@@ -159,7 +159,8 @@ KU::StatusCode LiveData::update_heartbeat()
             }
             case 2:
             {
-               // printf("%s=== PAGE 2 ===", TLC2);
+                memcpy(&temp.page2, resp->data+2, sizeof(temp.page2));
+               //printf("=== PAGE 2 ===\n");
                 // input_flag4
                 heartbeat->page2.clean_water_buf = update_param(temp.page2.clean_water_buf, heartbeat->page2.clean_water_buf, "clean_water_buf") ? temp.page2.clean_water_buf : heartbeat->page2.clean_water_buf;
                 heartbeat->page2.dirty_water_buf = update_param(temp.page2.dirty_water_buf, heartbeat->page2.dirty_water_buf, "dirty_water_buf") ? temp.page2.dirty_water_buf : heartbeat->page2.dirty_water_buf;
@@ -171,7 +172,6 @@ KU::StatusCode LiveData::update_heartbeat()
                 heartbeat->page2.lcd_watch_flag = update_param(temp.page2.lcd_watch_flag, heartbeat->page2.lcd_watch_flag, "lcd_watch_flag") ? temp.page2.lcd_watch_flag : heartbeat->page2.lcd_watch_flag;
 
                 // input_flag5-6
-                 // input_flag4
                 heartbeat->page2.brush_unload_on = update_param(temp.page2.brush_unload_on, heartbeat->page2.brush_unload_on, "brush_unload_on") ? temp.page2.brush_unload_on : heartbeat->page2.brush_unload_on;
                 heartbeat->page2.brush_unload_complete = update_param(temp.page2.brush_unload_complete, heartbeat->page2.brush_unload_complete, "brush_unload_complete") ? temp.page2.brush_unload_complete : heartbeat->page2.brush_unload_complete;
                 heartbeat->page2.brush_load_on = update_param(temp.page2.brush_load_on, heartbeat->page2.brush_load_on, "brush_load_on") ? temp.page2.brush_load_on : heartbeat->page2.brush_load_on;
@@ -180,10 +180,45 @@ KU::StatusCode LiveData::update_heartbeat()
                 heartbeat->page2.p3_f2 = update_param(temp.page2.p3_f2, heartbeat->page2.p3_f2, "p3_f2") ? temp.page2.p3_f2 : heartbeat->page2.p3_f2;
                 heartbeat->page2.p3_f3 = update_param(temp.page2.p3_f3, heartbeat->page2.p3_f3, "p3_f3") ? temp.page2.p3_f3 : heartbeat->page2.p3_f3;
                 heartbeat->page2.p3_f4 = update_param(temp.page2.p3_f4, heartbeat->page2.p3_f4, "p3_f4") ? temp.page2.p3_f4 : heartbeat->page2.p3_f4;
+
+                // input_flag7-9
+                heartbeat->page2.p3_f5 = update_param(temp.page2.p3_f5, heartbeat->page2.p3_f5, "p3_f5") ? temp.page2.p3_f5 : heartbeat->page2.p3_f5;
+                heartbeat->page2.p3_f11 = update_param(temp.page2.p3_f11, heartbeat->page2.p3_f11, "p3_f11") ? temp.page2.p3_f11 : heartbeat->page2.p3_f11;
+                heartbeat->page2.p3_f12 = update_param(temp.page2.p3_f12, heartbeat->page2.p3_f12, "p3_f12") ? temp.page2.p3_f12 : heartbeat->page2.p3_f12;
+                heartbeat->page2.p3_f13 = update_param(temp.page2.p3_f13, heartbeat->page2.p3_f13, "p3_f13") ? temp.page2.p3_f13 : heartbeat->page2.p3_f13;
+                heartbeat->page2.p2_f6 = update_param(temp.page2.p2_f6, heartbeat->page2.p2_f6, "p3_f1") ? temp.page2.p2_f6 : heartbeat->page2.p2_f6;
+                heartbeat->page2.p2_f7 = update_param(temp.page2.p2_f7, heartbeat->page2.p2_f7, "p2_f7") ? temp.page2.p2_f7 : heartbeat->page2.p2_f7;
+                heartbeat->page2.p2_f13 = update_param(temp.page2.p2_f13, heartbeat->page2.p2_f13, "p2_f13") ? temp.page2.p2_f13 : heartbeat->page2.p2_f13;
+                heartbeat->page2.p2_f14 = update_param(temp.page2.p2_f14, heartbeat->page2.p2_f14, "p2_f14") ? temp.page2.p2_f14 : heartbeat->page2.p2_f14;
                 break;
             }
             case 3:
             {
+                memcpy(&temp.page3, resp->data+2, sizeof(temp.page3));
+                // error_flag
+                heartbeat->page3.traction_error = update_param(temp.page3.traction_error, heartbeat->page3.traction_error, "traction_error") ? temp.page3.traction_error : heartbeat->page3.traction_error;
+                heartbeat->page3.brush_error = update_param(temp.page3.brush_error, heartbeat->page3.brush_error, "brush_error") ? temp.page3.brush_error : heartbeat->page3.brush_error;
+                heartbeat->page3.vacuum_error = update_param(temp.page3.vacuum_error, heartbeat->page3.vacuum_error, "vacuum_error") ? temp.page3.vacuum_error : heartbeat->page3.vacuum_error;
+                heartbeat->page3.brush_deck_error = update_param(temp.page3.brush_deck_error, heartbeat->page3.brush_deck_error, "brush_deck_error") ? temp.page3.brush_deck_error : heartbeat->page3.brush_deck_error;
+                heartbeat->page3.squeegee_error = update_param(temp.page3.squeegee_error, heartbeat->page3.squeegee_error, "squeegee_error") ? temp.page3.squeegee_error : heartbeat->page3.squeegee_error;
+                heartbeat->page3.brake_error = update_param(temp.page3.brake_error, heartbeat->page3.brake_error, "brake_error") ? temp.page3.brake_error : heartbeat->page3.brake_error;
+                heartbeat->page3.no_brush_error = update_param(temp.page3.no_brush_error, heartbeat->page3.no_brush_error, "no_brush_error") ? temp.page3.no_brush_error : heartbeat->page3.no_brush_error;
+                heartbeat->page3.motor_state = update_param(temp.page3.motor_state, heartbeat->page3.motor_state, "motor_state") ? temp.page3.motor_state : heartbeat->page3.motor_state;
+
+                // error_flag1
+                heartbeat->page3.aux1_error = update_param(temp.page3.aux1_error, heartbeat->page3.aux1_error, "aux1_error") ? temp.page3.aux1_error : heartbeat->page3.aux1_error;
+                heartbeat->page3.aux2_error = update_param(temp.page3.aux2_error, heartbeat->page3.aux2_error, "aux2_error") ? temp.page3.aux2_error : heartbeat->page3.aux2_error;
+                heartbeat->page3.alarm_error = update_param(temp.page3.alarm_error, heartbeat->page3.alarm_error, "alarm_error") ? temp.page3.alarm_error : heartbeat->page3.alarm_error;
+                heartbeat->page3.valve_error = update_param(temp.page3.valve_error, heartbeat->page3.valve_error, "valve_error") ? temp.page3.valve_error : heartbeat->page3.valve_error;
+                heartbeat->page3.eeprom_error = update_param(temp.page3.eeprom_error, heartbeat->page3.eeprom_error, "eeprom_error") ? temp.page3.eeprom_error : heartbeat->page3.eeprom_error;
+                heartbeat->page3.brush_adjust_error = update_param(temp.page3.brush_adjust_error, heartbeat->page3.brush_adjust_error, "brush_adjust_error") ? temp.page3.brush_adjust_error : heartbeat->page3.brush_adjust_error;
+                heartbeat->page3.battery_charge_flag = update_param(temp.page3.battery_charge_flag, heartbeat->page3.battery_charge_flag, "battery_charge_flag") ? temp.page3.battery_charge_flag : heartbeat->page3.battery_charge_flag;
+                heartbeat->page3.batery_lockout = update_param(temp.page3.batery_lockout, heartbeat->page3.batery_lockout, "batery_lockout") ? temp.page3.batery_lockout : heartbeat->page3.batery_lockout;
+
+                heartbeat->page3.desired_direction = update_param(temp.page3.desired_direction, heartbeat->page3.desired_direction, "desired_direction") ? temp.page3.desired_direction : heartbeat->page3.desired_direction;
+                heartbeat->page3.actual_direction = update_param(temp.page3.actual_direction, heartbeat->page3.actual_direction, "actual_direction") ? temp.page3.actual_direction : heartbeat->page3.actual_direction;
+                heartbeat->page3.bat_volt_81_V_1 = update_param(temp.page3.bat_volt_81_V_1, heartbeat->page3.bat_volt_81_V_1, "bat_volt_81_V_1") ? temp.page3.bat_volt_81_V_1 : heartbeat->page3.bat_volt_81_V_1;
+                heartbeat->page3.bat_volt_81_V_1 = update_param(temp.page3.bat_volt_81_V_1, heartbeat->page3.bat_volt_81_V_1, "bat_volt_81_V_1") ? temp.page3.bat_volt_81_V_1 : heartbeat->page3.bat_volt_81_V_1;
                 break;
             }
             case 4:
