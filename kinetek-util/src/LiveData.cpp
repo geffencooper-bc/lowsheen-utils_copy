@@ -43,20 +43,33 @@ void LiveData_resp_call_back(void* obj, const CO_CANrxMsg_t* can_msg)
     // nothing needed
 }
 
-// #define TLC "\033[50;0f"
-// #define TLC2 "\033[50;40f"
-// #define NEXT "\033[30D\033[1B" // goes back and down a line
+#define TLC "\033[4;0f"
+#define TLC2 "\033[4;40f"
+#define TLC3 "\033[4;80f"
+#define TLC4 "\033[4;120f"
+#define TLC5 "\033[4;160f"
+#define TLC6 "\033[44;0f"
+#define TLC7 "\033[44;40f"
+#define TLC8 "\033[44;80f"
+#define TLC9 "\033[44;120f"
+#define TLC10 "\033[44;160f"
+#define SAVE "\033[s"
+#define RESTORE "\033[u"
+#define BACK "\033[10D"
+#define DOWN   "\033[1B"
+#define COORD "\033[15;160f"
+
 // check if a parameter has changed since the last heartbeat
 bool LiveData::update_param(uint8_t param_new, uint8_t param_old, const string& param_name)
 {
     if(param_new != param_old)
     {
-        printf("\n\033[1m%-30s\033[0mchanged from %i to %i", param_name.c_str(), param_old, param_new);
+        printf("\n\033[1m%s%-30s\033[0mchanged from %i to %i", COORD, param_name.c_str(), param_old, param_new);
         return true;
     }
     else
     {
-      // printf("\n%-30s: %i", param_name.c_str(), param_old);
+        printf("%s%s%s%-30s: %i", RESTORE, DOWN, SAVE, param_name.c_str(), param_old);
     }
     return false;
 }
@@ -65,12 +78,12 @@ bool LiveData::update_param(uint16_t param_new, uint16_t param_old, const string
     if(param_new != param_old)
     {
         //printf("%s", NEXT);
-        printf("\n\033[1m%-30s\033[0mchanged from %i to %i", param_name.c_str(), param_old, param_new);
+        printf("\n\033[1m%s%s%s%s%-30s\033[0mchanged from %i to %i", RESTORE, DOWN, SAVE, param_name.c_str(), COORD, param_old, param_new);
         return true;
     }
     else
     {
-       // printf("\n%-30s: %i", param_name.c_str(), param_old);
+        printf("%s%s%s%-30s: %i", RESTORE, DOWN, SAVE, param_name.c_str(), param_old);
     }
     
     return false;
@@ -85,7 +98,7 @@ KU::StatusCode LiveData::update_heartbeat()
     while(true)
     {
         // get the next page
-        CO_CANrxMsg_t* resp = sc->get_frame(KU::HEART_BEAT_ID, this, LiveData_resp_call_back, 200);
+        CO_CANrxMsg_t* resp = sc->get_frame(KU::HEART_BEAT_ID, this, LiveData_resp_call_back, 1000);
         if(ku_data->get_response_type(resp->ident, resp->data, resp->DLC) != KU::HEART_BEAT)
         {
             LOG_PRINT(("No Heart Beat\n"));
@@ -97,7 +110,7 @@ KU::StatusCode LiveData::update_heartbeat()
         {
             case 1:
             {
-                //printf("\n\n=== PAGE 1 ===");
+                printf("%s%s%s", TLC, SAVE, "=== PAGE 1 ===");
                 // copy the page data into the temp variable
                 memcpy(&temp.page1, resp->data+2, sizeof(temp.page1));
                 // std::chrono::steady_clock::time_point begin;
@@ -159,8 +172,9 @@ KU::StatusCode LiveData::update_heartbeat()
             }
             case 2:
             {
+                printf("%s%s%s", TLC2, SAVE, "=== PAGE 2 ===");
                 memcpy(&temp.page2, resp->data+2, sizeof(temp.page2));
-                //printf("\n\n=== PAGE 2 ===");
+    
                 // input_flag4
                 heartbeat->page2.clean_water_buf = update_param(temp.page2.clean_water_buf, heartbeat->page2.clean_water_buf, "clean_water_buf") ? temp.page2.clean_water_buf : heartbeat->page2.clean_water_buf;
                 heartbeat->page2.dirty_water_buf = update_param(temp.page2.dirty_water_buf, heartbeat->page2.dirty_water_buf, "dirty_water_buf") ? temp.page2.dirty_water_buf : heartbeat->page2.dirty_water_buf;
@@ -194,6 +208,7 @@ KU::StatusCode LiveData::update_heartbeat()
             }
             case 3:
             {
+                printf("%s%s%s", TLC3, SAVE, "=== PAGE 3 ===");
                 memcpy(&temp.page3, resp->data+2, sizeof(temp.page3));
                 // error_flag
                 heartbeat->page3.traction_error = update_param(temp.page3.traction_error, heartbeat->page3.traction_error, "traction_error") ? temp.page3.traction_error : heartbeat->page3.traction_error;
@@ -223,6 +238,7 @@ KU::StatusCode LiveData::update_heartbeat()
             }
             case 4:
             {
+                printf("%s%s%s", TLC4, SAVE, "=== PAGE 4 ===");
                 memcpy(&temp.page4, resp->data+2, sizeof(temp.page4));
                 heartbeat->page4.heatsink_volt_traction_81_V = update_param(temp.page4.heatsink_volt_traction_81_V, heartbeat->page4.heatsink_volt_traction_81_V, "heatsink_volt_traction_81_V") ? temp.page4.heatsink_volt_traction_81_V : heartbeat->page4.heatsink_volt_traction_81_V;
                 heartbeat->page4.heatsink_volt_other_81_V = update_param(temp.page4.heatsink_volt_other_81_V, heartbeat->page4.heatsink_volt_other_81_V, "heatsink_volt_other_81_V") ? temp.page4.heatsink_volt_other_81_V : heartbeat->page4.heatsink_volt_other_81_V;
@@ -234,6 +250,7 @@ KU::StatusCode LiveData::update_heartbeat()
             }
             case 5:
             {
+                printf("%s%s%s", TLC5, SAVE, "=== PAGE 5 ===");
                 memcpy(&temp.page5, resp->data+2, sizeof(temp.page5));
                 heartbeat->page5.vacuum_current_A = update_param(temp.page5.vacuum_current_A, heartbeat->page5.vacuum_current_A, "vacuum_current_A") ? temp.page5.vacuum_current_A : heartbeat->page5.vacuum_current_A;
                 heartbeat->page5.squeegee_current_A = update_param(temp.page5.squeegee_current_A, heartbeat->page5.squeegee_current_A, "squeegee_current_A") ? temp.page5.squeegee_current_A : heartbeat->page5.squeegee_current_A;
@@ -245,6 +262,7 @@ KU::StatusCode LiveData::update_heartbeat()
             }
             case 6:
             {
+                printf("%s%s%s", TLC6, SAVE, "=== PAGE 6 ===");
                 memcpy(&temp.page6, resp->data+2, sizeof(temp.page6));
                 heartbeat->page6.traction_rev_current_dir = update_param(temp.page6.traction_rev_current_dir, heartbeat->page6.traction_rev_current_dir, "traction_rev_current_dir") ? temp.page6.traction_rev_current_dir : heartbeat->page6.traction_rev_current_dir;
                 heartbeat->page6.traction_rev_current_A = update_param(temp.page6.traction_rev_current_A, heartbeat->page6.traction_rev_current_A, "traction_rev_current_A") ? temp.page6.traction_rev_current_A : heartbeat->page6.traction_rev_current_A;
@@ -255,6 +273,7 @@ KU::StatusCode LiveData::update_heartbeat()
             }
             case 7:
             {
+                printf("%s%s%s", TLC7, SAVE, "=== PAGE 7 ===");
                 memcpy(&temp.page7, resp->data+2, sizeof(temp.page7));
                 heartbeat->page7.traction_right_null_current = update_param(temp.page7.traction_right_null_current, heartbeat->page7.traction_right_null_current, "traction_right_null_current") ? temp.page7.traction_right_null_current : heartbeat->page7.traction_right_null_current;
                 heartbeat->page7.MCU_temp_raw = update_param(temp.page7.MCU_temp_raw, heartbeat->page7.MCU_temp_raw, "MCU_temp_raw") ? temp.page7.MCU_temp_raw : heartbeat->page7.MCU_temp_raw;
@@ -264,6 +283,7 @@ KU::StatusCode LiveData::update_heartbeat()
             }
             case 8:
             {
+                printf("%s%s%s", TLC8, SAVE, "=== PAGE 8 ===");
                 memcpy(&temp.page8, resp->data+2, sizeof(temp.page8));
                 heartbeat->page8.traction_left_drain_voltage = update_param(temp.page8.traction_left_drain_voltage, heartbeat->page8.traction_left_drain_voltage, "traction_left_drain_voltage") ? temp.page8.traction_left_drain_voltage : heartbeat->page8.traction_left_drain_voltage;
                 heartbeat->page8.traction_right_drain_voltage = update_param(temp.page8.traction_right_drain_voltage, heartbeat->page8.traction_right_drain_voltage, "traction_right_drain_voltage") ? temp.page8.traction_right_drain_voltage : heartbeat->page8.traction_right_drain_voltage;
@@ -275,6 +295,7 @@ KU::StatusCode LiveData::update_heartbeat()
             }
             case 9:
             {
+                printf("%s%s%s", TLC9, SAVE, "=== PAGE 9 ===");
                 memcpy(&temp.page9, resp->data+2, sizeof(temp.page9));
                 heartbeat->page9.customer_id = update_param(temp.page9.customer_id, heartbeat->page9.customer_id, "customer_id") ? temp.page9.customer_id : heartbeat->page9.customer_id;
                 heartbeat->page9.firmware_major = update_param(temp.page9.firmware_major, heartbeat->page9.firmware_major, "firmware_major") ? temp.page9.firmware_major : heartbeat->page9.firmware_major;
@@ -286,6 +307,7 @@ KU::StatusCode LiveData::update_heartbeat()
             }
             case 10:
             {
+                printf("%s%s%s", TLC10, SAVE, "=== PAGE 10 ===");
                 memcpy(&temp.page10, resp->data+2, sizeof(temp.page10));
                 heartbeat->page10.aux1_drain_voltage = update_param(temp.page10.aux1_drain_voltage, heartbeat->page10.aux1_drain_voltage, "aux1_drain_voltage") ? temp.page10.aux1_drain_voltage : heartbeat->page10.aux1_drain_voltage;
                 heartbeat->page10.aux2_drain_voltage = update_param(temp.page10.aux2_drain_voltage, heartbeat->page10.aux2_drain_voltage, "aux2_drain_voltage") ? temp.page10.aux2_drain_voltage : heartbeat->page10.aux2_drain_voltage;
