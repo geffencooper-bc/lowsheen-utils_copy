@@ -56,7 +56,7 @@ bool LiveData::update_param(uint8_t param_new, uint8_t param_old, const string& 
     }
     else
     {
-         //printf("\n%-30s: %i", param_name.c_str(), param_old);
+      // printf("\n%-30s: %i", param_name.c_str(), param_old);
     }
     return false;
 }
@@ -70,7 +70,7 @@ bool LiveData::update_param(uint16_t param_new, uint16_t param_old, const string
     }
     else
     {
-        // printf("\n%s: %i", param_name.c_str(), param_old);
+       // printf("\n%-30s: %i", param_name.c_str(), param_old);
     }
     
     return false;
@@ -97,7 +97,7 @@ KU::StatusCode LiveData::update_heartbeat()
         {
             case 1:
             {
-                // /printf("=== PAGE 1 ===\n");
+                //printf("\n\n=== PAGE 1 ===");
                 // copy the page data into the temp variable
                 memcpy(&temp.page1, resp->data+2, sizeof(temp.page1));
                 // std::chrono::steady_clock::time_point begin;
@@ -160,7 +160,7 @@ KU::StatusCode LiveData::update_heartbeat()
             case 2:
             {
                 memcpy(&temp.page2, resp->data+2, sizeof(temp.page2));
-               //printf("=== PAGE 2 ===\n");
+                //printf("\n\n=== PAGE 2 ===");
                 // input_flag4
                 heartbeat->page2.clean_water_buf = update_param(temp.page2.clean_water_buf, heartbeat->page2.clean_water_buf, "clean_water_buf") ? temp.page2.clean_water_buf : heartbeat->page2.clean_water_buf;
                 heartbeat->page2.dirty_water_buf = update_param(temp.page2.dirty_water_buf, heartbeat->page2.dirty_water_buf, "dirty_water_buf") ? temp.page2.dirty_water_buf : heartbeat->page2.dirty_water_buf;
@@ -218,35 +218,90 @@ KU::StatusCode LiveData::update_heartbeat()
                 heartbeat->page3.desired_direction = update_param(temp.page3.desired_direction, heartbeat->page3.desired_direction, "desired_direction") ? temp.page3.desired_direction : heartbeat->page3.desired_direction;
                 heartbeat->page3.actual_direction = update_param(temp.page3.actual_direction, heartbeat->page3.actual_direction, "actual_direction") ? temp.page3.actual_direction : heartbeat->page3.actual_direction;
                 heartbeat->page3.bat_volt_81_V_1 = update_param(temp.page3.bat_volt_81_V_1, heartbeat->page3.bat_volt_81_V_1, "bat_volt_81_V_1") ? temp.page3.bat_volt_81_V_1 : heartbeat->page3.bat_volt_81_V_1;
-                heartbeat->page3.bat_volt_81_V_1 = update_param(temp.page3.bat_volt_81_V_1, heartbeat->page3.bat_volt_81_V_1, "bat_volt_81_V_1") ? temp.page3.bat_volt_81_V_1 : heartbeat->page3.bat_volt_81_V_1;
+                heartbeat->page3.bat_volt_81_V_2 = update_param(temp.page3.bat_volt_81_V_2, heartbeat->page3.bat_volt_81_V_2, "bat_volt_81_V_2") ? temp.page3.bat_volt_81_V_2 : heartbeat->page3.bat_volt_81_V_2;
                 break;
             }
             case 4:
             {
+                memcpy(&temp.page4, resp->data+2, sizeof(temp.page4));
+                heartbeat->page4.heatsink_volt_traction_81_V = update_param(temp.page4.heatsink_volt_traction_81_V, heartbeat->page4.heatsink_volt_traction_81_V, "heatsink_volt_traction_81_V") ? temp.page4.heatsink_volt_traction_81_V : heartbeat->page4.heatsink_volt_traction_81_V;
+                heartbeat->page4.heatsink_volt_other_81_V = update_param(temp.page4.heatsink_volt_other_81_V, heartbeat->page4.heatsink_volt_other_81_V, "heatsink_volt_other_81_V") ? temp.page4.heatsink_volt_other_81_V : heartbeat->page4.heatsink_volt_other_81_V;
+                heartbeat->page4.tract_ddc = update_param(temp.page4.tract_ddc, heartbeat->page4.tract_ddc, "tract_ddc") ? temp.page4.tract_ddc : heartbeat->page4.tract_ddc;
+                heartbeat->page4.tract_adc = update_param(temp.page4.tract_adc, heartbeat->page4.tract_adc, "tract_adc") ? temp.page4.tract_adc : heartbeat->page4.tract_adc;
+                heartbeat->page4.mosfet_temperature = update_param(temp.page4.mosfet_temperature, heartbeat->page4.mosfet_temperature, "mosfet_temperature") ? temp.page4.mosfet_temperature : heartbeat->page4.mosfet_temperature;
+                heartbeat->page4.brush_current_A = update_param(temp.page4.brush_current_A, heartbeat->page4.brush_current_A, "brush_current_A") ? temp.page4.brush_current_A : heartbeat->page4.brush_current_A;
                 break;
             }
             case 5:
             {
+                memcpy(&temp.page5, resp->data+2, sizeof(temp.page5));
+                heartbeat->page5.vacuum_current_A = update_param(temp.page5.vacuum_current_A, heartbeat->page5.vacuum_current_A, "vacuum_current_A") ? temp.page5.vacuum_current_A : heartbeat->page5.vacuum_current_A;
+                heartbeat->page5.squeegee_current_A = update_param(temp.page5.squeegee_current_A, heartbeat->page5.squeegee_current_A, "squeegee_current_A") ? temp.page5.squeegee_current_A : heartbeat->page5.squeegee_current_A;
+                heartbeat->page5.brush_deck_current_A = update_param(temp.page5.brush_deck_current_A, heartbeat->page5.brush_deck_current_A, "brush_deck_current_A") ? temp.page5.brush_deck_current_A : heartbeat->page5.brush_deck_current_A;
+                heartbeat->page5.desired_brush_deck_direction = update_param(temp.page5.desired_brush_deck_direction, heartbeat->page5.desired_brush_deck_direction, "desired_brush_deck_direction") ? temp.page5.desired_brush_deck_direction : heartbeat->page5.desired_brush_deck_direction;
+                heartbeat->page5.desired_squeegee_direction = update_param(temp.page5.desired_squeegee_direction, heartbeat->page5.desired_squeegee_direction, "desired_squeegee_direction") ? temp.page5.desired_squeegee_direction : heartbeat->page5.desired_squeegee_direction;
+                heartbeat->page5.brush_auto_adjust_flag = update_param(temp.page5.brush_auto_adjust_flag, heartbeat->page5.brush_auto_adjust_flag, "brush_auto_adjust_flag") ? temp.page5.brush_auto_adjust_flag : heartbeat->page5.brush_auto_adjust_flag;
                 break;
             }
             case 6:
             {
+                memcpy(&temp.page6, resp->data+2, sizeof(temp.page6));
+                heartbeat->page6.traction_rev_current_dir = update_param(temp.page6.traction_rev_current_dir, heartbeat->page6.traction_rev_current_dir, "traction_rev_current_dir") ? temp.page6.traction_rev_current_dir : heartbeat->page6.traction_rev_current_dir;
+                heartbeat->page6.traction_rev_current_A = update_param(temp.page6.traction_rev_current_A, heartbeat->page6.traction_rev_current_A, "traction_rev_current_A") ? temp.page6.traction_rev_current_A : heartbeat->page6.traction_rev_current_A;
+                heartbeat->page6.traction_left_null_current = update_param(temp.page6.traction_left_null_current, heartbeat->page6.traction_left_null_current, "traction_left_null_current") ? temp.page6.traction_left_null_current : heartbeat->page6.traction_left_null_current;
+                heartbeat->page6.traction_fwd_current_dir = update_param(temp.page6.traction_fwd_current_dir, heartbeat->page6.traction_fwd_current_dir, "traction_fwd_current_dir") ? temp.page6.traction_fwd_current_dir : heartbeat->page6.traction_fwd_current_dir;
+                heartbeat->page6.traction_fwd_current_A = update_param(temp.page6.traction_fwd_current_A, heartbeat->page6.traction_fwd_current_A, "traction_fwd_current_A") ? temp.page6.traction_fwd_current_A : heartbeat->page6.traction_fwd_current_A;
                 break;
             }
             case 7:
             {
+                memcpy(&temp.page7, resp->data+2, sizeof(temp.page7));
+                heartbeat->page7.traction_right_null_current = update_param(temp.page7.traction_right_null_current, heartbeat->page7.traction_right_null_current, "traction_right_null_current") ? temp.page7.traction_right_null_current : heartbeat->page7.traction_right_null_current;
+                heartbeat->page7.MCU_temp_raw = update_param(temp.page7.MCU_temp_raw, heartbeat->page7.MCU_temp_raw, "MCU_temp_raw") ? temp.page7.MCU_temp_raw : heartbeat->page7.MCU_temp_raw;
+                heartbeat->page7.vacuum_ddc = update_param(temp.page7.vacuum_ddc, heartbeat->page7.vacuum_ddc, "vacuum_ddc") ? temp.page7.vacuum_ddc : heartbeat->page7.vacuum_ddc;
+                heartbeat->page7.accelerator_raw = update_param(temp.page7.accelerator_raw, heartbeat->page7.accelerator_raw, "accelerator_raw") ? temp.page7.accelerator_raw : heartbeat->page7.accelerator_raw;
                 break;
             }
             case 8:
             {
+                memcpy(&temp.page8, resp->data+2, sizeof(temp.page8));
+                heartbeat->page8.traction_left_drain_voltage = update_param(temp.page8.traction_left_drain_voltage, heartbeat->page8.traction_left_drain_voltage, "traction_left_drain_voltage") ? temp.page8.traction_left_drain_voltage : heartbeat->page8.traction_left_drain_voltage;
+                heartbeat->page8.traction_right_drain_voltage = update_param(temp.page8.traction_right_drain_voltage, heartbeat->page8.traction_right_drain_voltage, "traction_right_drain_voltage") ? temp.page8.traction_right_drain_voltage : heartbeat->page8.traction_right_drain_voltage;
+                heartbeat->page8.brush_drain_voltage_16_81_V = update_param(temp.page8.brush_drain_voltage_16_81_V, heartbeat->page8.brush_drain_voltage_16_81_V, "brush_drain_voltage_16_81_V") ? temp.page8.brush_drain_voltage_16_81_V : heartbeat->page8.brush_drain_voltage_16_81_V;
+                heartbeat->page8.vacuum_drain_voltage_16_81_V = update_param(temp.page8.vacuum_drain_voltage_16_81_V, heartbeat->page8.vacuum_drain_voltage_16_81_V, "vacuum_drain_voltage_16_81_V") ? temp.page8.vacuum_drain_voltage_16_81_V : heartbeat->page8.vacuum_drain_voltage_16_81_V;
+                heartbeat->page8.brush_adc = update_param(temp.page8.brush_adc, heartbeat->page8.brush_adc, "brush_adc") ? temp.page8.brush_adc : heartbeat->page8.brush_adc;
+                heartbeat->page8.vacuum_adc = update_param(temp.page8.vacuum_adc, heartbeat->page8.vacuum_adc, "vacuum_adc") ? temp.page8.vacuum_adc : heartbeat->page8.vacuum_adc;
                 break;
             }
             case 9:
             {
+                memcpy(&temp.page9, resp->data+2, sizeof(temp.page9));
+                heartbeat->page9.customer_id = update_param(temp.page9.customer_id, heartbeat->page9.customer_id, "customer_id") ? temp.page9.customer_id : heartbeat->page9.customer_id;
+                heartbeat->page9.firmware_major = update_param(temp.page9.firmware_major, heartbeat->page9.firmware_major, "firmware_major") ? temp.page9.firmware_major : heartbeat->page9.firmware_major;
+                heartbeat->page9.firmware_minor = update_param(temp.page9.firmware_minor, heartbeat->page9.firmware_minor, "firmware_minor") ? temp.page9.firmware_minor : heartbeat->page9.firmware_minor;
+                heartbeat->page9.bat_type = update_param(temp.page9.bat_type, heartbeat->page9.bat_type, "bat_type") ? temp.page9.bat_type : heartbeat->page9.bat_type;
+                heartbeat->page9.vacuum_off_delay_time = update_param(temp.page9.vacuum_off_delay_time, heartbeat->page9.vacuum_off_delay_time, "vacuum_off_delay_time") ? temp.page9.vacuum_off_delay_time : heartbeat->page9.vacuum_off_delay_time;
+                heartbeat->page9.brush_ddc = update_param(temp.page9.brush_ddc, heartbeat->page9.brush_ddc, "brush_ddc") ? temp.page9.brush_ddc : heartbeat->page9.brush_ddc;
                 break;
             }
             case 10:
             {
+                memcpy(&temp.page10, resp->data+2, sizeof(temp.page10));
+                heartbeat->page10.aux1_drain_voltage = update_param(temp.page10.aux1_drain_voltage, heartbeat->page10.aux1_drain_voltage, "aux1_drain_voltage") ? temp.page10.aux1_drain_voltage : heartbeat->page10.aux1_drain_voltage;
+                heartbeat->page10.aux2_drain_voltage = update_param(temp.page10.aux2_drain_voltage, heartbeat->page10.aux2_drain_voltage, "aux2_drain_voltage") ? temp.page10.aux2_drain_voltage : heartbeat->page10.aux2_drain_voltage;
+                heartbeat->page10.line_coil_voltage = update_param(temp.page10.line_coil_voltage, heartbeat->page10.line_coil_voltage, "line_coil_voltage") ? temp.page10.line_coil_voltage : heartbeat->page10.line_coil_voltage;
+                heartbeat->page10.valve_drain_voltage = update_param(temp.page10.valve_drain_voltage, heartbeat->page10.valve_drain_voltage, "valve_drain_voltage") ? temp.page10.valve_drain_voltage : heartbeat->page10.valve_drain_voltage;
+                heartbeat->page10.brake_drain_voltage = update_param(temp.page10.brake_drain_voltage, heartbeat->page10.brake_drain_voltage, "brake_drain_voltage") ? temp.page10.brake_drain_voltage : heartbeat->page10.brake_drain_voltage;
+                
+                // input_flag16
+                heartbeat->page10.squeegee_init_flag = update_param(temp.page10.squeegee_init_flag, heartbeat->page10.squeegee_init_flag, "squeegee_init_flag") ? temp.page10.squeegee_init_flag : heartbeat->page10.squeegee_init_flag;
+                heartbeat->page10.brush_deck_init_flag = update_param(temp.page10.brush_deck_init_flag, heartbeat->page10.brush_deck_init_flag, "brush_deck_init_flag") ? temp.page10.brush_deck_init_flag : heartbeat->page10.brush_deck_init_flag;
+                heartbeat->page10.turn_buf = update_param(temp.page10.turn_buf, heartbeat->page10.turn_buf, "turn_buf") ? temp.page10.turn_buf : heartbeat->page10.turn_buf;
+                heartbeat->page10.battery_very_low = update_param(temp.page10.battery_very_low, heartbeat->page10.battery_very_low, "battery_very_low") ? temp.page10.battery_very_low : heartbeat->page10.battery_very_low;
+                heartbeat->page10.accelerator_pressed = update_param(temp.page10.accelerator_pressed, heartbeat->page10.accelerator_pressed, "accelerator_pressed") ? temp.page10.accelerator_pressed : heartbeat->page10.accelerator_pressed;
+                heartbeat->page10.brush_deck_down_protection = update_param(temp.page10.brush_deck_down_protection, heartbeat->page10.brush_deck_down_protection, "brush_deck_down_protection") ? temp.page10.brush_deck_down_protection : heartbeat->page10.brush_deck_down_protection;
+                heartbeat->page10.aux4_buf = update_param(temp.page10.aux4_buf, heartbeat->page10.aux4_buf, "aux4_buf") ? temp.page10.aux4_buf : heartbeat->page10.aux4_buf;
+                heartbeat->page10.aux5_buf = update_param(temp.page10.aux5_buf, heartbeat->page10.aux5_buf, "aux5_buf") ? temp.page10.aux5_buf : heartbeat->page10.aux5_buf;
                 break;
             }
         }
