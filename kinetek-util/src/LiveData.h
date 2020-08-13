@@ -198,7 +198,7 @@ class LiveData
     // deallocates memory
     ~LiveData();
 
-    // updates the heart beat struct every pages
+    // updates the heart beat struct every page
     KU::StatusCode update_heartbeat();
 
     private:
@@ -211,6 +211,7 @@ class LiveData
     // callback function for received messages, not used as of now
     friend void STU_resp_call_back(void* obj, const CO_CANrxMsg_t* can_msg);
 
+    // check if a parameter has changed since the last heartbeat
     bool update_param(uint8_t param_new, uint8_t param_old, const string& param_name);
     bool update_param(uint16_t param_new, uint16_t param_old, const string& param_name);
 };
