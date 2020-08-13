@@ -205,11 +205,14 @@ class LiveData
     controller_heartbeat* heartbeat;
     SocketCanHelper* sc;
     KU::CanDataList* ku_data;
+    
+    bool reset = true;
+
     // callback function for received messages, not used as of now
     friend void STU_resp_call_back(void* obj, const CO_CANrxMsg_t* can_msg);
 
-    bool update_param(uint8_t param_new, uint8_t &param_old, const string& param_name);
-    bool update_param(uint16_t param_new, uint16_t &param_old, const string& param_name);
+    bool update_param(uint8_t param_new, uint8_t param_old, const string& param_name);
+    bool update_param(uint16_t param_new, uint16_t param_old, const string& param_name);
 };
 
 #endif

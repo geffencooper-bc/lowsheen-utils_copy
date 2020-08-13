@@ -12,7 +12,7 @@
 #include "SocketCanHelper.h"
 
 // debug print macro to see error messages
-#define PRINT_LOG
+//#define PRINT_LOG
 
 #ifdef PRINT_LOG
 #define LOG_PRINT(x) printf x
