@@ -66,6 +66,7 @@ void LiveData_resp_call_back(void* obj, const CO_CANrxMsg_t* can_msg)
 #define COORD4 "\033[20;120f"
 #define BOLD_ON "\033[1m"
 #define BOLD_OFF "\033[0m"
+#define CLEAR "\033[2J"
 
 #define MSG_LEN 70
 // check if a parameter has changed since the last heartbeat
@@ -160,6 +161,7 @@ bool LiveData::update_param(uint16_t param_new, uint16_t param_old, const string
 // updates the heartbeat struct every page
 KU::StatusCode LiveData::update_heartbeat()
 {
+    printf("%s%s", CLEAR, TLC);
     // store a temp version to compare against
     controller_heartbeat temp;
     while(true)
