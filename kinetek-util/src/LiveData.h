@@ -7,6 +7,7 @@
 #include "SocketCanHelper.h"
 #include "KinetekUtilityCodes.h"
 #include <string>
+#include <chrono>
 using std::string;
 
 // This struct was taken from kinetek_kcca0237.cpp except the pages are not a union
@@ -200,20 +201,23 @@ class LiveData
 
     // updates the heart beat struct every page
     KU::StatusCode update_heartbeat();
-
+    
     private:
     controller_heartbeat* heartbeat;
     SocketCanHelper* sc;
     KU::CanDataList* ku_data;
     
     bool reset = true;
+    string top_10;
+    std::chrono::steady_clock::time_point begin;
+    std::chrono::steady_clock::time_point end;
 
     // callback function for received messages, not used as of now
     friend void STU_resp_call_back(void* obj, const CO_CANrxMsg_t* can_msg);
 
     // check if a parameter has changed since the last heartbeat
-    bool update_param(uint8_t param_new, uint8_t param_old, const string& param_name);
-    bool update_param(uint16_t param_new, uint16_t param_old, const string& param_name);
+    bool update_param(uint8_t param_new, uint8_t param_old, const string& param_name, bool sig=true);
+    bool update_param(uint16_t param_new, uint16_t param_old, const string& param_name, bool sig=true);
 };
 
 #endif
