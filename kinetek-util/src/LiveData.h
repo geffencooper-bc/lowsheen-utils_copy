@@ -223,7 +223,7 @@ class LiveData
     KU::StatusCode update_heartbeat();
     
     private:
-    controller_heartbeat* heartbeat;
+    controller_heartbeat* hb;
     SocketCanHelper* sc;
     KU::CanDataList* ku_data;
     
