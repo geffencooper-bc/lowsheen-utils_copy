@@ -46,11 +46,7 @@ class KinetekUtility
     // reset xt_can
     KU::StatusCode reset_xt_can();
 
-    void set_can_interface(const string& interface)
-    {
-        can_interface = interface;
-    }
-
+    void set_can_interface(const string& interface) { can_interface = interface; }
    private:
     SocketCanHelper* sc;
     KU::CanDataList* ku_data;  // holds all can data used by the utilities
@@ -59,7 +55,8 @@ class KinetekUtility
     LiveData* ld;
 
     bool can_initialized;  // keeps track of whether init_can has been called
-    string can_interface;;
+    string can_interface;
+    ;
 };
 
 #endif

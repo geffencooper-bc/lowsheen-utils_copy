@@ -13,11 +13,10 @@ using std::string;
 // this class facilitates the live data tool
 class LiveData
 {
-    public:
-
+   public:
     // the Kinetek data parameters are divided into these categories (value = analog)
     enum ParamCategory
-    {   
+    {
         ERROR_STATE = 0,
         TRACTION_STATE,
         SCRUBBER_STATE,
@@ -221,12 +220,12 @@ class LiveData
 
     // updates the heart beat struct every page
     KU::StatusCode update_heartbeat();
-    
-    private:
+
+   private:
     controller_heartbeat* hb;
     SocketCanHelper* sc;
     KU::CanDataList* ku_data;
-    
+
     bool reset = true;
     string top_10;
     std::chrono::steady_clock::time_point begin;

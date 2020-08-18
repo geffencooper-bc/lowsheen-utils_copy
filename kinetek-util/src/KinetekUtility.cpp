@@ -20,7 +20,7 @@ KinetekUtility::KinetekUtility()
     stu = new STUparam(sc, ku_data);
     ld = new LiveData(sc, ku_data);
     can_initialized = false;
-    can_interface = "can0"; // can0 by default
+    can_interface = "can0";  // can0 by default
 }
 
 KinetekUtility::~KinetekUtility()
@@ -35,7 +35,7 @@ KinetekUtility::~KinetekUtility()
 KU::StatusCode KinetekUtility::init_can()
 {
     LOG_PRINT(("init can\n"));
-    if(can_initialized)
+    if (can_initialized)
     {
         return KU::INIT_CAN_SUCCESS;
     }
@@ -335,38 +335,38 @@ static int get_arg_len(char* arg)
 {
     int len = 0;
     int pos = 0;
-    while(arg[pos] == ' ')
+    while (arg[pos] == ' ')
     {
         pos++;
     }
     char c = arg[pos];
-    while(c != '-' && c != ' ')
+    while (c != '-' && c != ' ')
     {
         len++;
         pos++;
         c = arg[pos];
     }
     return len;
-} 
+}
 
 static bool is_number(char* arg)
 {
     int start = 0;
-    while(arg[start] == ' ')
+    while (arg[start] == ' ')
     {
         start++;
     }
-    if(get_arg_len(arg) >=3)
+    if (get_arg_len(arg) >= 3)
     {
-        if(arg[start] == '0' || arg[start+1] == 'x')
+        if (arg[start] == '0' || arg[start + 1] == 'x')
         {
-            start = start+ 2;
+            start = start + 2;
         }
     }
-    
-    for(int i = 0; i < get_arg_len(arg); i++)
+
+    for (int i = 0; i < get_arg_len(arg); i++)
     {
-        if(isdigit(arg[i+start]) == false)
+        if (isdigit(arg[i + start]) == false)
         {
             return false;
         }
@@ -384,10 +384,12 @@ static struct argp_option options[] = {{"set_param", 's', "PARAM#", 0, "Set a ST
                                        {"interface", 'i', 0, 0, "Set can interface, defaults to can0"},
                                        {0}};
 // static struct argp_option options[] = {{"read", 'r', "ARG", 0, "Read a parameter or file"},
-//                                        {"write", 'w', "ARG", 0, "Write a parameter or file\nParameter requires value argument"},
+//                                        {"write", 'w', "ARG", 0, "Write a parameter or file\nParameter requires value
+//                                        argument"},
 //                                        {"interface", 'i', "NAME", 0, "Specify interface name, can0 by default"},
 //                                        {"cycle", 'c', 0, 0, "Reset xt can"},
-//                                        {"estop", 'e', "STATE", 0, "Toggle estop, 1 = trigger estop 2 = disable estop"},
+//                                        {"estop", 'e', "STATE", 0, "Toggle estop, 1 = trigger estop 2 = disable
+//                                        estop"},
 //                                        {"value", 'v', "VAL", 0, "Value arg for write parameter"},
 //                                        {0}};
 
@@ -464,7 +466,7 @@ static int parse_opt(int key, char* arg, struct argp_state* state)
 //             ku->init_can();
 //             // distinguish between individual parameter and file
 //             if(is_number(arg))
-//             {   
+//             {
 //                 int param;
 //                 int start = 0;
 //                 while(arg[start] == ' ')
@@ -486,7 +488,7 @@ static int parse_opt(int key, char* arg, struct argp_state* state)
 //                 {
 //                     param = atoi(arg);
 //                 }
-//                 ku->get_stu_param(param);    
+//                 ku->get_stu_param(param);
 //             }
 //             else
 //             {

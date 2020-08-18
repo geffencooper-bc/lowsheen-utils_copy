@@ -424,7 +424,7 @@ int STUparam::get_stu_param(uint8_t param_num)
 // changes a single stu param during runtime
 KU::StatusCode STUparam::set_stu_param(uint8_t param_num, uint8_t new_value)
 {
-    if(new_value > 255)
+    if (new_value > 255)
     {
         LOG_PRINT(("VALUE TOO LARGE\n"));
         exit(EXIT_FAILURE);
