@@ -18,18 +18,18 @@
 #define TLC_TRACTION_V "\033[23;0f"
 #define TLC_SCRUBBER_V "\033[23;40f"
 #define TLC_RECOVERY_V "\033[23;80f"
-#define TLC_MISC_V "\033[23;120f"
-#define TLC_UNKNOWN_V "\033[23;190f"
-#define TLC_BATTERY_V "\033[23;160f"
+#define TLC_MISC_V "\033[23;115f"
+#define TLC_UNKNOWN_V "\033[23;180f"
+#define TLC_BATTERY_V "\033[23;150f"
 #define TLC_ERROR "\033[38;0f"
 #define TLC_ERROR_S1 "\033[40;0f"
 #define TLC_ERROR_S2 "\033[40;40f"
 #define TLC_TRACTION_S "\033[0;0f"
 #define TLC_SCRUBBER_S "\033[0;40f"
 #define TLC_RECOVERY_S "\033[0;80f"
-#define TLC_MISC_S "\033[0;120f"
-#define TLC_UNKNOWN_S "\033[0;190f"
-#define TLC_BATTERY_S "\033[0;160f"
+#define TLC_MISC_S "\033[0;115f"
+#define TLC_UNKNOWN_S "\033[0;180f"
+#define TLC_BATTERY_S "\033[0;150f"
 #define TLC_META "\033[27;160f"
 #define SAVE "\033[s"
 #define RESTORE "\033[u"
@@ -349,7 +349,7 @@ bool LiveData::update_param_a(float new_value, float old_value, const string& lo
                 traction_a_count = 0;
             }
             // print the location according to the count and then the variable
-            LOG_PRINT(("%s%s===TRACTION VALUE===%s%s%s", TLC_TRACTION_V, YELLOW_TITLE, ATTRIB_OFF, TLC_TRACTION_V, DOWN));
+            LOG_PRINT(("%s%sTRACTION VALUE%s%s%s", TLC_TRACTION_V, YELLOW_TITLE, ATTRIB_OFF, TLC_TRACTION_V, DOWN));
             for(int i = 0; i < traction_a_count; i++)
             {
                 LOG_PRINT(("%s", DOWN));
@@ -365,7 +365,7 @@ bool LiveData::update_param_a(float new_value, float old_value, const string& lo
                 scrubber_a_count = 0;
             }
             // print the location according to the count and then the variable
-            LOG_PRINT(("%s%s===SCRUBBER VALUE===%s%s%s", TLC_SCRUBBER_V, YELLOW_TITLE, ATTRIB_OFF, TLC_SCRUBBER_V, DOWN));
+            LOG_PRINT(("%s%sSCRUBBER VALUE%s%s%s", TLC_SCRUBBER_V, YELLOW_TITLE, ATTRIB_OFF, TLC_SCRUBBER_V, DOWN));
             for(int i = 0; i < scrubber_a_count; i++)
             {
                 LOG_PRINT(("%s", DOWN));
@@ -381,7 +381,7 @@ bool LiveData::update_param_a(float new_value, float old_value, const string& lo
                 recovery_a_count = 0;
             }
             // print the location according to the count and then the variable
-            LOG_PRINT(("%s%s===RECOVERY VALUE===%s%s%s", TLC_RECOVERY_V, YELLOW_TITLE, ATTRIB_OFF, TLC_RECOVERY_V, DOWN));
+            LOG_PRINT(("%s%sRECOVERY VALUE%s%s%s", TLC_RECOVERY_V, YELLOW_TITLE, ATTRIB_OFF, TLC_RECOVERY_V, DOWN));
             for(int i = 0; i < recovery_a_count; i++)
             {
                 LOG_PRINT(("%s", DOWN));
@@ -397,7 +397,7 @@ bool LiveData::update_param_a(float new_value, float old_value, const string& lo
                 battery_a_count = 0;
             }
             // print the location according to the count and then the variable
-            LOG_PRINT(("%s%s===BATTERY VALUE===%s%s%s", TLC_BATTERY_V, YELLOW_TITLE, ATTRIB_OFF, TLC_BATTERY_V, DOWN));
+            LOG_PRINT(("%s%sBATTERY VALUE%s%s%s", TLC_BATTERY_V, YELLOW_TITLE, ATTRIB_OFF, TLC_BATTERY_V, DOWN));
             for(int i = 0; i < battery_a_count; i++)
             {
                 LOG_PRINT(("%s", DOWN));
@@ -413,7 +413,7 @@ bool LiveData::update_param_a(float new_value, float old_value, const string& lo
                 misc_a_count = 0;
             }
             // print the location according to the count and then the variable
-            LOG_PRINT(("%s%s===MISC VALUE===%s%s%s", TLC_MISC_V, YELLOW_TITLE, ATTRIB_OFF, TLC_MISC_V, DOWN));
+            LOG_PRINT(("%s%sMISC VALUE%s%s%s", TLC_MISC_V, YELLOW_TITLE, ATTRIB_OFF, TLC_MISC_V, DOWN));
             for(int i = 0; i < misc_a_count; i++)
             {
                 LOG_PRINT(("%s", DOWN));
@@ -429,7 +429,7 @@ bool LiveData::update_param_a(float new_value, float old_value, const string& lo
                 unknown_a_count = 0;
             }
             // print the location according to the count and then the variable
-            LOG_PRINT(("%s%s===UNKNOWN VALUE===%s%s%s", TLC_UNKNOWN_V, YELLOW_TITLE, ATTRIB_OFF, TLC_UNKNOWN_V, DOWN));
+            LOG_PRINT(("%s%sUNKNOWN VALUE%s%s%s", TLC_UNKNOWN_V, YELLOW_TITLE, ATTRIB_OFF, TLC_UNKNOWN_V, DOWN));
             for(int i = 0; i < unknown_a_count; i++)
             {
                 LOG_PRINT(("%s", DOWN));
@@ -460,7 +460,7 @@ bool LiveData::update_param_s(uint8_t new_value, uint8_t old_value, const string
     std::stringstream stream;
     if(new_value != old_value)
     {
-        LOG_PRINT(("%s%s%s===LAST 10 CHANGES===%s", COORD0, UP, RED_TITLE, ATTRIB_OFF));
+        LOG_PRINT(("%s%s%sLAST 10 CHANGES%s", COORD0, UP, RED_TITLE, ATTRIB_OFF));
         static int last_size;
         stream << BOLD_ON << std::setw(25) << log_name << ATTRIB_OFF <<
                   std::setw(5) << std::to_string(old_value) << " -->" << 
@@ -531,7 +531,7 @@ bool LiveData::update_param_s(uint8_t new_value, uint8_t old_value, const string
                 traction_s_count = 0;
             }
             // print the location according to the count and then the variable
-            LOG_PRINT(("%s%s===TRACTION STATE===%s%s%s", TLC_TRACTION_S, YELLOW_TITLE, ATTRIB_OFF, TLC_TRACTION_S, DOWN));
+            LOG_PRINT(("%s%sTRACTION STATE%s%s%s", TLC_TRACTION_S, YELLOW_TITLE, ATTRIB_OFF, TLC_TRACTION_S, DOWN));
             for(int i = 0; i < traction_s_count; i++)
             {
                 LOG_PRINT(("%s", DOWN));
@@ -547,7 +547,7 @@ bool LiveData::update_param_s(uint8_t new_value, uint8_t old_value, const string
                 scrubber_s_count = 0;
             }
             // print the location according to the count and then the variable
-            LOG_PRINT(("%s%s===SCRUBBER STATE===%s%s%s", TLC_SCRUBBER_S, YELLOW_TITLE, ATTRIB_OFF, TLC_SCRUBBER_S, DOWN));
+            LOG_PRINT(("%s%sSCRUBBER STATE%s%s%s", TLC_SCRUBBER_S, YELLOW_TITLE, ATTRIB_OFF, TLC_SCRUBBER_S, DOWN));
             for(int i = 0; i < scrubber_s_count; i++)
             {
                 LOG_PRINT(("%s", DOWN));
@@ -563,7 +563,7 @@ bool LiveData::update_param_s(uint8_t new_value, uint8_t old_value, const string
                 recovery_s_count = 0;
             }
             // print the location according to the count and then the variable
-            LOG_PRINT(("%s%s===RECOVERY STATE===%s%s%s", TLC_RECOVERY_S, YELLOW_TITLE, ATTRIB_OFF, TLC_RECOVERY_S, DOWN));
+            LOG_PRINT(("%s%sRECOVERY STATE%s%s%s", TLC_RECOVERY_S, YELLOW_TITLE, ATTRIB_OFF, TLC_RECOVERY_S, DOWN));
             for(int i = 0; i < recovery_s_count; i++)
             {
                 LOG_PRINT(("%s", DOWN));
@@ -579,7 +579,7 @@ bool LiveData::update_param_s(uint8_t new_value, uint8_t old_value, const string
                 battery_s_count = 0;
             }
             // print the location according to the count and then the variable
-            LOG_PRINT(("%s%s===BATTERY STATE===%s%s%s", TLC_BATTERY_S, YELLOW_TITLE, ATTRIB_OFF, TLC_BATTERY_S, DOWN));
+            LOG_PRINT(("%s%sBATTERY STATE%s%s%s", TLC_BATTERY_S, YELLOW_TITLE, ATTRIB_OFF, TLC_BATTERY_S, DOWN));
             for(int i = 0; i < battery_s_count; i++)
             {
                 LOG_PRINT(("%s", DOWN));
@@ -595,7 +595,7 @@ bool LiveData::update_param_s(uint8_t new_value, uint8_t old_value, const string
                 misc_s_count = 0;
             }
             // print the location according to the count and then the variable
-            LOG_PRINT(("%s%s===MISC STATE===%s%s%s", TLC_MISC_S, YELLOW_TITLE, ATTRIB_OFF, TLC_MISC_S, DOWN));
+            LOG_PRINT(("%s%sMISC STATE%s%s%s", TLC_MISC_S, YELLOW_TITLE, ATTRIB_OFF, TLC_MISC_S, DOWN));
             for(int i = 0; i < misc_s_count; i++)
             {
                 LOG_PRINT(("%s", DOWN));
@@ -611,7 +611,7 @@ bool LiveData::update_param_s(uint8_t new_value, uint8_t old_value, const string
                 unknown_s_count = 0;
             }
             // print the location according to the count and then the variable
-            LOG_PRINT(("%s%s===UNKNOWN STATE===%s%s%s", TLC_UNKNOWN_S, YELLOW_TITLE, ATTRIB_OFF, TLC_UNKNOWN_S, DOWN));
+            LOG_PRINT(("%s%sUNKNOWN STATE%s%s%s", TLC_UNKNOWN_S, YELLOW_TITLE, ATTRIB_OFF, TLC_UNKNOWN_S, DOWN));
             for(int i = 0; i < unknown_s_count; i++)
             {
                 LOG_PRINT(("%s", DOWN));
@@ -627,7 +627,7 @@ bool LiveData::update_param_s(uint8_t new_value, uint8_t old_value, const string
                 error_s_count = 0;
             }
             // print the location according to the count and then the variable
-            LOG_PRINT(("%s%s===ERROR STATE===%s%s%s", TLC_ERROR, RED_TITLE, ATTRIB_OFF, TLC_ERROR, DOWN));
+            LOG_PRINT(("%s%sERROR STATE%s%s%s", TLC_ERROR, RED_TITLE, ATTRIB_OFF, TLC_ERROR, DOWN));
             if(error_s_count == 0)
             {
                 LOG_PRINT(("%-28s:%i", log_name.c_str(), new_value));
@@ -665,7 +665,7 @@ bool LiveData::update_param_s(uint8_t new_value, uint8_t old_value, const string
                 meta_s_count = 0;
             }
             // print the location according to the count and then the variable
-            LOG_PRINT(("%s%s===METADATA===%s%s%s", TLC_META, YELLOW_TITLE, ATTRIB_OFF, TLC_META, DOWN));
+            LOG_PRINT(("%s%sMETADATA%s%s%s", TLC_META, YELLOW_TITLE, ATTRIB_OFF, TLC_META, DOWN));
             for(int i = 0; i < meta_s_count; i++)
             {
                 LOG_PRINT(("%s", DOWN));
