@@ -107,7 +107,6 @@ KU::StatusCode STUparam::read_stu_params(const string& output_file)
     // keep reading parameters until all rows read
     while (stu_row_i < NUM_STU_ROWS)
     {
-        // PRINT_LOG(("READING ROW %i\n", stu_row_i));
         // initialize read request data with according eeprom address and get the row response data
         ku_data->eeprom_access_read_request_data[3] = ROW_SIZE * stu_row_i;
         sc->send_frame(KU::EEPROM_ACCESS_MESSAGE_ID, ku_data->eeprom_access_read_request_data,
@@ -231,13 +230,12 @@ KU::StatusCode STUparam::write_stu_params(const string& input_file)
 
         sc->send_frame(KU::EEPROM_ACCESS_MESSAGE_ID, ku_data->eeprom_access_write_request_data,
                        sizeof(ku_data->eeprom_access_write_request_data));
-        usleep(1000);
+        usleep(2000);
         sc->send_frame(KU::EEPROM_LINE_WRITE_A_REQUEST_ID, ku_data->eeprom_access_line_write_data, CAN_DATA_LEN);
-        usleep(1000);
+        usleep(2000);
         sc->send_frame(KU::EEPROM_LINE_WRITE_B_REQUEST_ID, ku_data->eeprom_access_line_write_data + 8, CAN_DATA_LEN);
-        usleep(1000);
 
-        CO_CANrxMsg_t* resp = sc->get_frame(KU::EEPROM_LINE_WRITE_RESPONSE_ID, this, STU_resp_call_back, 100000);
+        CO_CANrxMsg_t* resp = sc->get_frame(KU::EEPROM_LINE_WRITE_RESPONSE_ID, this, STU_resp_call_back, 1000);
         if (ku_data->get_response_type(resp->ident, resp->data, resp->DLC) != KU::EEPROM_ACCESS_WRITE_RESPONSE)
         {
             LOG_PRINT(("NO WRITE RESPONSE"));
@@ -251,15 +249,21 @@ KU::StatusCode STUparam::write_stu_params(const string& input_file)
     sc->send_frame(KU::XT_CAN_REQUEST_ID, ku_data->disable_kinetek_data, sizeof(ku_data->disable_kinetek_data));
     usleep(2500000);  // sleep for 2.5 seconds
     sc->send_frame(KU::XT_CAN_REQUEST_ID, ku_data->enable_kinetek_data, sizeof(ku_data->enable_kinetek_data));
-    CO_CANrxMsg_t* resp = sc->get_frame(KU::HEART_BEAT_ID, this, STU_resp_call_back, 500);
+    CO_CANrxMsg_t* resp = sc->get_frame(KU::HEART_BEAT_ID, this, STU_resp_call_back, 20000);
+    while (resp->data[1] != 1)
     {
+        resp = sc->get_frame(KU::HEART_BEAT_ID, this, STU_resp_call_back, 20000);
         if (ku_data->get_response_type(resp->ident, resp->data, resp->DLC) != KU::HEART_BEAT)
         {
-            LOG_PRINT(("No Heart Beat detected\n"));
-            return KU::STU_FILE_WRITE_FAIL;
+            LOG_PRINT(("NO HEART BEAT\n"));
+            return KU::NO_HEART_BEAT;
         }
     }
-    return KU::STU_FILE_WRITE_SUCCESS;
+    // error value is on page 1, byte 2
+    if(resp->data[3] == 0)
+    {
+        return KU::STU_FILE_WRITE_SUCCESS;
+    }   
 }
 
 KU::StatusCode STUparam::validate_stu_file(const string& input_file)
@@ -277,15 +281,31 @@ KU::StatusCode STUparam::validate_stu_file(const string& input_file)
     string curr_line = "";
     hu_getline(stu_file, curr_line);
     int header_checksum = 0;
+    int column = 0;
+    int fw_major = 0;
+    int fw_minor = 0;
     string value = "";
+
     // go character by character to get the values
     for (int i = 0; i < curr_line.size(); i++)
     {
         if (curr_line[i] == ',')
         {
+            column++;
             header_checksum += std::stoi(value);
+            if(column == 2)
+            {
+                fw_minor = std::stoi(value);
+            }
+            if(column == 3)
+            {
+                fw_major = std::stoi(value);
+            }
             value = "";
-            i++;  // acount for the space
+        }
+        else if(curr_line[i] == ' ')
+        {
+            continue;
         }
         else
         {
@@ -296,6 +316,23 @@ KU::StatusCode STUparam::validate_stu_file(const string& input_file)
     if (header_checksum != std::stoi(value))
     {
         LOG_PRINT(("BAD HEADER CHECKSUM\n"));
+        return KU::INVALID_STU_FILE;
+    }
+
+    // make sure the firmware version is correct, version is on page 9
+    CO_CANrxMsg_t* resp = sc->get_frame(KU::HEART_BEAT_ID, this, STU_resp_call_back, 20000);
+    while (resp->data[1] != 9)
+    {
+        resp = sc->get_frame(KU::HEART_BEAT_ID, this, STU_resp_call_back, 20000);
+        if (ku_data->get_response_type(resp->ident, resp->data, resp->DLC) != KU::HEART_BEAT)
+        {
+            LOG_PRINT(("NO HEART BEAT\n"));
+            return KU::NO_HEART_BEAT;
+        }
+    }
+    if((resp->data[3] != fw_minor) || (resp->data[4] != fw_major))
+    {
+        LOG_PRINT(("FW VERSION DOES NOT MATCH\n"));
         return KU::INVALID_STU_FILE;
     }
 
@@ -385,6 +422,7 @@ KU::StatusCode STUparam::validate_stu_file(const string& input_file)
     return KU::VALID_STU_FILE;
 }
 
+// grabs the data portion of a stu line and converts it to an array of bytes
 int STUparam::stu_line_to_byte_array(const string& stu_line, uint8_t* byte_array, uint8_t arr_size)
 {
     int sum = 0;

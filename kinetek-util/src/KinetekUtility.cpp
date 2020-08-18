@@ -424,6 +424,7 @@ static int parse_opt(int key, char* arg, struct argp_state* state)
         }
         case 'u':
         {
+            ku->init_can();
             ku->run_iap(string(arg), 1);
             break;
         }
