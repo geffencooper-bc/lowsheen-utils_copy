@@ -57,7 +57,7 @@
 #define RECOV_S_SIZE 7
 #define MISC_S_SIZE 15
 #define BATT_S_SIZE 3
-#define UNKNOWN_S_SIZE 12
+#define UNKNOWN_S_SIZE 13
 #define META_S_SIZE 5
 #define TRAC_V_SIZE 9
 #define SCRUB_V_SIZE 5
@@ -72,7 +72,7 @@
 #define SCRUB_S_WIDTH 33
 #define RECOV_S_WIDTH 33
 #define MISC_S_WIDTH 33
-#define BATT_S_WIDTH 33
+#define BATT_S_WIDTH 23
 #define UNKNOWN_S_WIDTH 20
 #define META_S_WIDTH 25
 #define TRAC_V_WIDTH 40
@@ -753,7 +753,6 @@ KU::StatusCode LiveData::update_heartbeat()
                 hb->page10.aux5_buf = update_param_s(tmp.page10.aux5_buf, hb->page10.aux5_buf, "aux5_buf", MISC_STATE)
                                           ? tmp.page10.aux5_buf
                                           : hb->page10.aux5_buf;
-                                          exit(EXIT_FAILURE);
                 break;
             }
         }
@@ -766,55 +765,55 @@ bool LiveData::is_selected(ParamCategory type)
     {
         case TRACTION_STATE:
         {
-            return traction_state_selected & ACTIVE_FLAG;
+            return traction_state_selected == ACTIVE_FLAG;
         }
         case SCRUBBER_STATE:
         {
-            return scrubber_state_selected & ACTIVE_FLAG;
+            return scrubber_state_selected == ACTIVE_FLAG;
         }
         case RECOVERY_STATE:
         {
-            return recovery_state_selected & ACTIVE_FLAG;
+            return recovery_state_selected == ACTIVE_FLAG;
         }
         case ERROR_STATE:
         {
-            return error_state_selected & ACTIVE_FLAG;
+            return error_state_selected == ACTIVE_FLAG;
         }
         case META_STATE:
         {
-            return meta_state_selected & ACTIVE_FLAG;
+            return meta_state_selected == ACTIVE_FLAG;
         }
         case BATTERY_STATE:
         {
-            return battery_state_selected & ACTIVE_FLAG;
+            return battery_state_selected == ACTIVE_FLAG;
         }
         case MISC_STATE:
         {
-            return misc_state_selected & ACTIVE_FLAG;
+            return misc_state_selected == ACTIVE_FLAG;
         }
         case UNKNOWN_STATE:
         {
-            return unknown_state_selected & ACTIVE_FLAG;
+            return unknown_state_selected == ACTIVE_FLAG;
         }
         case TRACTION_VALUE:
         {
-            return traction_value_selected & ACTIVE_FLAG;
+            return traction_value_selected == ACTIVE_FLAG;
         }
         case RECOVERY_VALUE:
         {
-            return recovery_value_selected & ACTIVE_FLAG;
+            return recovery_value_selected == ACTIVE_FLAG;
         }
         case SCRUBBER_VALUE:
         {
-            return scrubber_value_selected & ACTIVE_FLAG;
+            return scrubber_value_selected == ACTIVE_FLAG;
         }
         case MISC_VALUE:
         {
-            return misc_value_selected & ACTIVE_FLAG;
+            return misc_value_selected == ACTIVE_FLAG;
         }
         case BATTERY_VALUE:
         {
-            return battery_value_selected & ACTIVE_FLAG;
+            return battery_value_selected == ACTIVE_FLAG;
         }
     }
 }
@@ -1369,6 +1368,10 @@ bool LiveData::update_param_s(uint8_t new_value, uint8_t old_value, const string
         {
             if(error_state_selected & PRESENT_FLAG)
             {
+                if(error_s_count == ERROR_S1_size + ERROR_S2_size  + 1)
+                {
+                    error_s_count = 0;
+                }
                 // print the location according to the count and then the variable
                 LOG_PRINT(("%s%sERROR STATE%s%s%s", TLC_ERROR, RED_TITLE, ATTRIB_OFF, TLC_ERROR, DOWN));
                 if (error_s_count == 0)
