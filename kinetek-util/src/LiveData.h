@@ -20,7 +20,7 @@ using std::string;
 class LiveData
 {
    public:
-    // the Kinetek data parameters are divided into these categories (value = analog)
+    // the Kinetek data parameters are divided into these categories
     enum ParamCategory
     {
         ERROR_STATE = 0,
@@ -31,11 +31,29 @@ class LiveData
         MISC_STATE,
         UNKNOWN_STATE,
         BATTERY_STATE,
-        TRACTION_VALUE,
-        SCRUBBER_VALUE,
-        RECOVERY_VALUE,
-        BATTERY_VALUE,
-        MISC_VALUE
+        TRACTION_ANALOG,
+        SCRUBBER_ANALOG,
+        RECOVERY_ANALOG,
+        BATTERY_ANALOG,
+        MISC_ANALOG
+        //LATEST_CHANGES
+    };
+
+    // stores configuration information about each data section
+    struct DataSection
+    {
+        DataSection(string name, ParamCategory category, uint8_t is_state, int num_params, int width, int x_pos, int y_pos, uint8_t selected_option, int param_index) :
+                    name(name), category(category), is_state(is_state), num_params(num_params), width(width), x_pos(x_pos), y_pos(y_pos), selected_option(selected_option), param_index(param_index) {} 
+        string name;
+        ParamCategory category;
+        uint8_t is_state; // state = 0, analog = 1
+        int num_params; // height
+        int width; // max param length
+        int x_pos;
+        int y_pos;
+        uint8_t selected_option;
+        int param_index;
+        std::vector<string> params;
     };
 
     // This struct was taken from kinetek_kcca0237.cpp except the pages are not a union
@@ -245,32 +263,22 @@ class LiveData
     bool update_param_a(float new_value, float old_value, const string& log_name, ParamCategory type);
     bool update_param_s(uint8_t new_value, uint8_t old_value, const string& log_name, ParamCategory type);
 
-    bool is_selected(ParamCategory type);
-
     // keeps track of which categories are selected
     #define ABSENT_FLAG 0b00000000 // 00000000 --> don't show at all
     #define PRESENT_FLAG 0b00001111 // 00001111 --> show but not in the changes list
     #define ACTIVE_FLAG 0b11111111 // 11111111 --> show on screen and on changes list
-    uint8_t error_state_selected = ABSENT_FLAG;
-    uint8_t traction_state_selected = ABSENT_FLAG;
-    uint8_t scrubber_state_selected = ABSENT_FLAG;
-    uint8_t recovery_state_selected = ABSENT_FLAG;
-    uint8_t meta_state_selected = ABSENT_FLAG;
-    uint8_t misc_state_selected = ABSENT_FLAG;
-    uint8_t unknown_state_selected = ABSENT_FLAG;
-    uint8_t battery_state_selected = ABSENT_FLAG;
-    uint8_t traction_value_selected = ABSENT_FLAG;
-    uint8_t scrubber_value_selected = ABSENT_FLAG;
-    uint8_t recovery_value_selected = ABSENT_FLAG;
-    uint8_t misc_value_selected = ABSENT_FLAG;
-    uint8_t battery_value_selected = ABSENT_FLAG;
+    std::vector<DataSection*> sections;
 
+    // the position, width, and height of the last section loaded
     int last_x = 0;
     int last_y = 0;
     int last_width = 0;
     int last_height = 0;
 
-    struct winsize size;
+    bool finished_loading = false;
+    bool refresh = true;
+
+    winsize window_size;
 };
 
 #endif

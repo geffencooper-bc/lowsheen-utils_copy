@@ -91,9 +91,25 @@ LiveData::LiveData(SocketCanHelper* sc, KU::CanDataList* ku_data)
     this->ku_data = ku_data;
     hb = new controller_heartbeat;
 
+    // create all the sections
+    std::vector<int> nums;
+    sections.push_back(new DataSection("TRACTION_STATE", TRACTION_STATE, 1, -1, -1, -1, -1, 0, -1));
+    sections.push_back(new DataSection("SCRUBBER_STATE", SCRUBBER_STATE, 1, -1, -1, -1, -1, 0, -1));
+    sections.push_back(new DataSection("RECOVERY_STATE", RECOVERY_STATE, 1, -1, -1, -1, -1, 0, -1));
+    sections.push_back(new DataSection("BATTERY_STATE", TRACTION_STATE, 1, -1, -1, -1, -1, 0, -1));
+    sections.push_back(new DataSection("METADATA", META_STATE, 1, -1, -1, -1, -1, 0, -1));
+    sections.push_back(new DataSection("ERROR_STATE", ERROR_STATE, 1, -1, -1, -1, -1, 0, -1));
+    sections.push_back(new DataSection("MISC_STATE", MISC_STATE, 1, -1, -1, -1, -1, 0, -1));
+    sections.push_back(new DataSection("TRACTION_ANALOG", TRACTION_ANALOG, 0, -1, -1, -1, -1, 0, -1));
+    sections.push_back(new DataSection("SCRUBBER_ANALOG", SCRUBBER_ANALOG, 0, -1, -1, -1, -1, 0, -1));
+    sections.push_back(new DataSection("RECOVERY_ANALOG", RECOVERY_ANALOG, 0, -1, -1, -1, -1, 0, -1));
+    sections.push_back(new DataSection("MISC_ANALOG", MISC_ANALOG, 0, -1, -1, -1, -1, 0, -1));
+    sections.push_back(new DataSection("BATTERY_ANALOG", BATTERY_ANALOG, 0, -1, -1, -1, -1, 0, -1));
+    //sections.push_back(new DataSection("LATEST_CHANGES", LATEST_CHANGES, 0, -1, -1, -1, -1, 0, 0));
+
     // make the terminal full screen and get the width and height
-    printf("%s", FULL_SCREEN);
-    ioctl(STDOUT_FILENO, TIOCGWINSZ, &size);
+    // printf("%s", FULL_SCREEN);
+    // ioctl(STDOUT_FILENO, TIOCGWINSZ, &size);
 
     // start the clock on launch
     begin = std::chrono::steady_clock::now();
@@ -102,6 +118,10 @@ LiveData::LiveData(SocketCanHelper* sc, KU::CanDataList* ku_data)
 // deallocate memory
 LiveData::~LiveData()
 {
+    for(int i = 0; i < sections.size(); i++)
+    {
+        delete sections[i];
+    }
     delete hb;
 }
 
@@ -117,6 +137,7 @@ void my_handler(int s)
     printf("%s", BLC);
     exit(1);
 }
+
 // updates the heartbeat struct every page
 KU::StatusCode LiveData::update_heartbeat()
 {
@@ -135,6 +156,14 @@ KU::StatusCode LiveData::update_heartbeat()
     uint8_t last_page_num = 0;
     while (true)
     {
+        winsize tmp_win;
+        ioctl(STDOUT_FILENO, TIOCGWINSZ, &tmp_win);
+        if(tmp_win.ws_col != window_size.ws_col || tmp_win.ws_row != window_size.ws_row)
+        {
+            printf("%s", CLEAR);
+            ioctl(STDOUT_FILENO, TIOCGWINSZ, &window_size);
+            refresh = true;
+        }
         // get the next page
         resp = sc->get_frame(KU::HEART_BEAT_ID, this, LiveData_resp_call_back, 500);
         if (ku_data->get_response_type(resp->ident, resp->data, resp->DLC) != KU::HEART_BEAT)
@@ -490,7 +519,7 @@ KU::StatusCode LiveData::update_heartbeat()
                 static float last_bat_volt = (hb->page3.bat_volt_81_V_1 << 8 | hb->page3.bat_volt_81_V_2) / 81;
                 static float curr_bat_volt;
                 curr_bat_volt = (float)(hb->page3.bat_volt_81_V_1 << 8 | hb->page3.bat_volt_81_V_2) / 81;
-                update_param_a(curr_bat_volt, last_bat_volt, "battery_voltage_81", BATTERY_VALUE);
+                update_param_a(curr_bat_volt, last_bat_volt, "battery_voltage_81", BATTERY_ANALOG);
                 last_bat_volt = curr_bat_volt;
                 break;
             }
@@ -500,29 +529,29 @@ KU::StatusCode LiveData::update_heartbeat()
                 hb->page4.heatsink_volt_traction_81_V =
                     update_param_a((float)tmp.page4.heatsink_volt_traction_81_V * 16 / 81,
                                    (float)hb->page4.heatsink_volt_traction_81_V * 16 / 81,
-                                   "heatsink_volt_traction_81_V", MISC_VALUE)
+                                   "heatsink_volt_traction_81_V", MISC_ANALOG)
                         ? tmp.page4.heatsink_volt_traction_81_V
                         : hb->page4.heatsink_volt_traction_81_V;
                 hb->page4.heatsink_volt_other_81_V = update_param_a((float)tmp.page4.heatsink_volt_other_81_V * 16 / 81,
                                                                     (float)hb->page4.heatsink_volt_other_81_V * 16 / 81,
-                                                                    "heatsink_volt_other_81_V", MISC_VALUE)
+                                                                    "heatsink_volt_other_81_V", MISC_ANALOG)
                                                          ? tmp.page4.heatsink_volt_other_81_V
                                                          : hb->page4.heatsink_volt_other_81_V;
                 hb->page4.tract_ddc =
-                    update_param_a(tmp.page4.tract_ddc, hb->page4.tract_ddc, "tract_ddc", TRACTION_VALUE)
+                    update_param_a(tmp.page4.tract_ddc, hb->page4.tract_ddc, "tract_ddc", TRACTION_ANALOG)
                         ? tmp.page4.tract_ddc
                         : hb->page4.tract_ddc;
                 hb->page4.tract_adc =
-                    update_param_a(tmp.page4.tract_adc, hb->page4.tract_adc, "tract_adc", TRACTION_VALUE)
+                    update_param_a(tmp.page4.tract_adc, hb->page4.tract_adc, "tract_adc", TRACTION_ANALOG)
                         ? tmp.page4.tract_adc
                         : hb->page4.tract_adc;
                 hb->page4.mosfet_temperature =
                     update_param_a(tmp.page4.mosfet_temperature, hb->page4.mosfet_temperature, "mosfet_temperature",
-                                   MISC_VALUE)
+                                   MISC_ANALOG)
                         ? tmp.page4.mosfet_temperature
                         : hb->page4.mosfet_temperature;
                 hb->page4.brush_current_A = update_param_a(tmp.page4.brush_current_A, hb->page4.brush_current_A,
-                                                           "brush_current_A", SCRUBBER_VALUE)
+                                                           "brush_current_A", SCRUBBER_ANALOG)
                                                 ? tmp.page4.brush_current_A
                                                 : hb->page4.brush_current_A;
                 break;
@@ -531,17 +560,17 @@ KU::StatusCode LiveData::update_heartbeat()
             {
                 memcpy(&tmp.page5, resp->data + 2, sizeof(tmp.page5));
                 hb->page5.vacuum_current_A = update_param_a(tmp.page5.vacuum_current_A, hb->page5.vacuum_current_A,
-                                                            "vacuum_current_A", RECOVERY_VALUE)
+                                                            "vacuum_current_A", RECOVERY_ANALOG)
                                                  ? tmp.page5.vacuum_current_A
                                                  : hb->page5.vacuum_current_A;
                 hb->page5.squeegee_current_A =
                     update_param_a(tmp.page5.squeegee_current_A, hb->page5.squeegee_current_A, "squeegee_current_A",
-                                   RECOVERY_VALUE)
+                                   RECOVERY_ANALOG)
                         ? tmp.page5.squeegee_current_A
                         : hb->page5.squeegee_current_A;
                 hb->page5.brush_deck_current_A =
                     update_param_a(tmp.page5.brush_deck_current_A, hb->page5.brush_deck_current_A,
-                                   "brush_deck_current_A", SCRUBBER_VALUE)
+                                   "brush_deck_current_A", SCRUBBER_ANALOG)
                         ? tmp.page5.brush_deck_current_A
                         : hb->page5.brush_deck_current_A;
                 hb->page5.desired_brush_deck_direction =
@@ -571,12 +600,12 @@ KU::StatusCode LiveData::update_heartbeat()
                         : hb->page6.traction_rev_current_dir;
                 hb->page6.traction_rev_current_A =
                     update_param_a(tmp.page6.traction_rev_current_A, hb->page6.traction_rev_current_A,
-                                   "traction_rev_current_A", TRACTION_VALUE)
+                                   "traction_rev_current_A", TRACTION_ANALOG)
                         ? tmp.page6.traction_rev_current_A
                         : hb->page6.traction_rev_current_A;
                 hb->page6.traction_left_null_current = update_param_a(__bswap_16(tmp.page6.traction_left_null_current),
                                                                       __bswap_16(hb->page6.traction_left_null_current),
-                                                                      "traction_left_null_current", TRACTION_VALUE)
+                                                                      "traction_left_null_current", TRACTION_ANALOG)
                                                            ? tmp.page6.traction_left_null_current
                                                            : hb->page6.traction_left_null_current;
                 hb->page6.traction_fwd_current_dir =
@@ -586,7 +615,7 @@ KU::StatusCode LiveData::update_heartbeat()
                         : hb->page6.traction_fwd_current_dir;
                 hb->page6.traction_fwd_current_A =
                     update_param_a(tmp.page6.traction_fwd_current_A, hb->page6.traction_fwd_current_A,
-                                   "traction_fwd_current_A", TRACTION_VALUE)
+                                   "traction_fwd_current_A", TRACTION_ANALOG)
                         ? tmp.page6.traction_fwd_current_A
                         : hb->page6.traction_fwd_current_A;
                 break;
@@ -597,22 +626,22 @@ KU::StatusCode LiveData::update_heartbeat()
                 hb->page7.traction_right_null_current =
                     update_param_a(__bswap_16(tmp.page7.traction_right_null_current),
                                    __bswap_16(hb->page7.traction_right_null_current), "traction_right_null_current",
-                                   TRACTION_VALUE)
+                                   TRACTION_ANALOG)
                         ? tmp.page7.traction_right_null_current
                         : hb->page7.traction_right_null_current;
                 hb->page7.MCU_temp_raw =
                     update_param_a((1.412 - ((float)__bswap_16(tmp.page7.MCU_temp_raw) * 3.3 / 4096)) / 0.0043 + 25,
                                    (1.412 - ((float)__bswap_16(tmp.page7.MCU_temp_raw) * 3.3 / 4096)) / 0.0043 + 25,
-                                   "MCU_tmp_raw", MISC_VALUE)
+                                   "MCU_tmp_raw", MISC_ANALOG)
                         ? tmp.page7.MCU_temp_raw
                         : hb->page7.MCU_temp_raw;
                 hb->page7.vacuum_ddc =
-                    update_param_a(tmp.page7.vacuum_ddc, hb->page7.vacuum_ddc, "vacuum_ddc", RECOVERY_VALUE)
+                    update_param_a(tmp.page7.vacuum_ddc, hb->page7.vacuum_ddc, "vacuum_ddc", RECOVERY_ANALOG)
                         ? tmp.page7.vacuum_ddc
                         : hb->page7.vacuum_ddc;
                 hb->page7.accelerator_raw =
                     update_param_a((float)tmp.page7.accelerator_raw * 32 * 3.3 / 4096,
-                                   (float)hb->page7.accelerator_raw * 32 * 3.3 / 4096, "accelerator_raw", MISC_VALUE)
+                                   (float)hb->page7.accelerator_raw * 32 * 3.3 / 4096, "accelerator_raw", MISC_ANALOG)
                         ? tmp.page7.accelerator_raw
                         : hb->page7.accelerator_raw;
                 break;
@@ -623,33 +652,33 @@ KU::StatusCode LiveData::update_heartbeat()
                 hb->page8.traction_left_drain_voltage =
                     update_param_a((float)tmp.page8.traction_left_drain_voltage * 16 / 81,
                                    (float)hb->page8.traction_left_drain_voltage * 16 / 81,
-                                   "traction_left_drain_voltage", TRACTION_VALUE)
+                                   "traction_left_drain_voltage", TRACTION_ANALOG)
                         ? tmp.page8.traction_left_drain_voltage
                         : hb->page8.traction_left_drain_voltage;
                 hb->page8.traction_right_drain_voltage =
                     update_param_a((float)tmp.page8.traction_right_drain_voltage * 16 / 81,
                                    (float)hb->page8.traction_right_drain_voltage * 16 / 81,
-                                   "traction_right_drain_voltage", TRACTION_VALUE)
+                                   "traction_right_drain_voltage", TRACTION_ANALOG)
                         ? tmp.page8.traction_right_drain_voltage
                         : hb->page8.traction_right_drain_voltage;
                 hb->page8.brush_drain_voltage_16_81_V =
                     update_param_a((float)tmp.page8.brush_drain_voltage_16_81_V * 16 / 81,
                                    (float)hb->page8.brush_drain_voltage_16_81_V * 16 / 81,
-                                   "brush_drain_voltage_16_81_V", SCRUBBER_VALUE)
+                                   "brush_drain_voltage_16_81_V", SCRUBBER_ANALOG)
                         ? tmp.page8.brush_drain_voltage_16_81_V
                         : hb->page8.brush_drain_voltage_16_81_V;
                 hb->page8.vacuum_drain_voltage_16_81_V =
                     update_param_a((float)tmp.page8.vacuum_drain_voltage_16_81_V * 16 / 81,
                                    (float)hb->page8.vacuum_drain_voltage_16_81_V * 16 / 81,
-                                   "vacuum_drain_voltage_16_81_V", RECOVERY_VALUE)
+                                   "vacuum_drain_voltage_16_81_V", RECOVERY_ANALOG)
                         ? tmp.page8.vacuum_drain_voltage_16_81_V
                         : hb->page8.vacuum_drain_voltage_16_81_V;
                 hb->page8.brush_adc =
-                    update_param_a(tmp.page8.brush_adc, hb->page8.brush_adc, "brush_adc", SCRUBBER_VALUE)
+                    update_param_a(tmp.page8.brush_adc, hb->page8.brush_adc, "brush_adc", SCRUBBER_ANALOG)
                         ? tmp.page8.brush_adc
                         : hb->page8.brush_adc;
                 hb->page8.vacuum_adc =
-                    update_param_a(tmp.page8.vacuum_adc, hb->page8.vacuum_adc, "vacuum_adc", RECOVERY_VALUE)
+                    update_param_a(tmp.page8.vacuum_adc, hb->page8.vacuum_adc, "vacuum_adc", RECOVERY_ANALOG)
                         ? tmp.page8.vacuum_adc
                         : hb->page8.vacuum_adc;
                 break;
@@ -678,7 +707,7 @@ KU::StatusCode LiveData::update_heartbeat()
                         ? tmp.page9.vacuum_off_delay_time
                         : hb->page9.vacuum_off_delay_time;
                 hb->page9.brush_ddc =
-                    update_param_s(tmp.page9.brush_ddc, hb->page9.brush_ddc, "brush_ddc", SCRUBBER_VALUE)
+                    update_param_s(tmp.page9.brush_ddc, hb->page9.brush_ddc, "brush_ddc", SCRUBBER_ANALOG)
                         ? tmp.page9.brush_ddc
                         : hb->page9.brush_ddc;
                 break;
@@ -688,27 +717,27 @@ KU::StatusCode LiveData::update_heartbeat()
                 memcpy(&tmp.page10, resp->data + 2, sizeof(tmp.page10));
                 hb->page10.aux1_drain_voltage =
                     update_param_a((float)tmp.page10.aux1_drain_voltage * 16 / 81,
-                                   (float)hb->page10.aux1_drain_voltage * 16 / 81, "aux1_drain_voltage", MISC_VALUE)
+                                   (float)hb->page10.aux1_drain_voltage * 16 / 81, "aux1_drain_voltage", MISC_ANALOG)
                         ? tmp.page10.aux1_drain_voltage
                         : hb->page10.aux1_drain_voltage;
                 hb->page10.aux2_drain_voltage =
                     update_param_a((float)tmp.page10.aux2_drain_voltage * 16 / 81,
-                                   (float)hb->page10.aux2_drain_voltage * 16 / 81, "aux2_drain_voltage", MISC_VALUE)
+                                   (float)hb->page10.aux2_drain_voltage * 16 / 81, "aux2_drain_voltage", MISC_ANALOG)
                         ? tmp.page10.aux2_drain_voltage
                         : hb->page10.aux2_drain_voltage;
                 hb->page10.line_coil_voltage =
                     update_param_a((float)tmp.page10.line_coil_voltage * 16 / 81,
-                                   (float)hb->page10.line_coil_voltage * 16 / 81, "line_coil_voltage", MISC_VALUE)
+                                   (float)hb->page10.line_coil_voltage * 16 / 81, "line_coil_voltage", MISC_ANALOG)
                         ? tmp.page10.line_coil_voltage
                         : hb->page10.line_coil_voltage;
                 hb->page10.valve_drain_voltage = update_param_a((float)tmp.page10.valve_drain_voltage * 16 / 81,
                                                                 (float)hb->page10.valve_drain_voltage * 16 / 81,
-                                                                "valve_drain_voltage", SCRUBBER_VALUE)
+                                                                "valve_drain_voltage", SCRUBBER_ANALOG)
                                                      ? tmp.page10.valve_drain_voltage
                                                      : hb->page10.valve_drain_voltage;
                 hb->page10.brake_drain_voltage = update_param_a((float)tmp.page10.brake_drain_voltage * 16 / 81,
                                                                 (float)hb->page10.brake_drain_voltage * 16 / 81,
-                                                                "brake_drain_voltage", TRACTION_VALUE)
+                                                                "brake_drain_voltage", TRACTION_ANALOG)
                                                      ? tmp.page10.brake_drain_voltage
                                                      : hb->page10.brake_drain_voltage;
 
@@ -747,84 +776,33 @@ KU::StatusCode LiveData::update_heartbeat()
                 hb->page10.aux5_buf = update_param_s(tmp.page10.aux5_buf, hb->page10.aux5_buf, "aux5_buf", MISC_STATE)
                                           ? tmp.page10.aux5_buf
                                           : hb->page10.aux5_buf;
+                finished_loading = true;
+                printf("\033[7;24f hhhhhhh");
                 break;
             }
         }
     }
 }
 
-bool LiveData::is_selected(ParamCategory type)
-{
-    switch(type)
-    {
-        case TRACTION_STATE:
-        {
-            return traction_state_selected == ACTIVE_FLAG;
-        }
-        case SCRUBBER_STATE:
-        {
-            return scrubber_state_selected == ACTIVE_FLAG;
-        }
-        case RECOVERY_STATE:
-        {
-            return recovery_state_selected == ACTIVE_FLAG;
-        }
-        case ERROR_STATE:
-        {
-            return error_state_selected == ACTIVE_FLAG;
-        }
-        case META_STATE:
-        {
-            return meta_state_selected == ACTIVE_FLAG;
-        }
-        case BATTERY_STATE:
-        {
-            return battery_state_selected == ACTIVE_FLAG;
-        }
-        case MISC_STATE:
-        {
-            return misc_state_selected == ACTIVE_FLAG;
-        }
-        case UNKNOWN_STATE:
-        {
-            return unknown_state_selected == ACTIVE_FLAG;
-        }
-        case TRACTION_VALUE:
-        {
-            return traction_value_selected == ACTIVE_FLAG;
-        }
-        case RECOVERY_VALUE:
-        {
-            return recovery_value_selected == ACTIVE_FLAG;
-        }
-        case SCRUBBER_VALUE:
-        {
-            return scrubber_value_selected == ACTIVE_FLAG;
-        }
-        case MISC_VALUE:
-        {
-            return misc_value_selected == ACTIVE_FLAG;
-        }
-        case BATTERY_VALUE:
-        {
-            return battery_value_selected == ACTIVE_FLAG;
-        }
-    }
-}
-
+// update an analog parameter value
 bool LiveData::update_param_a(float new_value, float old_value, const string& log_name, ParamCategory type)
 {
-    static int traction_a_count = -1;
-    static int scrubber_a_count = -1;
-    static int recovery_a_count = -1;
-    static int battery_a_count = -1;
-    static int misc_a_count = -1;
-    static int unknown_a_count = -1;
-
-    end = std::chrono::steady_clock::now();
-    std::stringstream stream;
-    if (new_value != old_value && is_selected(type))
+    // get the according section
+    DataSection* section;
+    for(int i = 0; i < sections.size(); i++)
     {
+        if(sections[i]->category == type)
+        {
+            section = sections[i];
+            break;
+        }
+    }
+    
+    // display changes if parameter is active
+    std::stringstream stream;
+    if (new_value != old_value && section->selected_option == ACTIVE_FLAG)
+    {
+        end = std::chrono::steady_clock::now();
         LOG_PRINT(("%s%s%sLAST 10 CHANGES%s", COORD0, UP, RED_TITLE, ATTRIB_OFF));
         static int last_size;
         stream << BOLD_ON << std::setw(30) << log_name << ATTRIB_OFF << std::setw(5) << std::to_string(old_value)
@@ -858,208 +836,81 @@ bool LiveData::update_param_a(float new_value, float old_value, const string& lo
         //LOG_PRINT(("size: %i", last_size));
     }
 
-    switch (type)
+    // if not finished loading, add current parameter to the section
+    if(!finished_loading)
     {
-        case TRACTION_VALUE:
+        section->params.push_back(log_name);
+
+        // find the section width and height
+        for(int i = 0; i < section->params.size(); i++)
         {
-            static string POSITION;
-            if(traction_value_selected & PRESENT_FLAG)
+            int new_width = section->params[i].size(); 
+            int curr_width = section->width;
+            if(new_width > curr_width)
             {
-                if(traction_a_count < 0)
-                {
-                    int x;
-                    int y;
-                    if(last_x >= RIGHT_EDGE)
-                    {
-                        x = 0;
-                        y = BOTTOM_EDGE;
-                    }
-                    else
-                    {
-                        x = last_x + last_width + PADDING;
-                        y = last_y;
-                    }
-                    POSITION = "\033[" + std::to_string(y) + ';' + std::to_string(x) + "f";
-                    traction_a_count++;
-                    last_x = x;
-                    last_y = y;
-                    last_width = TRAC_V_WIDTH;
-                }
-                if (traction_a_count == TRAC_V_SIZE)
-                {
-                    traction_a_count = 0;
-                }
-                // print the location according to the count and then the variable
-                LOG_PRINT(("%s%sTRACTION VALUE%s%s%s", POSITION.c_str(),YELLOW_TITLE, ATTRIB_OFF, POSITION.c_str(),DOWN));
-                for (int i = 0; i < traction_a_count; i++)
-                {
-                    LOG_PRINT(("%s", DOWN));
-                }
-                LOG_PRINT(("%-28s:%.1f", log_name.c_str(), new_value));
-                traction_a_count++;
+                section->width = section->params[i].size();
             }
-            break;
         }
-        case SCRUBBER_VALUE:
+        section->num_params = section->params.size();
+    }
+    // update the sections to display when need to refresh or it is the first time publishing
+    if((refresh || section->param_index < 0) && finished_loading && (section->selected_option & PRESENT_FLAG))
+    {
+        if(section->param_index < 0)
         {
-            if(scrubber_value_selected & PRESENT_FLAG)
-            {
-                static string POSITION;
-                if(scrubber_a_count < 0)
-                {
-                    int x;
-                    int y;
-                    if(last_x >= RIGHT_EDGE)
-                    {
-                        x = 0;
-                        y = BOTTOM_EDGE;
-                    }
-                    else
-                    {
-                        x = last_x + last_width + PADDING;
-                        y = last_y;
-                    }
-                    POSITION = "\033[" + std::to_string(y) + ';' + std::to_string(x) + "f";
-                    scrubber_a_count++;
-                    last_x = x;
-                    last_y = y;
-                    last_width = SCRUB_V_WIDTH;
-                }
-                if (scrubber_a_count == SCRUB_V_SIZE)
-                {
-                    scrubber_a_count = 0;
-                }
-                // print the location according to the count and then the variable
-                LOG_PRINT(("%s%sSCRUBBER VALUE%s%s%s", POSITION.c_str(),YELLOW_TITLE, ATTRIB_OFF, POSITION.c_str(),DOWN));
-                for (int i = 0; i < scrubber_a_count; i++)
-                {
-                    LOG_PRINT(("%s", DOWN));
-                }
-                LOG_PRINT(("%-28s:%.1f", log_name.c_str(), new_value));
-                scrubber_a_count++;
-            }
-            break;
+            section->param_index = 0;
         }
-        case RECOVERY_VALUE:
+        // if the section can fit in the remaining width space, then display it
+        if(window_size.ws_col - (last_x + last_width) > section->width + PADDING)
         {
-            if(RECOVERY_VALUE & PRESENT_FLAG)
+            // first section to display
+            if(last_width == 0)
             {
-                static string POSITION;
-                if(recovery_a_count < 0)
-                {
-                    int x;
-                    int y;
-                    if(last_x >= RIGHT_EDGE)
-                    {
-                        x = 0;
-                        y = BOTTOM_EDGE;
-                    }
-                    else
-                    {
-                        x = last_x + last_width + PADDING;
-                        y = last_y;
-                    }
-                    POSITION = "\033[" + std::to_string(y) + ';' + std::to_string(x) + "f";
-                    recovery_a_count++;
-                    last_x = x;
-                    last_y = y;
-                    last_width = RECOV_V_WIDTH;
-                }
-                if (recovery_a_count == RECOV_V_SIZE)
-                {
-                    recovery_a_count = 0;
-                }
-                // print the location according to the count and then the variable
-                LOG_PRINT(("%s%sRECOVERY VALUE%s%s%s", POSITION.c_str(),YELLOW_TITLE, ATTRIB_OFF, POSITION.c_str(),DOWN));
-                for (int i = 0; i < recovery_a_count; i++)
-                {
-                    LOG_PRINT(("%s", DOWN));
-                }
-                LOG_PRINT(("%-28s:%.1f", log_name.c_str(), new_value));
-                recovery_a_count++;
+                section->x_pos = 0;
+                section->y_pos = 0;
             }
-            break;
+            else
+            {
+                section->x_pos = last_x + last_width + PADDING;
+                section->y_pos = last_y;
+            }
         }
-        case BATTERY_VALUE:
+        // if the section can fit in the remaining height of the next section row
+        else if(window_size.ws_row - (last_y + last_height) > section->num_params + PADDING)
         {
-            if(battery_value_selected & PRESENT_FLAG)
-            {
-                static string POSITION;
-                if(battery_a_count < 0)
-                {
-                    int x;
-                    int y;
-                    if(last_x >= RIGHT_EDGE)
-                    {
-                        x = 0;
-                        y = BOTTOM_EDGE;
-                    }
-                    else
-                    {
-                        x = last_x + last_width + PADDING;
-                        y = last_y;
-                    }
-                    POSITION = "\033[" + std::to_string(y) + ';' + std::to_string(x) + "f";
-                    battery_a_count++;
-                    last_x = x;
-                    last_y = y;
-                    last_width = BATT_V_WIDTH;
-                }
-                if (battery_a_count == BATT_V_SIZE)
-                {
-                    battery_a_count = 0;
-                }
-                // print the location according to the count and then the variable
-                LOG_PRINT(("%s%sBATTERY VALUE%s%s%s", POSITION.c_str(),YELLOW_TITLE, ATTRIB_OFF, POSITION.c_str(),DOWN));
-                for (int i = 0; i < battery_a_count; i++)
-                {
-                    LOG_PRINT(("%s", DOWN));
-                }
-                LOG_PRINT(("%-20s:%.2f", log_name.c_str(), new_value));
-                battery_a_count++;
-            }
-            break;
+            section->x_pos = 0;
+            section->y_pos = last_y + last_height + PADDING;
         }
-        case MISC_VALUE:
+        // if there is no room, don't display these sections
+        else
         {
-            if(misc_value_selected & PRESENT_FLAG)
-            {
-                static string POSITION;
-                if(misc_a_count < 0)
-                {
-                    int x;
-                    int y;
-                    if(last_x >= RIGHT_EDGE)
-                    {
-                        x = 0;
-                        y = BOTTOM_EDGE;
-                    }
-                    else
-                    {
-                        x = last_x + last_width + PADDING;
-                        y = last_y;
-                    }
-                    POSITION = "\033[" + std::to_string(y) + ';' + std::to_string(x) + "f";
-                    misc_a_count++;
-                    last_x = x;
-                    last_y = y;
-                    last_width = MISC_V_WIDTH;
-                }
-                if (misc_a_count == MISC_V_SIZE)
-                {
-                    misc_a_count = 0;
-                }
-                // print the location according to the count and then the variable
-                LOG_PRINT(("%s%sMISC VALUE%s%s%s", POSITION.c_str(),YELLOW_TITLE, ATTRIB_OFF, POSITION.c_str(),DOWN));
-                for (int i = 0; i < misc_a_count; i++)
-                {
-                    LOG_PRINT(("%s", DOWN));
-                }
-                LOG_PRINT(("%-28s:%.1f", log_name.c_str(), new_value));
-                misc_a_count++;
-            }
-            break;
+            section->x_pos = -1;
+            section->y_pos = -1;
         }
+        refresh = false;
+    }
+    // display the header if on display
+    if(section->x_pos >= 0 && section->y_pos >= 0)
+    {
+        if(section->param_index == section->num_params)
+        {
+            section->param_index = 0;
+        }
+        string section_position = "\033[" + std::to_string(section->y_pos) + ';' + std::to_string(section->x_pos) + "f";
+        LOG_PRINT(("%s%s%s%s%s%s", section_position.c_str(),YELLOW_TITLE, section->name.c_str(), ATTRIB_OFF, section_position.c_str(), DOWN));
+        for (int i = 0; i < section->param_index; i++)
+        {
+            LOG_PRINT(("%s", DOWN));
+        }
+        // pad the section params based on the width
+        LOG_PRINT(("%-*s:%.1f", section->width, section->params[section->param_index].c_str(), new_value));
+
+        // update last section values
+        last_x = section->x_pos;
+        last_y = section->y_pos;
+        last_width = section->width + 1 + std::to_string(new_value).size();
+        last_height = section->num_params;
+        section->param_index++;
     }
     if (new_value != old_value)
     {
@@ -1070,18 +921,21 @@ bool LiveData::update_param_a(float new_value, float old_value, const string& lo
 
 bool LiveData::update_param_s(uint8_t new_value, uint8_t old_value, const string& log_name, ParamCategory type)
 {
-    static int traction_s_count = -1;
-    static int scrubber_s_count = -1;
-    static int recovery_s_count = -1;
-    static int battery_s_count = -1;
-    static int misc_s_count = -1;
-    static int unknown_s_count = -1;
-    static int error_s_count = 0;
-    static int meta_s_count = -1;
-    end = std::chrono::steady_clock::now();
-    std::stringstream stream;
-    if (new_value != old_value && is_selected(type))
+    // get the according section
+    DataSection* section;
+    for(int i = 0; i < sections.size(); i++)
     {
+        if(sections[i]->category == type)
+        {
+            section = sections[i];
+            break;
+        }
+    }
+
+    std::stringstream stream;
+    if (new_value != old_value && section->selected_option == ACTIVE_FLAG)
+    {
+        end = std::chrono::steady_clock::now();
         LOG_PRINT(("%s%s%sLAST 10 CHANGES%s", COORD0, UP, RED_TITLE, ATTRIB_OFF));
         static int last_size;
         stream << BOLD_ON << std::setw(30) << log_name << ATTRIB_OFF << std::setw(5) << std::to_string(old_value)
@@ -1116,329 +970,81 @@ bool LiveData::update_param_s(uint8_t new_value, uint8_t old_value, const string
     }
 
     static int last_size = stream.str().size();
-    switch (type)
+    // if not finished loading, add current parameter to the section
+    if(!finished_loading)
     {
-        case TRACTION_STATE:
+        section->params.push_back(log_name);
+
+        // find the section width and height
+        for(int i = 0; i < section->params.size(); i++)
         {
-            static string POSITION;
-            if(traction_state_selected & PRESENT_FLAG)
+            int new_width = section->params[i].size(); 
+            int curr_width = section->width;
+            if(new_width > curr_width)
             {
-                if(traction_s_count < 0)
-                {
-                    int x;
-                    int y;
-                    if(last_x >= RIGHT_EDGE)
-                    {
-                        x = 0;
-                        y = BOTTOM_EDGE;
-                    }
-                    else
-                    {
-                        x = last_x + last_width + PADDING;
-                        y = last_y;
-                    }
-                    POSITION = "\033[" + std::to_string(y) + ";" + std::to_string(x) + "f";
-                    traction_s_count++;
-                    last_x = x;
-                    last_y = y;
-                    last_width = TRAC_S_WIDTH;
-                }
-                if (traction_s_count == TRAC_S_SIZE)
-                {
-                    traction_s_count = 0;
-                }
-                // print the location according to the count and then the variable
-                LOG_PRINT(("%s%sTRACTION STATE%s%s%s", POSITION.c_str(), YELLOW_TITLE, ATTRIB_OFF, POSITION.c_str(), DOWN));
-                for (int i = 0; i < traction_s_count; i++)
-                {
-                    LOG_PRINT(("%s", DOWN));
-                }
-                LOG_PRINT(("%-28s:%i", log_name.c_str(), new_value));
-                traction_s_count++;
+                section->width = section->params[i].size();
             }
-            break;
         }
-        case SCRUBBER_STATE:
+        section->num_params = section->params.size();
+    }
+    // update the sections to display when need to refresh or it is the first time publishing
+    if((refresh || section->param_index < 0) && finished_loading && (section->selected_option & PRESENT_FLAG))
+    {
+        if(section->param_index < 0)
         {
-            static string POSITION;
-            if(scrubber_state_selected & PRESENT_FLAG)
-            {
-                if(scrubber_s_count < 0)
-                {
-                    int x;
-                    int y;
-                    if(last_x >= RIGHT_EDGE)
-                    {
-                        x = 0;
-                        y = BOTTOM_EDGE;
-                    }
-                    else
-                    {
-                        x = last_x + last_width + PADDING;
-                        y = last_y;
-                    }
-                    POSITION = "\033[" + std::to_string(y) + ';' + std::to_string(x) + "f";
-                    scrubber_s_count++;
-                    last_x = x;
-                    last_y = y;
-                    last_width = SCRUB_S_WIDTH;
-                }
-                if (scrubber_s_count == SCRUB_S_SIZE)
-                {
-                    scrubber_s_count = 0;
-                }
-                // print the location according to the count and then the variable
-                LOG_PRINT(("%s%sSCRUBBER STATE%s%s%s", POSITION.c_str(),YELLOW_TITLE, ATTRIB_OFF, POSITION.c_str(),DOWN));
-                for (int i = 0; i < scrubber_s_count; i++)
-                {
-                    LOG_PRINT(("%s", DOWN));
-                }
-                LOG_PRINT(("%-28s:%i", log_name.c_str(), new_value));
-                scrubber_s_count++;
-            }
-            break;
+            section->param_index = 0;
         }
-        case RECOVERY_STATE:
+        // if the section can fit in the remaining width space, then display it
+        if(window_size.ws_col - (last_x + last_width) > section->width + PADDING)
         {
-            static string POSITION;
-            if(recovery_state_selected & PRESENT_FLAG)
+            // first section to display
+            if(last_width == 0)
             {
-                if(recovery_s_count < 0)
-                {
-                    int x;
-                    int y;
-                    if(last_x >= RIGHT_EDGE)
-                    {
-                        x = 0;
-                        y = BOTTOM_EDGE;
-                    }
-                    else
-                    {
-                        x = last_x + last_width + PADDING;
-                        y = last_y;
-                    }
-                    POSITION = "\033[" + std::to_string(y) + ';' + std::to_string(x) + "f";
-                    recovery_s_count++;
-                    last_x = x;
-                    last_y = y;
-                    last_width = RECOV_S_WIDTH;
-                }
-                if (recovery_s_count == RECOV_S_SIZE)
-                {
-                    recovery_s_count = 0;
-                }
-                // print the location according to the count and then the variable
-                LOG_PRINT(("%s%sRECOVERY STATE%s%s%s", POSITION.c_str(),YELLOW_TITLE, ATTRIB_OFF, POSITION.c_str(),DOWN));
-                for (int i = 0; i < recovery_s_count; i++)
-                {
-                    LOG_PRINT(("%s", DOWN));
-                }
-                LOG_PRINT(("%-28s:%i", log_name.c_str(), new_value));
-                recovery_s_count++;
+                section->x_pos = 0;
+                section->y_pos = 0;
             }
-            break;
+            else
+            {
+                section->x_pos = last_x + last_width + PADDING;
+                section->y_pos = last_y;
+            }
         }
-        case BATTERY_STATE:
+        // if the section can fit in the remaining height of the next section row
+        else if(window_size.ws_row - (last_y + last_height) > section->num_params + PADDING)
         {
-            static string POSITION;
-            if(battery_state_selected & PRESENT_FLAG)
-            {
-                if(battery_s_count < 0)
-                {
-                    int x;
-                    int y;
-                    if(last_x >= RIGHT_EDGE)
-                    {
-                        x = 0;
-                        y = BOTTOM_EDGE;
-                    }
-                    else
-                    {
-                        x = last_x + last_width + PADDING;
-                        y = last_y;
-                    }
-                    POSITION = "\033[" + std::to_string(y) + ';' + std::to_string(x) + "f";
-                    battery_s_count++;
-                    last_x = x;
-                    last_y = y;
-                    last_width = BATT_S_WIDTH;
-                }
-                if (battery_s_count == BATT_S_SIZE)
-                {
-                    battery_s_count = 0;
-                }
-                // print the location according to the count and then the variable
-                LOG_PRINT(("%s%sBATTERY STATE%s%s%s", POSITION.c_str(),YELLOW_TITLE, ATTRIB_OFF, POSITION.c_str(),DOWN));
-                for (int i = 0; i < battery_s_count; i++)
-                {
-                    LOG_PRINT(("%s", DOWN));
-                }
-                LOG_PRINT(("%-20s:%i", log_name.c_str(), new_value));
-                battery_s_count++;
-            }
-            break;
+            section->x_pos = 0;
+            section->y_pos = last_y + last_height + PADDING;
         }
-        case MISC_STATE:
+        // if there is no room, don't display these sections
+        else
         {
-            static string POSITION;
-            if(misc_state_selected & PRESENT_FLAG)
-            {
-                if(misc_s_count < 0)
-                {
-                    int x;
-                    int y;
-                    if(last_x >= RIGHT_EDGE)
-                    {
-                        x = 0;
-                        y = BOTTOM_EDGE;
-                    }
-                    else
-                    {
-                        x = last_x + last_width + PADDING;
-                        y = last_y;
-                    }
-                    POSITION = "\033[" + std::to_string(y) + ';' + std::to_string(x) + "f";
-                    misc_s_count++;
-                    last_x = x;
-                    last_y = y;
-                    last_width = MISC_S_WIDTH;
-                }
-                if (misc_s_count == MISC_S_SIZE)
-                {
-                    misc_s_count = 0;
-                }
-                // print the location according to the count and then the variable
-                LOG_PRINT(("%s%sMISC STATE%s%s%s", POSITION.c_str(),YELLOW_TITLE, ATTRIB_OFF, POSITION.c_str(),DOWN));
-                for (int i = 0; i < misc_s_count; i++)
-                {
-                    LOG_PRINT(("%s", DOWN));
-                }
-                LOG_PRINT(("%-28s:%i", log_name.c_str(), new_value));
-                misc_s_count++;
-            }
-            break;
+            section->x_pos = -1;
+            section->y_pos = -1;
         }
-        case UNKNOWN_STATE:
+        refresh = false;
+    }
+    // display the header if on display
+    if(section->x_pos >= 0 && section->y_pos >= 0)
+    {
+        if(section->param_index == section->num_params)
         {
-            static string POSITION;
-            if(unknown_state_selected & PRESENT_FLAG)
-            {
-                if(unknown_s_count < 0)
-                {
-                    int x;
-                    int y;
-                    if(last_x >= RIGHT_EDGE)
-                    {
-                        x = 0;
-                        y = BOTTOM_EDGE;
-                    }
-                    else
-                    {
-                        x = last_x + last_width + PADDING;
-                        y = last_y;
-                    }
-                    POSITION = "\033[" + std::to_string(y) + ';' + std::to_string(x) + "f";
-                    unknown_s_count++;
-                    last_x = x;
-                    last_y = y;
-                    last_width = UNKNOWN_S_WIDTH;
-                }
-                if (unknown_s_count == UNKNOWN_S_SIZE)
-                {
-                    unknown_s_count = 0;
-                }
-                // print the location according to the count and then the variable
-                LOG_PRINT(("%s%sUNKNOWN STATE%s%s%s", POSITION.c_str(),YELLOW_TITLE, ATTRIB_OFF, POSITION.c_str(),DOWN));
-                for (int i = 0; i < unknown_s_count; i++)
-                {
-                    LOG_PRINT(("%s", DOWN));
-                }
-                LOG_PRINT(("%-14s:%i", log_name.c_str(), new_value));
-                unknown_s_count++;
-            }
-            break;
+            section->param_index = 0;
         }
-        case ERROR_STATE:
+        string section_position = "\033[" + std::to_string(section->y_pos) + ';' + std::to_string(section->x_pos) + "f";
+        LOG_PRINT(("%s%s%s%s%s%s", section_position.c_str(),YELLOW_TITLE, section->name.c_str(), ATTRIB_OFF, section_position.c_str(), DOWN));
+        for (int i = 0; i < section->param_index; i++)
         {
-            if(error_state_selected & PRESENT_FLAG)
-            {
-                if(error_s_count == ERROR_S1_size + ERROR_S2_size  + 1)
-                {
-                    error_s_count = 0;
-                }
-                // print the location according to the count and then the variable
-                LOG_PRINT(("%s%sERROR STATE%s%s%s", TLC_ERROR, RED_TITLE, ATTRIB_OFF, TLC_ERROR, DOWN));
-                if (error_s_count == 0)
-                {
-                    LOG_PRINT(("%-28s:%i", log_name.c_str(), new_value));
-                    error_s_count++;
-                }
-                else
-                {
-                    if (error_s_count <= ERROR_S1_size)
-                    {
-                        LOG_PRINT(("%s", TLC_ERROR_S1));
-                        for (int i = 0; i < error_s_count; i++)
-                        {
-                            LOG_PRINT(("%s", DOWN));
-                        }
-                        LOG_PRINT(("%-28s:%i", log_name.c_str(), new_value));
-                        error_s_count++;
-                    }
-                    else
-                    {
-                        LOG_PRINT(("%s", TLC_ERROR_S2));
-                        for (int i = 0; i < error_s_count - 8; i++)
-                        {
-                            LOG_PRINT(("%s", DOWN));
-                        }
-                        LOG_PRINT(("%-28s:%i", log_name.c_str(), new_value));
-                        error_s_count++;
-                    }
-                }
-            }
-            break;
+            LOG_PRINT(("%s", DOWN));
         }
-        case META_STATE:
-        {
-            static string POSITION;
-            if(meta_state_selected & PRESENT_FLAG)
-            {
-                if(meta_s_count < 0)
-                {
-                    int x;
-                    int y;
-                    if(last_x >= RIGHT_EDGE)
-                    {
-                        x = 0;
-                        y = BOTTOM_EDGE;
-                    }
-                    else
-                    {
-                        x = last_x + last_width + PADDING;
-                        y = last_y;
-                    }
-                    POSITION = "\033[" + std::to_string(y) + ';' + std::to_string(x) + "f";
-                    meta_s_count++;
-                    last_x = x;
-                    last_y = y;
-                    last_width = META_S_WIDTH;
-                }
-                if (meta_s_count == META_S_SIZE)
-                {
-                    meta_s_count = 0;
-                }
-                // print the location according to the count and then the variable
-                LOG_PRINT(("%s%sMETADATA%s%s%s", POSITION.c_str(),YELLOW_TITLE, ATTRIB_OFF, POSITION.c_str(),DOWN));
-                for (int i = 0; i < meta_s_count; i++)
-                {
-                    LOG_PRINT(("%s", DOWN));
-                }
-                LOG_PRINT(("%-22s:%i", log_name.c_str(), new_value));
-                meta_s_count++;
-            }
-            break;
-        }
+        // pad the section params based on the width
+        LOG_PRINT(("%-*s:%i", section->width, section->params[section->param_index].c_str(), new_value));
+
+        // update last section values
+        last_x = section->x_pos;
+        last_y = section->y_pos;
+        last_width = section->width + 1 + std::to_string(new_value).size();
+        last_height = section->num_params;
+        section->param_index++;
     }
     if (new_value != old_value)
     {
@@ -1449,148 +1055,116 @@ bool LiveData::update_param_s(uint8_t new_value, uint8_t old_value, const string
 
 KU::StatusCode LiveData::parse_ini(const string& file_path)
 {
+    #define DISPLAY_OFF "=0"
+    #define DISPLAY_ON "=1"
+    #define STATE_SECTION "[STATE]"
+    #define ANALOG_SECTION "[ANALOG]"
+    #define CHANGES_SECTION "[CHANGES]"
     // first try to open the file, if DNE create it and output the following default options
     fstream stu_file;
     stu_file.open(file_path, std::ios::in);
-    stu_file.close();
     if (stu_file.fail())
     {
         stu_file.open(file_path, std::ios::out);
-        stu_file << "[STATE]\ntraction_state = 1\nscrubber_state = 1\nrecovery_state = 1\nmisc_state = 1\nbattery_state = 1\nunknown_state = 0\n"
-                 << "error_state = 1\nmeta_state = 1\n[ANALOG]\ntraction_value = 1\nscrubber_value = 1\nrecovery_value = 1\nmisc_value = 1\n"
-                 << "battery_value = 1\n[LATEST_CHANGES]\ntraction_state = 1\nscrubber_state = 1\nrecovery_state = 1\nmisc_state = 1\n"
-                 << "battery_state = 1\nunknown_state = 0\nerror_state = 1\nmeta_state = 0\ntraction_value = 0\nscrubber_value = 0\nrecovery_value = 0\n"
-                 << "misc_value = 0\nbattery_value = 0"; 
+
+        // turn on error state and meta data by default
+        stu_file << STATE_SECTION << "\n";
+        for(int i = 0; i < sections.size(); i++)
+        {
+            if(sections[i]->is_state && (sections[i]->category != ERROR_STATE && sections[i]->category != META_STATE))
+            {
+                stu_file << sections[i]->name << DISPLAY_OFF << "\n";
+            }
+            else if(sections[i]->is_state && (sections[i]->category == ERROR_STATE || sections[i]->category == META_STATE))
+            {
+                stu_file << sections[i]->name << DISPLAY_ON << "\n";
+            }
+        }
+        // no analog values by default
+        stu_file << ANALOG_SECTION << "\n";
+        for(int i = 0; i < sections.size(); i++)
+        {
+            if(!sections[i]->is_state)
+            {
+                stu_file << sections[i]->name << DISPLAY_OFF << "\n";
+            }
+        }
+        // only error values show up in last changes by default
+        stu_file << CHANGES_SECTION << "\n";
+        for(int i = 0; i < sections.size(); i++)
+        {
+            if(sections[i]->category != ERROR_STATE)
+            {
+                stu_file << sections[i]->name << DISPLAY_OFF << "\n";
+            }
+            else
+            {
+                stu_file << sections[i]->name << DISPLAY_ON << "\n";
+            }
+            
+        }
         stu_file.close();  
     }
 
     // parse the ini file and initialize the options accordingly
-    stu_file.open(file_path, std::ios::in);
+    if(!stu_file.is_open())
+    {
+        stu_file.open(file_path, std::ios::in);
+    }
     string curr_line = "";
-    getline(stu_file, curr_line);
-    if(curr_line == "[STATE]")
+    string parameter = "";
+    string status = "";
+    hu_getline(stu_file, curr_line);
+    if(curr_line == STATE_SECTION)
     {
-        while(curr_line != "[ANALOG]")
+        // for items in state section, determine if on/off
+        while(curr_line != ANALOG_SECTION)
         {
-            getline(stu_file, curr_line);
-            if(curr_line.substr(0, sizeof("traction_state")-1) == "traction_state" && curr_line.substr(curr_line.size()-1,1) == "1")
+            hu_getline(stu_file, curr_line);
+            parameter = curr_line.substr(0, curr_line.find('='));
+            for(int i = 0; i < sections.size(); i++)
             {
-                traction_state_selected |= PRESENT_FLAG;
-            }
-            else if(curr_line.substr(0, sizeof("scrubber_state")-1) == "scrubber_state" && curr_line.substr(curr_line.size()-1,1) == "1")
-            {
-                scrubber_state_selected |= PRESENT_FLAG;
-            }
-            else if(curr_line.substr(0, sizeof("recovery_state")-1) == "recovery_state" && curr_line.substr(curr_line.size()-1,1) == "1")
-            {
-                recovery_state_selected |= PRESENT_FLAG;
-            }
-            else if(curr_line.substr(0, sizeof("misc_state")-1) == "misc_state" && curr_line.substr(curr_line.size()-1,1) == "1")
-            {
-                misc_state_selected |= PRESENT_FLAG;
-            }
-            else if(curr_line.substr(0, sizeof("battery_state")-1) == "battery_state" && curr_line.substr(curr_line.size()-1,1) == "1")
-            {
-                battery_state_selected |= PRESENT_FLAG;
-            }
-            else if(curr_line.substr(0, sizeof("unknown_state")-1) == "unknown_state" && curr_line.substr(curr_line.size()-1,1) == "1")
-            {
-                unknown_state_selected |= PRESENT_FLAG;
-            }
-            else if(curr_line.substr(0, sizeof("error_state")-1) == "error_state" && curr_line.substr(curr_line.size()-1,1) == "1")
-            {
-                error_state_selected |= PRESENT_FLAG;
-            }
-            else if(curr_line.substr(0, sizeof("meta_state")-1) == "meta_state" && curr_line.substr(curr_line.size()-1,1) == "1")
-            {
-                meta_state_selected |= PRESENT_FLAG;
+                if(sections[i]->name == parameter)
+                {
+                    if(curr_line.substr(curr_line.find('=')+1, 1) == "1")
+                    {
+                        sections[i]->selected_option |= PRESENT_FLAG;
+                    }
+                    break;
+                }
             }
         }
     }
-    if (curr_line == "[ANALOG]")
+    if (curr_line == ANALOG_SECTION)
     {
-        while(curr_line != "[LATEST_CHANGES]")
+        // for items in analog section, determine if on/off
+        while(curr_line != CHANGES_SECTION)
         {
-            getline(stu_file, curr_line);
-            if(curr_line.substr(0, sizeof("traction_value")-1) == "traction_value" && curr_line.substr(curr_line.size()-1,1) == "1")
+            hu_getline(stu_file, curr_line);
+            parameter = curr_line.substr(0, curr_line.find('='));
+            for(int i = 0; i < sections.size(); i++)
             {
-                traction_value_selected |= PRESENT_FLAG;
-            }
-            else if(curr_line.substr(0, sizeof("scrubber_value")-1) == "scrubber_value" && curr_line.substr(curr_line.size()-1,1) == "1")
-            {
-                scrubber_value_selected |= PRESENT_FLAG;
-            }
-            else if(curr_line.substr(0, sizeof("recovery_value")-1) == "recovery_value" && curr_line.substr(curr_line.size()-1,1) == "1")
-            {
-                recovery_value_selected |= PRESENT_FLAG;
-            }
-            else if(curr_line.substr(0, sizeof("misc_value")-1) == "misc_value" && curr_line.substr(curr_line.size()-1,1) == "1")
-            {
-                misc_value_selected |= PRESENT_FLAG;
-            }
-            else if(curr_line.substr(0, sizeof("battery_value")-1) == "battery_value" && curr_line.substr(curr_line.size()-1,1) == "1")
-            {
-                battery_value_selected |= PRESENT_FLAG;
+                if(sections[i]->name == parameter && curr_line.substr(curr_line.find('=')+1, 1) == "1")
+                {
+                    sections[i]->selected_option |= PRESENT_FLAG;
+                }
             }
         }
     }
-    if(curr_line == "[LATEST_CHANGES]")
+    if(curr_line == CHANGES_SECTION)
     {
-        while(getline(stu_file, curr_line))
+        // for items in changes section, determine if on/off
+        while(hu_getline(stu_file, curr_line))
         {
-            if(curr_line.substr(0, sizeof("traction_state")-1) == "traction_state" && curr_line.substr(curr_line.size()-1,1) == "1")
+            parameter = curr_line.substr(0, curr_line.find('='));
+            for(int i = 0; i < sections.size(); i++)
             {
-                traction_state_selected |= ACTIVE_FLAG;
-            }
-            else if(curr_line.substr(0, sizeof("scrubber_state")-1) == "scrubber_state" && curr_line.substr(curr_line.size()-1,1) == "1")
-            {
-                scrubber_state_selected |= ACTIVE_FLAG;
-            }
-            else if(curr_line.substr(0, sizeof("recovery_state")-1) == "recovery_state" && curr_line.substr(curr_line.size()-1,1) == "1")
-            {
-                recovery_state_selected |= ACTIVE_FLAG;
-            }
-            else if(curr_line.substr(0, sizeof("misc_state")-1) == "misc_state" && curr_line.substr(curr_line.size()-1,1) == "1")
-            {
-                misc_state_selected |= ACTIVE_FLAG;
-            }
-            else if(curr_line.substr(0, sizeof("battery_state")-1) == "battery_state" && curr_line.substr(curr_line.size()-1,1) == "1")
-            {
-                battery_state_selected |= ACTIVE_FLAG;
-            }
-            else if(curr_line.substr(0, sizeof("unknown_state")-1) == "unknown_state" && curr_line.substr(curr_line.size()-1,1) == "1")
-            {
-                unknown_state_selected |= ACTIVE_FLAG;
-            }
-            else if(curr_line.substr(0, sizeof("error_state")-1) == "error_state" && curr_line.substr(curr_line.size()-1,1) == "1")
-            {
-                error_state_selected |= ACTIVE_FLAG;
-            }
-            else if(curr_line.substr(0, sizeof("meta_state")-1) == "meta_state" && curr_line.substr(curr_line.size()-1,1) == "1")
-            {
-                meta_state_selected |= ACTIVE_FLAG;
-            }
-            else if(curr_line.substr(0, sizeof("traction_value")-1) == "traction_value" && curr_line.substr(curr_line.size()-1,1) == "1")
-            {
-                traction_value_selected |= ACTIVE_FLAG;
-            }
-            else if(curr_line.substr(0, sizeof("scrubber_value")-1) == "scrubber_value" && curr_line.substr(curr_line.size()-1,1) == "1")
-            {
-                scrubber_value_selected |= ACTIVE_FLAG;
-            }
-            else if(curr_line.substr(0, sizeof("recovery_value")-1) == "recovery_value" && curr_line.substr(curr_line.size()-1,1) == "1")
-            {
-                recovery_value_selected |= ACTIVE_FLAG;
-            }
-            else if(curr_line.substr(0, sizeof("misc_value")-1) == "misc_value" && curr_line.substr(curr_line.size()-1,1) == "1")
-            {
-                misc_value_selected |= ACTIVE_FLAG;
-            }
-            else if(curr_line.substr(0, sizeof("battery_value")-1) == "battery_value" && curr_line.substr(curr_line.size()-1,1) == "1")
-            {
-                battery_value_selected |= ACTIVE_FLAG;
+                if(sections[i]->name == parameter && curr_line.substr(curr_line.find('=')+1, 1) == "1")
+                {
+                    sections[i]->selected_option |= ACTIVE_FLAG;
+                }
             }
         }
-        return KU::NO_ERROR;
     }
+    return KU::NO_ERROR;
 }
