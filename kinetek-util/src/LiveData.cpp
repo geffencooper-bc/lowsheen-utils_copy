@@ -21,21 +21,10 @@
 
 // escape sequences to adjust cursor location and text format
 #define TLC "\033[0;0f"
-// #define TLC_TRACTION_V "\033[23;0f"
-// #define TLC_SCRUBBER_V "\033[23;40f"
-// #define TLC_RECOVERY_V "\033[23;80f"
-// #define TLC_MISC_V "\033[23;117f"
-// #define TLC_BATTERY_V "\033[23;155f"
+#define BLC "\033[60;0f"
 #define TLC_ERROR "\033[38;0f"
 #define TLC_ERROR_S1 "\033[40;0f"
 #define TLC_ERROR_S2 "\033[40;40f"
-// #define TLC_TRACTION_S "\033[0;0f"
-// #define TLC_SCRUBBER_S "\033[0;40f"
-// #define TLC_RECOVERY_S "\033[0;80f"
-// #define TLC_MISC_S "\033[0;117f"
-// #define TLC_UNKNOWN_S "\033[0;185f"
-// #define TLC_BATTERY_S "\033[0;155f"
-// #define TLC_META "\033[27;155f"
 #define SAVE "\033[s"
 #define RESTORE "\033[u"
 #define BACK "\033[1D"
@@ -47,8 +36,9 @@
 #define RED_TITLE "\033[1;31m"
 #define ATTRIB_OFF "\033[0m"
 #define CLEAR "\033[2J"
+#define FULL_SCREEN "\e[8;200;200t"
 #define PADDING 3
-#define RIGHT_EDGE 180
+#define RIGHT_EDGE 150
 #define BOTTOM_EDGE 23
 
 // number of parameters in each category
@@ -101,6 +91,10 @@ LiveData::LiveData(SocketCanHelper* sc, KU::CanDataList* ku_data)
     this->ku_data = ku_data;
     hb = new controller_heartbeat;
 
+    // make the terminal full screen and get the width and height
+    printf("%s", FULL_SCREEN);
+    ioctl(STDOUT_FILENO, TIOCGWINSZ, &size);
+
     // start the clock on launch
     begin = std::chrono::steady_clock::now();
 }
@@ -120,7 +114,7 @@ void LiveData_resp_call_back(void* obj, const CO_CANrxMsg_t* can_msg)
 // clear the screen upon exit
 void my_handler(int s)
 {
-    printf("%s%s", CLEAR, TLC);
+    printf("%s", BLC);
     exit(1);
 }
 // updates the heartbeat struct every page
@@ -1455,6 +1449,7 @@ bool LiveData::update_param_s(uint8_t new_value, uint8_t old_value, const string
 
 KU::StatusCode LiveData::parse_ini(const string& file_path)
 {
+    // first try to open the file, if DNE create it and output the following default options
     fstream stu_file;
     stu_file.open(file_path, std::ios::in);
     stu_file.close();
@@ -1468,6 +1463,8 @@ KU::StatusCode LiveData::parse_ini(const string& file_path)
                  << "misc_value = 0\nbattery_value = 0"; 
         stu_file.close();  
     }
+
+    // parse the ini file and initialize the options accordingly
     stu_file.open(file_path, std::ios::in);
     string curr_line = "";
     getline(stu_file, curr_line);

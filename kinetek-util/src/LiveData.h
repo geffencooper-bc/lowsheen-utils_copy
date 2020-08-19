@@ -11,6 +11,7 @@
 #include <vector>
 #include <fstream>
 #include "HexUtility.h"
+#include <sys/ioctl.h>
 
 using std::fstream;
 using std::string;
@@ -268,6 +269,8 @@ class LiveData
     int last_y = 0;
     int last_width = 0;
     int last_height = 0;
+
+    struct winsize size;
 };
 
 #endif
