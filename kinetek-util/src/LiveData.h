@@ -8,6 +8,11 @@
 #include "KinetekUtilityCodes.h"
 #include <string>
 #include <chrono>
+#include <vector>
+#include <fstream>
+#include "HexUtility.h"
+
+using std::fstream;
 using std::string;
 
 // this class facilitates the live data tool
@@ -29,8 +34,7 @@ class LiveData
         SCRUBBER_VALUE,
         RECOVERY_VALUE,
         BATTERY_VALUE,
-        MISC_VALUE,
-        UNKNOWN_VALUE
+        MISC_VALUE
     };
 
     // This struct was taken from kinetek_kcca0237.cpp except the pages are not a union
@@ -218,6 +222,9 @@ class LiveData
     // deallocates memory
     ~LiveData();
 
+    // parses INI file for live data options
+    KU::StatusCode parse_ini(const string& file_path);
+
     // updates the heart beat struct every page
     KU::StatusCode update_heartbeat();
 
@@ -226,17 +233,41 @@ class LiveData
     SocketCanHelper* sc;
     KU::CanDataList* ku_data;
 
-    bool reset = true;
     string top_10;
     std::chrono::steady_clock::time_point begin;
     std::chrono::steady_clock::time_point end;
-
+    
     // callback function for received messages, not used as of now
     friend void STU_resp_call_back(void* obj, const CO_CANrxMsg_t* can_msg);
 
     // check if a parameter has changed since the last heartbeat
     bool update_param_a(float new_value, float old_value, const string& log_name, ParamCategory type);
     bool update_param_s(uint8_t new_value, uint8_t old_value, const string& log_name, ParamCategory type);
+
+    bool is_selected(ParamCategory type);
+
+    // keeps track of which categories are selected
+    #define ABSENT_FLAG 0b00000000 // 00000000 --> don't show at all
+    #define PRESENT_FLAG 0b00001111 // 00001111 --> show but not in the changes list
+    #define ACTIVE_FLAG 0b11111111 // 11111111 --> show on screen and on changes list
+    uint8_t error_state_selected = ABSENT_FLAG;
+    uint8_t traction_state_selected = ABSENT_FLAG;
+    uint8_t scrubber_state_selected = ABSENT_FLAG;
+    uint8_t recovery_state_selected = ABSENT_FLAG;
+    uint8_t meta_state_selected = ABSENT_FLAG;
+    uint8_t misc_state_selected = ABSENT_FLAG;
+    uint8_t unknown_state_selected = ABSENT_FLAG;
+    uint8_t battery_state_selected = ABSENT_FLAG;
+    uint8_t traction_value_selected = ABSENT_FLAG;
+    uint8_t scrubber_value_selected = ABSENT_FLAG;
+    uint8_t recovery_value_selected = ABSENT_FLAG;
+    uint8_t misc_value_selected = ABSENT_FLAG;
+    uint8_t battery_value_selected = ABSENT_FLAG;
+
+    int last_x = 0;
+    int last_y = 0;
+    int last_width = 0;
+    int last_height = 0;
 };
 
 #endif

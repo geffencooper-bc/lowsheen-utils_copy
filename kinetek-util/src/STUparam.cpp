@@ -65,13 +65,9 @@ stringstream& stu_stream(stringstream& ss, int val, int fill_width)
 // gets stu parameters from kinetek and outputs to a file
 KU::StatusCode STUparam::read_stu_params(const string& output_file)
 {
-    // try to open the file(will overwrite), if DNE then create a new file
+    // try to open the file(will overwrite), if DNE then it creates a new file
     ofstream output;
     output.open(output_file, std::ofstream::trunc);
-    if (output.fail())
-    {
-        output.open(output_file);  // create a new file
-    }
 
     stringstream stu_string;  // store total stu output as stringstream for formatting
 

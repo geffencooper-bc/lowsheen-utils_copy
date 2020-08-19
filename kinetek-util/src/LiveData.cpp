@@ -2,6 +2,10 @@
 #include <chrono>
 #include <sstream>
 #include <iomanip>
+#include <signal.h>
+#include <stdlib.h>
+#include <stdio.h>
+#include <unistd.h>
 
 // debug print macro to see error messages
 #define PRINT_LOG
@@ -16,59 +20,68 @@
 #endif
 
 // escape sequences to adjust cursor location and text format
-#define TLC_TRACTION_V "\033[23;0f"
-#define TLC_SCRUBBER_V "\033[23;40f"
-#define TLC_RECOVERY_V "\033[23;80f"
-#define TLC_MISC_V "\033[23;115f"
-#define TLC_UNKNOWN_V "\033[23;180f"
-#define TLC_BATTERY_V "\033[23;150f"
+#define TLC "\033[0;0f"
+// #define TLC_TRACTION_V "\033[23;0f"
+// #define TLC_SCRUBBER_V "\033[23;40f"
+// #define TLC_RECOVERY_V "\033[23;80f"
+// #define TLC_MISC_V "\033[23;117f"
+// #define TLC_BATTERY_V "\033[23;155f"
 #define TLC_ERROR "\033[38;0f"
 #define TLC_ERROR_S1 "\033[40;0f"
 #define TLC_ERROR_S2 "\033[40;40f"
-#define TLC_TRACTION_S "\033[0;0f"
-#define TLC_SCRUBBER_S "\033[0;40f"
-#define TLC_RECOVERY_S "\033[0;80f"
-#define TLC_MISC_S "\033[0;115f"
-#define TLC_UNKNOWN_S "\033[0;180f"
-#define TLC_BATTERY_S "\033[0;150f"
-#define TLC_META "\033[27;160f"
+// #define TLC_TRACTION_S "\033[0;0f"
+// #define TLC_SCRUBBER_S "\033[0;40f"
+// #define TLC_RECOVERY_S "\033[0;80f"
+// #define TLC_MISC_S "\033[0;117f"
+// #define TLC_UNKNOWN_S "\033[0;185f"
+// #define TLC_BATTERY_S "\033[0;155f"
+// #define TLC_META "\033[27;155f"
 #define SAVE "\033[s"
 #define RESTORE "\033[u"
 #define BACK "\033[1D"
 #define DOWN "\033[1B"
 #define UP "\033[1A"
 #define COORD0 "\033[39;80f"
-#define COORD1 "\033[40;80f"
-#define COORD2 "\033[41;80f"
-#define COORD3 "\033[42;80f"
-#define COORD4 "\033[43;80f"
-#define COORD5 "\033[44;80f"
-#define COORD6 "\033[45;80f"
-#define COORD7 "\033[46;80f"
-#define COORD8 "\033[47;80f"
-#define COORD9 "\033[48;80f"
 #define BOLD_ON "\033[1m"
 #define YELLOW_TITLE "\033[1;33m"
 #define RED_TITLE "\033[1;31m"
 #define ATTRIB_OFF "\033[0m"
 #define CLEAR "\033[2J"
+#define PADDING 3
+#define RIGHT_EDGE 180
+#define BOTTOM_EDGE 23
 
 // number of parameters in each category
 #define TRAC_S_SIZE 15
 #define SCRUB_S_SIZE 19
-#define RECOV_S_SIZE 8
+#define RECOV_S_SIZE 7
 #define MISC_S_SIZE 15
 #define BATT_S_SIZE 3
 #define UNKNOWN_S_SIZE 12
 #define META_S_SIZE 5
 #define TRAC_V_SIZE 9
 #define SCRUB_V_SIZE 5
-#define RECOV_V_SIZE 4
+#define RECOV_V_SIZE 5
 #define MISC_V_SIZE 8
 #define BATT_V_SIZE 1
-#define UNKNOWN_V_SIZE 1
 #define ERROR_S1_size 8
 #define ERROR_S2_size 8
+
+// width of each category
+#define TRAC_S_WIDTH 33
+#define SCRUB_S_WIDTH 33
+#define RECOV_S_WIDTH 33
+#define MISC_S_WIDTH 33
+#define BATT_S_WIDTH 33
+#define UNKNOWN_S_WIDTH 20
+#define META_S_WIDTH 25
+#define TRAC_V_WIDTH 40
+#define SCRUB_V_WIDTH 40
+#define RECOV_V_WIDTH 40
+#define MISC_V_WIDTH 40
+#define BATT_V_WIDTH 30
+#define ERROR_S1_WIDTH 35
+#define ERROR_S2_WIDTH 35
 
 // initialize objects
 LiveData::LiveData(SocketCanHelper* sc, KU::CanDataList* ku_data)
@@ -104,9 +117,17 @@ void LiveData_resp_call_back(void* obj, const CO_CANrxMsg_t* can_msg)
     // nothing needed
 }
 
+// clear the screen upon exit
+void my_handler(int s)
+{
+    printf("%s%s", CLEAR, TLC);
+    exit(1);
+}
 // updates the heartbeat struct every page
 KU::StatusCode LiveData::update_heartbeat()
 {
+    parse_ini("live_data_options.ini");
+    signal (SIGINT,my_handler);
     // the first run of the while loop
     static bool is_first = true;
 
@@ -115,18 +136,21 @@ KU::StatusCode LiveData::update_heartbeat()
 
     // store a tmp version to compare against to see if values changed
     controller_heartbeat tmp;
-
+    CO_CANrxMsg_t* resp;
+    uint8_t page_num = 0;
+    uint8_t last_page_num = 0;
     while (true)
     {
         // get the next page
-        CO_CANrxMsg_t* resp = sc->get_frame(KU::HEART_BEAT_ID, this, LiveData_resp_call_back, 500);
+        resp = sc->get_frame(KU::HEART_BEAT_ID, this, LiveData_resp_call_back, 500);
         if (ku_data->get_response_type(resp->ident, resp->data, resp->DLC) != KU::HEART_BEAT)
         {
             LOG_PRINT(("No Heart Beat\n"));
             return KU::NO_HEART_BEAT;
         }
 
-        uint8_t page_num = resp->data[1];
+        last_page_num = page_num;
+        page_num = resp->data[1];
         if (is_first)
         {
             while (page_num != 1)
@@ -136,6 +160,20 @@ KU::StatusCode LiveData::update_heartbeat()
             }
             is_first = false;
         }
+        else
+        {
+            if(last_page_num+1 == 11)
+            {
+                last_page_num = 0;
+            }
+            while (page_num != last_page_num+1)
+            {
+                //printf("%s%s", "\033[20;0f", "MISSED A PAGE");
+                resp = sc->get_frame(KU::HEART_BEAT_ID, this, LiveData_resp_call_back, 500);
+                page_num = resp->data[1];
+            } 
+        }
+        
         switch (page_num)
         {
             case 1:
@@ -332,7 +370,7 @@ KU::StatusCode LiveData::update_heartbeat()
                                    SCRUBBER_STATE)
                         ? tmp.page2.brush_load_complete
                         : hb->page2.brush_load_complete;
-                hb->page2.p3_f1 = update_param_a(tmp.page2.p3_f1, hb->page2.p3_f1, "p3_f1", UNKNOWN_VALUE)
+                hb->page2.p3_f1 = update_param_s(tmp.page2.p3_f1, hb->page2.p3_f1, "p3_f1", UNKNOWN_STATE)
                                       ? tmp.page2.p3_f1
                                       : hb->page2.p3_f1;
                 hb->page2.p3_f2 = update_param_s(tmp.page2.p3_f2, hb->page2.p3_f2, "p3_f2", UNKNOWN_STATE)
@@ -575,7 +613,7 @@ KU::StatusCode LiveData::update_heartbeat()
                         ? tmp.page7.MCU_temp_raw
                         : hb->page7.MCU_temp_raw;
                 hb->page7.vacuum_ddc =
-                    update_param_s(tmp.page7.vacuum_ddc, hb->page7.vacuum_ddc, "vacuum_ddc", RECOVERY_STATE)
+                    update_param_a(tmp.page7.vacuum_ddc, hb->page7.vacuum_ddc, "vacuum_ddc", RECOVERY_VALUE)
                         ? tmp.page7.vacuum_ddc
                         : hb->page7.vacuum_ddc;
                 hb->page7.accelerator_raw =
@@ -715,146 +753,90 @@ KU::StatusCode LiveData::update_heartbeat()
                 hb->page10.aux5_buf = update_param_s(tmp.page10.aux5_buf, hb->page10.aux5_buf, "aux5_buf", MISC_STATE)
                                           ? tmp.page10.aux5_buf
                                           : hb->page10.aux5_buf;
+                                          exit(EXIT_FAILURE);
                 break;
             }
         }
     }
 }
 
-bool LiveData::update_param_a(float new_value, float old_value, const string& log_name, ParamCategory type)
+bool LiveData::is_selected(ParamCategory type)
 {
-    static int traction_a_count = 0;
-    static int scrubber_a_count = 0;
-    static int recovery_a_count = 0;
-    static int battery_a_count = 0;
-    static int misc_a_count = 0;
-    static int unknown_a_count = 0;
-
-    switch (type)
+    switch(type)
     {
+        case TRACTION_STATE:
+        {
+            return traction_state_selected & ACTIVE_FLAG;
+        }
+        case SCRUBBER_STATE:
+        {
+            return scrubber_state_selected & ACTIVE_FLAG;
+        }
+        case RECOVERY_STATE:
+        {
+            return recovery_state_selected & ACTIVE_FLAG;
+        }
+        case ERROR_STATE:
+        {
+            return error_state_selected & ACTIVE_FLAG;
+        }
+        case META_STATE:
+        {
+            return meta_state_selected & ACTIVE_FLAG;
+        }
+        case BATTERY_STATE:
+        {
+            return battery_state_selected & ACTIVE_FLAG;
+        }
+        case MISC_STATE:
+        {
+            return misc_state_selected & ACTIVE_FLAG;
+        }
+        case UNKNOWN_STATE:
+        {
+            return unknown_state_selected & ACTIVE_FLAG;
+        }
         case TRACTION_VALUE:
         {
-            if (traction_a_count == TRAC_V_SIZE)
-            {
-                traction_a_count = 0;
-            }
-            // print the location according to the count and then the variable
-            LOG_PRINT(("%s%sTRACTION VALUE%s%s%s", TLC_TRACTION_V, YELLOW_TITLE, ATTRIB_OFF, TLC_TRACTION_V, DOWN));
-            for (int i = 0; i < traction_a_count; i++)
-            {
-                LOG_PRINT(("%s", DOWN));
-            }
-            LOG_PRINT(("%-28s:%.2f", log_name.c_str(), new_value));
-            traction_a_count++;
-            break;
-        }
-        case SCRUBBER_VALUE:
-        {
-            if (scrubber_a_count == SCRUB_V_SIZE)
-            {
-                scrubber_a_count = 0;
-            }
-            // print the location according to the count and then the variable
-            LOG_PRINT(("%s%sSCRUBBER VALUE%s%s%s", TLC_SCRUBBER_V, YELLOW_TITLE, ATTRIB_OFF, TLC_SCRUBBER_V, DOWN));
-            for (int i = 0; i < scrubber_a_count; i++)
-            {
-                LOG_PRINT(("%s", DOWN));
-            }
-            LOG_PRINT(("%-28s:%.2f", log_name.c_str(), new_value));
-            scrubber_a_count++;
-            break;
+            return traction_value_selected & ACTIVE_FLAG;
         }
         case RECOVERY_VALUE:
         {
-            if (recovery_a_count == RECOV_V_SIZE)
-            {
-                recovery_a_count = 0;
-            }
-            // print the location according to the count and then the variable
-            LOG_PRINT(("%s%sRECOVERY VALUE%s%s%s", TLC_RECOVERY_V, YELLOW_TITLE, ATTRIB_OFF, TLC_RECOVERY_V, DOWN));
-            for (int i = 0; i < recovery_a_count; i++)
-            {
-                LOG_PRINT(("%s", DOWN));
-            }
-            LOG_PRINT(("%-28s:%.2f", log_name.c_str(), new_value));
-            recovery_a_count++;
-            break;
+            return recovery_value_selected & ACTIVE_FLAG;
         }
-        case BATTERY_VALUE:
+        case SCRUBBER_VALUE:
         {
-            if (battery_a_count == BATT_V_SIZE)
-            {
-                battery_a_count = 0;
-            }
-            // print the location according to the count and then the variable
-            LOG_PRINT(("%s%sBATTERY VALUE%s%s%s", TLC_BATTERY_V, YELLOW_TITLE, ATTRIB_OFF, TLC_BATTERY_V, DOWN));
-            for (int i = 0; i < battery_a_count; i++)
-            {
-                LOG_PRINT(("%s", DOWN));
-            }
-            LOG_PRINT(("%-20s:%.2f", log_name.c_str(), new_value));
-            battery_a_count++;
-            break;
+            return scrubber_value_selected & ACTIVE_FLAG;
         }
         case MISC_VALUE:
         {
-            if (misc_a_count == MISC_V_SIZE)
-            {
-                misc_a_count = 0;
-            }
-            // print the location according to the count and then the variable
-            LOG_PRINT(("%s%sMISC VALUE%s%s%s", TLC_MISC_V, YELLOW_TITLE, ATTRIB_OFF, TLC_MISC_V, DOWN));
-            for (int i = 0; i < misc_a_count; i++)
-            {
-                LOG_PRINT(("%s", DOWN));
-            }
-            LOG_PRINT(("%-28s:%.2f", log_name.c_str(), new_value));
-            misc_a_count++;
-            break;
+            return misc_value_selected & ACTIVE_FLAG;
         }
-        case UNKNOWN_VALUE:
+        case BATTERY_VALUE:
         {
-            if (unknown_a_count == UNKNOWN_V_SIZE)
-            {
-                unknown_a_count = 0;
-            }
-            // print the location according to the count and then the variable
-            LOG_PRINT(("%s%sUNKNOWN VALUE%s%s%s", TLC_UNKNOWN_V, YELLOW_TITLE, ATTRIB_OFF, TLC_UNKNOWN_V, DOWN));
-            for (int i = 0; i < unknown_a_count; i++)
-            {
-                LOG_PRINT(("%s", DOWN));
-            }
-            LOG_PRINT(("%-20s:%.2f", log_name.c_str(), new_value));
-            unknown_a_count++;
-            break;
+            return battery_value_selected & ACTIVE_FLAG;
         }
     }
-    if (new_value != old_value)
-    {
-        return true;
-    }
-    return false;
 }
 
-bool LiveData::update_param_s(uint8_t new_value, uint8_t old_value, const string& log_name, ParamCategory type)
+bool LiveData::update_param_a(float new_value, float old_value, const string& log_name, ParamCategory type)
 {
-    static int traction_s_count = 0;
-    static int scrubber_s_count = 0;
-    static int recovery_s_count = 0;
-    static int battery_s_count = 0;
-    static int misc_s_count = 0;
-    static int unknown_s_count = 0;
-    static int error_s_count = 0;
-    static int meta_s_count = 0;
+    static int traction_a_count = -1;
+    static int scrubber_a_count = -1;
+    static int recovery_a_count = -1;
+    static int battery_a_count = -1;
+    static int misc_a_count = -1;
+    static int unknown_a_count = -1;
+
     end = std::chrono::steady_clock::now();
     std::stringstream stream;
-    if (new_value != old_value)
+    if (new_value != old_value && is_selected(type))
     {
         LOG_PRINT(("%s%s%sLAST 10 CHANGES%s", COORD0, UP, RED_TITLE, ATTRIB_OFF));
         static int last_size;
-        stream << BOLD_ON << std::setw(25) << log_name << ATTRIB_OFF << std::setw(5) << std::to_string(old_value)
-               << " -->" << std::setw(5) << std::to_string(new_value) << "   time: " << std::setw(10) << std::fixed
-               << std::setprecision(5)
+        stream << BOLD_ON << std::setw(30) << log_name << ATTRIB_OFF << std::setw(5) << std::to_string(old_value)
+               << " -->" << std::setw(5) << std::to_string(new_value) << "   time: " << std::setw(15) << std::fixed
+               << std::setprecision(10)
                << std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count() / 1000000.0;
         last_size = stream.str().size();
 
@@ -875,159 +857,214 @@ bool LiveData::update_param_s(uint8_t new_value, uint8_t old_value, const string
             }
             LOG_PRINT(("%i. %s", i, top_10.substr(last_size * (i), last_size).c_str()));
         }
+        LOG_PRINT(("%s", COORD0));
+        for(int i = 0; i < 11; i++)
+        {
+            LOG_PRINT(("%s", DOWN));
+        }
+        //LOG_PRINT(("size: %i", last_size));
     }
 
-    static int last_size = stream.str().size();
     switch (type)
     {
-        case TRACTION_STATE:
+        case TRACTION_VALUE:
         {
-            if (traction_s_count == TRAC_S_SIZE)
+            static string POSITION;
+            if(traction_value_selected & PRESENT_FLAG)
             {
-                traction_s_count = 0;
-            }
-            // print the location according to the count and then the variable
-            LOG_PRINT(("%s%sTRACTION STATE%s%s%s", TLC_TRACTION_S, YELLOW_TITLE, ATTRIB_OFF, TLC_TRACTION_S, DOWN));
-            for (int i = 0; i < traction_s_count; i++)
-            {
-                LOG_PRINT(("%s", DOWN));
-            }
-            LOG_PRINT(("%-28s:%i", log_name.c_str(), new_value));
-            traction_s_count++;
-            break;
-        }
-        case SCRUBBER_STATE:
-        {
-            if (scrubber_s_count == SCRUB_S_SIZE)
-            {
-                scrubber_s_count = 0;
-            }
-            // print the location according to the count and then the variable
-            LOG_PRINT(("%s%sSCRUBBER STATE%s%s%s", TLC_SCRUBBER_S, YELLOW_TITLE, ATTRIB_OFF, TLC_SCRUBBER_S, DOWN));
-            for (int i = 0; i < scrubber_s_count; i++)
-            {
-                LOG_PRINT(("%s", DOWN));
-            }
-            LOG_PRINT(("%-28s:%i", log_name.c_str(), new_value));
-            scrubber_s_count++;
-            break;
-        }
-        case RECOVERY_STATE:
-        {
-            if (recovery_s_count == RECOV_S_SIZE)
-            {
-                recovery_s_count = 0;
-            }
-            // print the location according to the count and then the variable
-            LOG_PRINT(("%s%sRECOVERY STATE%s%s%s", TLC_RECOVERY_S, YELLOW_TITLE, ATTRIB_OFF, TLC_RECOVERY_S, DOWN));
-            for (int i = 0; i < recovery_s_count; i++)
-            {
-                LOG_PRINT(("%s", DOWN));
-            }
-            LOG_PRINT(("%-28s:%i", log_name.c_str(), new_value));
-            recovery_s_count++;
-            break;
-        }
-        case BATTERY_STATE:
-        {
-            if (battery_s_count == BATT_S_SIZE)
-            {
-                battery_s_count = 0;
-            }
-            // print the location according to the count and then the variable
-            LOG_PRINT(("%s%sBATTERY STATE%s%s%s", TLC_BATTERY_S, YELLOW_TITLE, ATTRIB_OFF, TLC_BATTERY_S, DOWN));
-            for (int i = 0; i < battery_s_count; i++)
-            {
-                LOG_PRINT(("%s", DOWN));
-            }
-            LOG_PRINT(("%-20s:%i", log_name.c_str(), new_value));
-            battery_s_count++;
-            break;
-        }
-        case MISC_STATE:
-        {
-            if (misc_s_count == MISC_S_SIZE)
-            {
-                misc_s_count = 0;
-            }
-            // print the location according to the count and then the variable
-            LOG_PRINT(("%s%sMISC STATE%s%s%s", TLC_MISC_S, YELLOW_TITLE, ATTRIB_OFF, TLC_MISC_S, DOWN));
-            for (int i = 0; i < misc_s_count; i++)
-            {
-                LOG_PRINT(("%s", DOWN));
-            }
-            LOG_PRINT(("%-28s:%i", log_name.c_str(), new_value));
-            misc_s_count++;
-            break;
-        }
-        case UNKNOWN_STATE:
-        {
-            if (unknown_s_count == UNKNOWN_S_SIZE)
-            {
-                unknown_s_count = 0;
-            }
-            // print the location according to the count and then the variable
-            LOG_PRINT(("%s%sUNKNOWN STATE%s%s%s", TLC_UNKNOWN_S, YELLOW_TITLE, ATTRIB_OFF, TLC_UNKNOWN_S, DOWN));
-            for (int i = 0; i < unknown_s_count; i++)
-            {
-                LOG_PRINT(("%s", DOWN));
-            }
-            LOG_PRINT(("%-20s:%i", log_name.c_str(), new_value));
-            unknown_s_count++;
-            break;
-        }
-        case ERROR_STATE:
-        {
-            if (error_s_count == ERROR_S1_size + ERROR_S2_size + 1)
-            {
-                error_s_count = 0;
-            }
-            // print the location according to the count and then the variable
-            LOG_PRINT(("%s%sERROR STATE%s%s%s", TLC_ERROR, RED_TITLE, ATTRIB_OFF, TLC_ERROR, DOWN));
-            if (error_s_count == 0)
-            {
-                LOG_PRINT(("%-28s:%i", log_name.c_str(), new_value));
-                error_s_count++;
-            }
-            else
-            {
-                if (error_s_count <= ERROR_S1_size)
+                if(traction_a_count < 0)
                 {
-                    LOG_PRINT(("%s", TLC_ERROR_S1));
-                    for (int i = 0; i < error_s_count; i++)
+                    int x;
+                    int y;
+                    if(last_x >= RIGHT_EDGE)
                     {
-                        LOG_PRINT(("%s", DOWN));
+                        x = 0;
+                        y = BOTTOM_EDGE;
                     }
-                    LOG_PRINT(("%-28s:%i", log_name.c_str(), new_value));
-                    error_s_count++;
+                    else
+                    {
+                        x = last_x + last_width + PADDING;
+                        y = last_y;
+                    }
+                    POSITION = "\033[" + std::to_string(y) + ';' + std::to_string(x) + "f";
+                    traction_a_count++;
+                    last_x = x;
+                    last_y = y;
+                    last_width = TRAC_V_WIDTH;
                 }
-                else
+                if (traction_a_count == TRAC_V_SIZE)
                 {
-                    LOG_PRINT(("%s", TLC_ERROR_S2));
-                    for (int i = 0; i < error_s_count - 8; i++)
-                    {
-                        LOG_PRINT(("%s", DOWN));
-                    }
-                    LOG_PRINT(("%-28s:%i", log_name.c_str(), new_value));
-                    error_s_count++;
+                    traction_a_count = 0;
                 }
+                // print the location according to the count and then the variable
+                LOG_PRINT(("%s%sTRACTION VALUE%s%s%s", POSITION.c_str(),YELLOW_TITLE, ATTRIB_OFF, POSITION.c_str(),DOWN));
+                for (int i = 0; i < traction_a_count; i++)
+                {
+                    LOG_PRINT(("%s", DOWN));
+                }
+                LOG_PRINT(("%-28s:%.1f", log_name.c_str(), new_value));
+                traction_a_count++;
             }
             break;
         }
-        case META_STATE:
+        case SCRUBBER_VALUE:
         {
-            if (meta_s_count == META_S_SIZE)
+            if(scrubber_value_selected & PRESENT_FLAG)
             {
-                meta_s_count = 0;
+                static string POSITION;
+                if(scrubber_a_count < 0)
+                {
+                    int x;
+                    int y;
+                    if(last_x >= RIGHT_EDGE)
+                    {
+                        x = 0;
+                        y = BOTTOM_EDGE;
+                    }
+                    else
+                    {
+                        x = last_x + last_width + PADDING;
+                        y = last_y;
+                    }
+                    POSITION = "\033[" + std::to_string(y) + ';' + std::to_string(x) + "f";
+                    scrubber_a_count++;
+                    last_x = x;
+                    last_y = y;
+                    last_width = SCRUB_V_WIDTH;
+                }
+                if (scrubber_a_count == SCRUB_V_SIZE)
+                {
+                    scrubber_a_count = 0;
+                }
+                // print the location according to the count and then the variable
+                LOG_PRINT(("%s%sSCRUBBER VALUE%s%s%s", POSITION.c_str(),YELLOW_TITLE, ATTRIB_OFF, POSITION.c_str(),DOWN));
+                for (int i = 0; i < scrubber_a_count; i++)
+                {
+                    LOG_PRINT(("%s", DOWN));
+                }
+                LOG_PRINT(("%-28s:%.1f", log_name.c_str(), new_value));
+                scrubber_a_count++;
             }
-            // print the location according to the count and then the variable
-            LOG_PRINT(("%s%sMETADATA%s%s%s", TLC_META, YELLOW_TITLE, ATTRIB_OFF, TLC_META, DOWN));
-            for (int i = 0; i < meta_s_count; i++)
+            break;
+        }
+        case RECOVERY_VALUE:
+        {
+            if(RECOVERY_VALUE & PRESENT_FLAG)
             {
-                LOG_PRINT(("%s", DOWN));
+                static string POSITION;
+                if(recovery_a_count < 0)
+                {
+                    int x;
+                    int y;
+                    if(last_x >= RIGHT_EDGE)
+                    {
+                        x = 0;
+                        y = BOTTOM_EDGE;
+                    }
+                    else
+                    {
+                        x = last_x + last_width + PADDING;
+                        y = last_y;
+                    }
+                    POSITION = "\033[" + std::to_string(y) + ';' + std::to_string(x) + "f";
+                    recovery_a_count++;
+                    last_x = x;
+                    last_y = y;
+                    last_width = RECOV_V_WIDTH;
+                }
+                if (recovery_a_count == RECOV_V_SIZE)
+                {
+                    recovery_a_count = 0;
+                }
+                // print the location according to the count and then the variable
+                LOG_PRINT(("%s%sRECOVERY VALUE%s%s%s", POSITION.c_str(),YELLOW_TITLE, ATTRIB_OFF, POSITION.c_str(),DOWN));
+                for (int i = 0; i < recovery_a_count; i++)
+                {
+                    LOG_PRINT(("%s", DOWN));
+                }
+                LOG_PRINT(("%-28s:%.1f", log_name.c_str(), new_value));
+                recovery_a_count++;
             }
-            LOG_PRINT(("%-28s:%i", log_name.c_str(), new_value));
-            meta_s_count++;
+            break;
+        }
+        case BATTERY_VALUE:
+        {
+            if(battery_value_selected & PRESENT_FLAG)
+            {
+                static string POSITION;
+                if(battery_a_count < 0)
+                {
+                    int x;
+                    int y;
+                    if(last_x >= RIGHT_EDGE)
+                    {
+                        x = 0;
+                        y = BOTTOM_EDGE;
+                    }
+                    else
+                    {
+                        x = last_x + last_width + PADDING;
+                        y = last_y;
+                    }
+                    POSITION = "\033[" + std::to_string(y) + ';' + std::to_string(x) + "f";
+                    battery_a_count++;
+                    last_x = x;
+                    last_y = y;
+                    last_width = BATT_V_WIDTH;
+                }
+                if (battery_a_count == BATT_V_SIZE)
+                {
+                    battery_a_count = 0;
+                }
+                // print the location according to the count and then the variable
+                LOG_PRINT(("%s%sBATTERY VALUE%s%s%s", POSITION.c_str(),YELLOW_TITLE, ATTRIB_OFF, POSITION.c_str(),DOWN));
+                for (int i = 0; i < battery_a_count; i++)
+                {
+                    LOG_PRINT(("%s", DOWN));
+                }
+                LOG_PRINT(("%-20s:%.2f", log_name.c_str(), new_value));
+                battery_a_count++;
+            }
+            break;
+        }
+        case MISC_VALUE:
+        {
+            if(misc_value_selected & PRESENT_FLAG)
+            {
+                static string POSITION;
+                if(misc_a_count < 0)
+                {
+                    int x;
+                    int y;
+                    if(last_x >= RIGHT_EDGE)
+                    {
+                        x = 0;
+                        y = BOTTOM_EDGE;
+                    }
+                    else
+                    {
+                        x = last_x + last_width + PADDING;
+                        y = last_y;
+                    }
+                    POSITION = "\033[" + std::to_string(y) + ';' + std::to_string(x) + "f";
+                    misc_a_count++;
+                    last_x = x;
+                    last_y = y;
+                    last_width = MISC_V_WIDTH;
+                }
+                if (misc_a_count == MISC_V_SIZE)
+                {
+                    misc_a_count = 0;
+                }
+                // print the location according to the count and then the variable
+                LOG_PRINT(("%s%sMISC VALUE%s%s%s", POSITION.c_str(),YELLOW_TITLE, ATTRIB_OFF, POSITION.c_str(),DOWN));
+                for (int i = 0; i < misc_a_count; i++)
+                {
+                    LOG_PRINT(("%s", DOWN));
+                }
+                LOG_PRINT(("%-28s:%.1f", log_name.c_str(), new_value));
+                misc_a_count++;
+            }
             break;
         }
     }
@@ -1036,4 +1073,524 @@ bool LiveData::update_param_s(uint8_t new_value, uint8_t old_value, const string
         return true;
     }
     return false;
+}
+
+bool LiveData::update_param_s(uint8_t new_value, uint8_t old_value, const string& log_name, ParamCategory type)
+{
+    static int traction_s_count = -1;
+    static int scrubber_s_count = -1;
+    static int recovery_s_count = -1;
+    static int battery_s_count = -1;
+    static int misc_s_count = -1;
+    static int unknown_s_count = -1;
+    static int error_s_count = 0;
+    static int meta_s_count = -1;
+    end = std::chrono::steady_clock::now();
+    std::stringstream stream;
+    if (new_value != old_value && is_selected(type))
+    {
+        LOG_PRINT(("%s%s%sLAST 10 CHANGES%s", COORD0, UP, RED_TITLE, ATTRIB_OFF));
+        static int last_size;
+        stream << BOLD_ON << std::setw(30) << log_name << ATTRIB_OFF << std::setw(5) << std::to_string(old_value)
+               << " -->" << std::setw(5) << std::to_string(new_value) << "   time: " << std::setw(15) << std::fixed
+               << std::setprecision(10)
+               << std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count() / 1000000.0;
+        last_size = stream.str().size();
+
+        if (top_10.size() >= last_size * 10)
+        {
+            top_10 = stream.str() + top_10.substr(0, top_10.size() - last_size);
+        }
+        else
+        {
+            top_10 += stream.str();
+        }
+        for (int i = 0; i < top_10.size() / last_size; i++)
+        {
+            LOG_PRINT(("%s", COORD0));
+            for (int j = 0; j < i; j++)
+            {
+                LOG_PRINT(("%s", DOWN));
+            }
+            LOG_PRINT(("%i. %s", i, top_10.substr(last_size * (i), last_size).c_str()));
+        }
+        LOG_PRINT(("%s", COORD0));
+        for(int i = 0; i < 11; i++)
+        {
+            LOG_PRINT(("%s", DOWN));
+        }
+        //LOG_PRINT(("size: %i", last_size));
+    }
+
+    static int last_size = stream.str().size();
+    switch (type)
+    {
+        case TRACTION_STATE:
+        {
+            static string POSITION;
+            if(traction_state_selected & PRESENT_FLAG)
+            {
+                if(traction_s_count < 0)
+                {
+                    int x;
+                    int y;
+                    if(last_x >= RIGHT_EDGE)
+                    {
+                        x = 0;
+                        y = BOTTOM_EDGE;
+                    }
+                    else
+                    {
+                        x = last_x + last_width + PADDING;
+                        y = last_y;
+                    }
+                    POSITION = "\033[" + std::to_string(y) + ";" + std::to_string(x) + "f";
+                    traction_s_count++;
+                    last_x = x;
+                    last_y = y;
+                    last_width = TRAC_S_WIDTH;
+                }
+                if (traction_s_count == TRAC_S_SIZE)
+                {
+                    traction_s_count = 0;
+                }
+                // print the location according to the count and then the variable
+                LOG_PRINT(("%s%sTRACTION STATE%s%s%s", POSITION.c_str(), YELLOW_TITLE, ATTRIB_OFF, POSITION.c_str(), DOWN));
+                for (int i = 0; i < traction_s_count; i++)
+                {
+                    LOG_PRINT(("%s", DOWN));
+                }
+                LOG_PRINT(("%-28s:%i", log_name.c_str(), new_value));
+                traction_s_count++;
+            }
+            break;
+        }
+        case SCRUBBER_STATE:
+        {
+            static string POSITION;
+            if(scrubber_state_selected & PRESENT_FLAG)
+            {
+                if(scrubber_s_count < 0)
+                {
+                    int x;
+                    int y;
+                    if(last_x >= RIGHT_EDGE)
+                    {
+                        x = 0;
+                        y = BOTTOM_EDGE;
+                    }
+                    else
+                    {
+                        x = last_x + last_width + PADDING;
+                        y = last_y;
+                    }
+                    POSITION = "\033[" + std::to_string(y) + ';' + std::to_string(x) + "f";
+                    scrubber_s_count++;
+                    last_x = x;
+                    last_y = y;
+                    last_width = SCRUB_S_WIDTH;
+                }
+                if (scrubber_s_count == SCRUB_S_SIZE)
+                {
+                    scrubber_s_count = 0;
+                }
+                // print the location according to the count and then the variable
+                LOG_PRINT(("%s%sSCRUBBER STATE%s%s%s", POSITION.c_str(),YELLOW_TITLE, ATTRIB_OFF, POSITION.c_str(),DOWN));
+                for (int i = 0; i < scrubber_s_count; i++)
+                {
+                    LOG_PRINT(("%s", DOWN));
+                }
+                LOG_PRINT(("%-28s:%i", log_name.c_str(), new_value));
+                scrubber_s_count++;
+            }
+            break;
+        }
+        case RECOVERY_STATE:
+        {
+            static string POSITION;
+            if(recovery_state_selected & PRESENT_FLAG)
+            {
+                if(recovery_s_count < 0)
+                {
+                    int x;
+                    int y;
+                    if(last_x >= RIGHT_EDGE)
+                    {
+                        x = 0;
+                        y = BOTTOM_EDGE;
+                    }
+                    else
+                    {
+                        x = last_x + last_width + PADDING;
+                        y = last_y;
+                    }
+                    POSITION = "\033[" + std::to_string(y) + ';' + std::to_string(x) + "f";
+                    recovery_s_count++;
+                    last_x = x;
+                    last_y = y;
+                    last_width = RECOV_S_WIDTH;
+                }
+                if (recovery_s_count == RECOV_S_SIZE)
+                {
+                    recovery_s_count = 0;
+                }
+                // print the location according to the count and then the variable
+                LOG_PRINT(("%s%sRECOVERY STATE%s%s%s", POSITION.c_str(),YELLOW_TITLE, ATTRIB_OFF, POSITION.c_str(),DOWN));
+                for (int i = 0; i < recovery_s_count; i++)
+                {
+                    LOG_PRINT(("%s", DOWN));
+                }
+                LOG_PRINT(("%-28s:%i", log_name.c_str(), new_value));
+                recovery_s_count++;
+            }
+            break;
+        }
+        case BATTERY_STATE:
+        {
+            static string POSITION;
+            if(battery_state_selected & PRESENT_FLAG)
+            {
+                if(battery_s_count < 0)
+                {
+                    int x;
+                    int y;
+                    if(last_x >= RIGHT_EDGE)
+                    {
+                        x = 0;
+                        y = BOTTOM_EDGE;
+                    }
+                    else
+                    {
+                        x = last_x + last_width + PADDING;
+                        y = last_y;
+                    }
+                    POSITION = "\033[" + std::to_string(y) + ';' + std::to_string(x) + "f";
+                    battery_s_count++;
+                    last_x = x;
+                    last_y = y;
+                    last_width = BATT_S_WIDTH;
+                }
+                if (battery_s_count == BATT_S_SIZE)
+                {
+                    battery_s_count = 0;
+                }
+                // print the location according to the count and then the variable
+                LOG_PRINT(("%s%sBATTERY STATE%s%s%s", POSITION.c_str(),YELLOW_TITLE, ATTRIB_OFF, POSITION.c_str(),DOWN));
+                for (int i = 0; i < battery_s_count; i++)
+                {
+                    LOG_PRINT(("%s", DOWN));
+                }
+                LOG_PRINT(("%-20s:%i", log_name.c_str(), new_value));
+                battery_s_count++;
+            }
+            break;
+        }
+        case MISC_STATE:
+        {
+            static string POSITION;
+            if(misc_state_selected & PRESENT_FLAG)
+            {
+                if(misc_s_count < 0)
+                {
+                    int x;
+                    int y;
+                    if(last_x >= RIGHT_EDGE)
+                    {
+                        x = 0;
+                        y = BOTTOM_EDGE;
+                    }
+                    else
+                    {
+                        x = last_x + last_width + PADDING;
+                        y = last_y;
+                    }
+                    POSITION = "\033[" + std::to_string(y) + ';' + std::to_string(x) + "f";
+                    misc_s_count++;
+                    last_x = x;
+                    last_y = y;
+                    last_width = MISC_S_WIDTH;
+                }
+                if (misc_s_count == MISC_S_SIZE)
+                {
+                    misc_s_count = 0;
+                }
+                // print the location according to the count and then the variable
+                LOG_PRINT(("%s%sMISC STATE%s%s%s", POSITION.c_str(),YELLOW_TITLE, ATTRIB_OFF, POSITION.c_str(),DOWN));
+                for (int i = 0; i < misc_s_count; i++)
+                {
+                    LOG_PRINT(("%s", DOWN));
+                }
+                LOG_PRINT(("%-28s:%i", log_name.c_str(), new_value));
+                misc_s_count++;
+            }
+            break;
+        }
+        case UNKNOWN_STATE:
+        {
+            static string POSITION;
+            if(unknown_state_selected & PRESENT_FLAG)
+            {
+                if(unknown_s_count < 0)
+                {
+                    int x;
+                    int y;
+                    if(last_x >= RIGHT_EDGE)
+                    {
+                        x = 0;
+                        y = BOTTOM_EDGE;
+                    }
+                    else
+                    {
+                        x = last_x + last_width + PADDING;
+                        y = last_y;
+                    }
+                    POSITION = "\033[" + std::to_string(y) + ';' + std::to_string(x) + "f";
+                    unknown_s_count++;
+                    last_x = x;
+                    last_y = y;
+                    last_width = UNKNOWN_S_WIDTH;
+                }
+                if (unknown_s_count == UNKNOWN_S_SIZE)
+                {
+                    unknown_s_count = 0;
+                }
+                // print the location according to the count and then the variable
+                LOG_PRINT(("%s%sUNKNOWN STATE%s%s%s", POSITION.c_str(),YELLOW_TITLE, ATTRIB_OFF, POSITION.c_str(),DOWN));
+                for (int i = 0; i < unknown_s_count; i++)
+                {
+                    LOG_PRINT(("%s", DOWN));
+                }
+                LOG_PRINT(("%-14s:%i", log_name.c_str(), new_value));
+                unknown_s_count++;
+            }
+            break;
+        }
+        case ERROR_STATE:
+        {
+            if(error_state_selected & PRESENT_FLAG)
+            {
+                // print the location according to the count and then the variable
+                LOG_PRINT(("%s%sERROR STATE%s%s%s", TLC_ERROR, RED_TITLE, ATTRIB_OFF, TLC_ERROR, DOWN));
+                if (error_s_count == 0)
+                {
+                    LOG_PRINT(("%-28s:%i", log_name.c_str(), new_value));
+                    error_s_count++;
+                }
+                else
+                {
+                    if (error_s_count <= ERROR_S1_size)
+                    {
+                        LOG_PRINT(("%s", TLC_ERROR_S1));
+                        for (int i = 0; i < error_s_count; i++)
+                        {
+                            LOG_PRINT(("%s", DOWN));
+                        }
+                        LOG_PRINT(("%-28s:%i", log_name.c_str(), new_value));
+                        error_s_count++;
+                    }
+                    else
+                    {
+                        LOG_PRINT(("%s", TLC_ERROR_S2));
+                        for (int i = 0; i < error_s_count - 8; i++)
+                        {
+                            LOG_PRINT(("%s", DOWN));
+                        }
+                        LOG_PRINT(("%-28s:%i", log_name.c_str(), new_value));
+                        error_s_count++;
+                    }
+                }
+            }
+            break;
+        }
+        case META_STATE:
+        {
+            static string POSITION;
+            if(meta_state_selected & PRESENT_FLAG)
+            {
+                if(meta_s_count < 0)
+                {
+                    int x;
+                    int y;
+                    if(last_x >= RIGHT_EDGE)
+                    {
+                        x = 0;
+                        y = BOTTOM_EDGE;
+                    }
+                    else
+                    {
+                        x = last_x + last_width + PADDING;
+                        y = last_y;
+                    }
+                    POSITION = "\033[" + std::to_string(y) + ';' + std::to_string(x) + "f";
+                    meta_s_count++;
+                    last_x = x;
+                    last_y = y;
+                    last_width = META_S_WIDTH;
+                }
+                if (meta_s_count == META_S_SIZE)
+                {
+                    meta_s_count = 0;
+                }
+                // print the location according to the count and then the variable
+                LOG_PRINT(("%s%sMETADATA%s%s%s", POSITION.c_str(),YELLOW_TITLE, ATTRIB_OFF, POSITION.c_str(),DOWN));
+                for (int i = 0; i < meta_s_count; i++)
+                {
+                    LOG_PRINT(("%s", DOWN));
+                }
+                LOG_PRINT(("%-22s:%i", log_name.c_str(), new_value));
+                meta_s_count++;
+            }
+            break;
+        }
+    }
+    if (new_value != old_value)
+    {
+        return true;
+    }
+    return false;
+}
+
+KU::StatusCode LiveData::parse_ini(const string& file_path)
+{
+    fstream stu_file;
+    stu_file.open(file_path, std::ios::in);
+    stu_file.close();
+    if (stu_file.fail())
+    {
+        stu_file.open(file_path, std::ios::out);
+        stu_file << "[STATE]\ntraction_state = 1\nscrubber_state = 1\nrecovery_state = 1\nmisc_state = 1\nbattery_state = 1\nunknown_state = 0\n"
+                 << "error_state = 1\nmeta_state = 1\n[ANALOG]\ntraction_value = 1\nscrubber_value = 1\nrecovery_value = 1\nmisc_value = 1\n"
+                 << "battery_value = 1\n[LATEST_CHANGES]\ntraction_state = 1\nscrubber_state = 1\nrecovery_state = 1\nmisc_state = 1\n"
+                 << "battery_state = 1\nunknown_state = 0\nerror_state = 1\nmeta_state = 0\ntraction_value = 0\nscrubber_value = 0\nrecovery_value = 0\n"
+                 << "misc_value = 0\nbattery_value = 0"; 
+        stu_file.close();  
+    }
+    stu_file.open(file_path, std::ios::in);
+    string curr_line = "";
+    getline(stu_file, curr_line);
+    if(curr_line == "[STATE]")
+    {
+        while(curr_line != "[ANALOG]")
+        {
+            getline(stu_file, curr_line);
+            if(curr_line.substr(0, sizeof("traction_state")-1) == "traction_state" && curr_line.substr(curr_line.size()-1,1) == "1")
+            {
+                traction_state_selected |= PRESENT_FLAG;
+            }
+            else if(curr_line.substr(0, sizeof("scrubber_state")-1) == "scrubber_state" && curr_line.substr(curr_line.size()-1,1) == "1")
+            {
+                scrubber_state_selected |= PRESENT_FLAG;
+            }
+            else if(curr_line.substr(0, sizeof("recovery_state")-1) == "recovery_state" && curr_line.substr(curr_line.size()-1,1) == "1")
+            {
+                recovery_state_selected |= PRESENT_FLAG;
+            }
+            else if(curr_line.substr(0, sizeof("misc_state")-1) == "misc_state" && curr_line.substr(curr_line.size()-1,1) == "1")
+            {
+                misc_state_selected |= PRESENT_FLAG;
+            }
+            else if(curr_line.substr(0, sizeof("battery_state")-1) == "battery_state" && curr_line.substr(curr_line.size()-1,1) == "1")
+            {
+                battery_state_selected |= PRESENT_FLAG;
+            }
+            else if(curr_line.substr(0, sizeof("unknown_state")-1) == "unknown_state" && curr_line.substr(curr_line.size()-1,1) == "1")
+            {
+                unknown_state_selected |= PRESENT_FLAG;
+            }
+            else if(curr_line.substr(0, sizeof("error_state")-1) == "error_state" && curr_line.substr(curr_line.size()-1,1) == "1")
+            {
+                error_state_selected |= PRESENT_FLAG;
+            }
+            else if(curr_line.substr(0, sizeof("meta_state")-1) == "meta_state" && curr_line.substr(curr_line.size()-1,1) == "1")
+            {
+                meta_state_selected |= PRESENT_FLAG;
+            }
+        }
+    }
+    if (curr_line == "[ANALOG]")
+    {
+        while(curr_line != "[LATEST_CHANGES]")
+        {
+            getline(stu_file, curr_line);
+            if(curr_line.substr(0, sizeof("traction_value")-1) == "traction_value" && curr_line.substr(curr_line.size()-1,1) == "1")
+            {
+                traction_value_selected |= PRESENT_FLAG;
+            }
+            else if(curr_line.substr(0, sizeof("scrubber_value")-1) == "scrubber_value" && curr_line.substr(curr_line.size()-1,1) == "1")
+            {
+                scrubber_value_selected |= PRESENT_FLAG;
+            }
+            else if(curr_line.substr(0, sizeof("recovery_value")-1) == "recovery_value" && curr_line.substr(curr_line.size()-1,1) == "1")
+            {
+                recovery_value_selected |= PRESENT_FLAG;
+            }
+            else if(curr_line.substr(0, sizeof("misc_value")-1) == "misc_value" && curr_line.substr(curr_line.size()-1,1) == "1")
+            {
+                misc_value_selected |= PRESENT_FLAG;
+            }
+            else if(curr_line.substr(0, sizeof("battery_value")-1) == "battery_value" && curr_line.substr(curr_line.size()-1,1) == "1")
+            {
+                battery_value_selected |= PRESENT_FLAG;
+            }
+        }
+    }
+    if(curr_line == "[LATEST_CHANGES]")
+    {
+        while(getline(stu_file, curr_line))
+        {
+            if(curr_line.substr(0, sizeof("traction_state")-1) == "traction_state" && curr_line.substr(curr_line.size()-1,1) == "1")
+            {
+                traction_state_selected |= ACTIVE_FLAG;
+            }
+            else if(curr_line.substr(0, sizeof("scrubber_state")-1) == "scrubber_state" && curr_line.substr(curr_line.size()-1,1) == "1")
+            {
+                scrubber_state_selected |= ACTIVE_FLAG;
+            }
+            else if(curr_line.substr(0, sizeof("recovery_state")-1) == "recovery_state" && curr_line.substr(curr_line.size()-1,1) == "1")
+            {
+                recovery_state_selected |= ACTIVE_FLAG;
+            }
+            else if(curr_line.substr(0, sizeof("misc_state")-1) == "misc_state" && curr_line.substr(curr_line.size()-1,1) == "1")
+            {
+                misc_state_selected |= ACTIVE_FLAG;
+            }
+            else if(curr_line.substr(0, sizeof("battery_state")-1) == "battery_state" && curr_line.substr(curr_line.size()-1,1) == "1")
+            {
+                battery_state_selected |= ACTIVE_FLAG;
+            }
+            else if(curr_line.substr(0, sizeof("unknown_state")-1) == "unknown_state" && curr_line.substr(curr_line.size()-1,1) == "1")
+            {
+                unknown_state_selected |= ACTIVE_FLAG;
+            }
+            else if(curr_line.substr(0, sizeof("error_state")-1) == "error_state" && curr_line.substr(curr_line.size()-1,1) == "1")
+            {
+                error_state_selected |= ACTIVE_FLAG;
+            }
+            else if(curr_line.substr(0, sizeof("meta_state")-1) == "meta_state" && curr_line.substr(curr_line.size()-1,1) == "1")
+            {
+                meta_state_selected |= ACTIVE_FLAG;
+            }
+            else if(curr_line.substr(0, sizeof("traction_value")-1) == "traction_value" && curr_line.substr(curr_line.size()-1,1) == "1")
+            {
+                traction_value_selected |= ACTIVE_FLAG;
+            }
+            else if(curr_line.substr(0, sizeof("scrubber_value")-1) == "scrubber_value" && curr_line.substr(curr_line.size()-1,1) == "1")
+            {
+                scrubber_value_selected |= ACTIVE_FLAG;
+            }
+            else if(curr_line.substr(0, sizeof("recovery_value")-1) == "recovery_value" && curr_line.substr(curr_line.size()-1,1) == "1")
+            {
+                recovery_value_selected |= ACTIVE_FLAG;
+            }
+            else if(curr_line.substr(0, sizeof("misc_value")-1) == "misc_value" && curr_line.substr(curr_line.size()-1,1) == "1")
+            {
+                misc_value_selected |= ACTIVE_FLAG;
+            }
+            else if(curr_line.substr(0, sizeof("battery_value")-1) == "battery_value" && curr_line.substr(curr_line.size()-1,1) == "1")
+            {
+                battery_value_selected |= ACTIVE_FLAG;
+            }
+        }
+        return KU::NO_ERROR;
+    }
 }
