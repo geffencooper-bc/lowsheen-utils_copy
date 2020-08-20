@@ -162,7 +162,17 @@ KU::StatusCode LiveData::update_heartbeat()
         {
             printf("%s", CLEAR);
             ioctl(STDOUT_FILENO, TIOCGWINSZ, &window_size);
-            refresh = true;
+            for(int i = 0; i < sections.size(); i++)
+            {
+                sections[i]->param_index = -1;
+                sections[i]->x_pos = -1;
+                sections[i]->y_pos = -1;
+                last_x = 0;
+                last_y = 0;
+                last_width = 0;
+                last_height = 0;
+                is_first = true;
+            }
         }
         // get the next page
         resp = sc->get_frame(KU::HEART_BEAT_ID, this, LiveData_resp_call_back, 500);
@@ -777,7 +787,6 @@ KU::StatusCode LiveData::update_heartbeat()
                                           ? tmp.page10.aux5_buf
                                           : hb->page10.aux5_buf;
                 finished_loading = true;
-                printf("\033[7;24f hhhhhhh");
                 break;
             }
         }
@@ -854,7 +863,7 @@ bool LiveData::update_param_a(float new_value, float old_value, const string& lo
         section->num_params = section->params.size();
     }
     // update the sections to display when need to refresh or it is the first time publishing
-    if((refresh || section->param_index < 0) && finished_loading && (section->selected_option & PRESENT_FLAG))
+    if((section->param_index < 0) && finished_loading && (section->selected_option & PRESENT_FLAG))
     {
         if(section->param_index < 0)
         {
@@ -887,7 +896,11 @@ bool LiveData::update_param_a(float new_value, float old_value, const string& lo
             section->x_pos = -1;
             section->y_pos = -1;
         }
-        refresh = false;
+        // update last section values
+        last_x = section->x_pos;
+        last_y = section->y_pos;
+        last_width = section->width + 1 + std::to_string(new_value).size();
+        last_height = (section->num_params > last_height) ? section->num_params : last_height;
     }
     // display the header if on display
     if(section->x_pos >= 0 && section->y_pos >= 0)
@@ -905,11 +918,6 @@ bool LiveData::update_param_a(float new_value, float old_value, const string& lo
         // pad the section params based on the width
         LOG_PRINT(("%-*s:%.1f", section->width, section->params[section->param_index].c_str(), new_value));
 
-        // update last section values
-        last_x = section->x_pos;
-        last_y = section->y_pos;
-        last_width = section->width + 1 + std::to_string(new_value).size();
-        last_height = section->num_params;
         section->param_index++;
     }
     if (new_value != old_value)
@@ -988,7 +996,7 @@ bool LiveData::update_param_s(uint8_t new_value, uint8_t old_value, const string
         section->num_params = section->params.size();
     }
     // update the sections to display when need to refresh or it is the first time publishing
-    if((refresh || section->param_index < 0) && finished_loading && (section->selected_option & PRESENT_FLAG))
+    if((section->param_index < 0) && finished_loading && (section->selected_option & PRESENT_FLAG))
     {
         if(section->param_index < 0)
         {
@@ -1021,7 +1029,11 @@ bool LiveData::update_param_s(uint8_t new_value, uint8_t old_value, const string
             section->x_pos = -1;
             section->y_pos = -1;
         }
-        refresh = false;
+        // update last section values
+        last_x = section->x_pos;
+        last_y = section->y_pos;
+        last_width = section->width + 1 + std::to_string(new_value).size();
+        last_height = (section->num_params > last_height) ? section->num_params : last_height;
     }
     // display the header if on display
     if(section->x_pos >= 0 && section->y_pos >= 0)
@@ -1039,11 +1051,6 @@ bool LiveData::update_param_s(uint8_t new_value, uint8_t old_value, const string
         // pad the section params based on the width
         LOG_PRINT(("%-*s:%i", section->width, section->params[section->param_index].c_str(), new_value));
 
-        // update last section values
-        last_x = section->x_pos;
-        last_y = section->y_pos;
-        last_width = section->width + 1 + std::to_string(new_value).size();
-        last_height = section->num_params;
         section->param_index++;
     }
     if (new_value != old_value)

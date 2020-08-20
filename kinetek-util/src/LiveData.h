@@ -276,7 +276,7 @@ class LiveData
     int last_height = 0;
 
     bool finished_loading = false;
-    bool refresh = true;
+    bool refresh = false;
 
     winsize window_size;
 };
