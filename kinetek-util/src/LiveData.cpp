@@ -30,14 +30,13 @@
 #define BACK "\033[1D"
 #define DOWN "\033[1B"
 #define UP "\033[1A"
-#define COORD0 "\033[22;0f"
 #define BOLD_ON "\033[1m"
 #define YELLOW_TITLE "\033[1;33m"
 #define RED_TITLE "\033[1;31m"
 #define ATTRIB_OFF "\033[0m"
 #define CLEAR "\033[2J"
 #define FULL_SCREEN "\e[8;200;200t"
-#define PADDING 3
+#define PADDING 5
 
 // initialize objects
 LiveData::LiveData(SocketCanHelper* sc, KU::CanDataList* ku_data)
@@ -66,6 +65,7 @@ LiveData::LiveData(SocketCanHelper* sc, KU::CanDataList* ku_data)
     sections.push_back(new DataSection("METADATA", META_STATE, 1, -1, -1, -1, -1, 0, -1));
     sections.push_back(new DataSection("ERROR_STATE", ERROR_STATE, 1, -1, -1, -1, -1, 0, -1));
     sections.push_back(new DataSection("MISC_STATE", MISC_STATE, 1, -1, -1, -1, -1, 0, -1));
+    sections.push_back(new DataSection("UNKNOWN", UNKNOWN_STATE, 1, -1, -1, -1, -1, 0, -1));
     sections.push_back(new DataSection("TRACTION_ANALOG", TRACTION_ANALOG, 0, -1, -1, -1, -1, 0, -1));
     sections.push_back(new DataSection("SCRUBBER_ANALOG", SCRUBBER_ANALOG, 0, -1, -1, -1, -1, 0, -1));
     sections.push_back(new DataSection("RECOVERY_ANALOG", RECOVERY_ANALOG, 0, -1, -1, -1, -1, 0, -1));
@@ -779,20 +779,26 @@ bool LiveData::update_param_a(float new_value, float old_value, const string& lo
     std::stringstream stream;
     if ((new_value != old_value && section->selected_option == ACTIVE_FLAG) || refresh)
     {
+        changes->num_params = 10;
+        string pos = "\033[" + std::to_string(window_size.ws_row - changes->num_params) + ";0f";
+
         end = std::chrono::steady_clock::now();
-        LOG_PRINT(("%s%s%sLAST 10 CHANGES%s", COORD0, UP, RED_TITLE, ATTRIB_OFF));
+        LOG_PRINT(("%s%s%sLAST 10 CHANGES%s", pos.c_str(), UP, RED_TITLE, ATTRIB_OFF));
         static int last_size;
         stream << BOLD_ON << std::setw(30) << log_name << ATTRIB_OFF << std::setw(5) << std::to_string(old_value)
                << " -->" << std::setw(5) << std::to_string(new_value) << "   time: " << std::setw(15) << std::fixed
                << std::setprecision(10)
                << std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count() / 1000000.0;
         last_size = stream.str().size();
+        changes->width = last_size;
+        changes->x_pos = 0;
+        changes->y_pos = window_size.ws_row - changes->num_params;
 
         if(refresh && !(new_value != old_value && section->selected_option == ACTIVE_FLAG))
         {
             for (int i = 0; i < top_10.size() / last_size; i++)
             {
-                LOG_PRINT(("%s", COORD0));
+                LOG_PRINT(("%s", pos.c_str()));
                 for (int j = 0; j < i; j++)
                 {
                     LOG_PRINT(("%s", DOWN));
@@ -809,17 +815,16 @@ bool LiveData::update_param_a(float new_value, float old_value, const string& lo
             }
             else
             {
-                top_10 += stream.str();
+                string temp = top_10;
+                top_10 = stream.str();
+                top_10 += temp;
             }
             changes->params.clear();
             changes->params.push_back(top_10);
-            changes->width = last_size;
-            changes->num_params = 10;
-            changes->x_pos = 0;
-            changes->y_pos = 22;
+            
             for (int i = 0; i < top_10.size() / last_size; i++)
             {
-                LOG_PRINT(("%s", COORD0));
+                LOG_PRINT(("%s", pos.c_str()));
                 for (int j = 0; j < i; j++)
                 {
                     LOG_PRINT(("%s", DOWN));
@@ -862,24 +867,25 @@ bool LiveData::update_param_a(float new_value, float old_value, const string& lo
                 section->x_pos = 0;
                 section->y_pos = 0;
             }
+            
             else
             {
                 section->x_pos = last_x + last_width + PADDING;
                 section->y_pos = last_y;
+            }
 
-                // if within bounds of changes, move the section
-                if(section->x_pos < (changes->x_pos + changes->width) && (section->x_pos + section->width) > changes->x_pos &&
-                   section->y_pos < (changes->y_pos + changes->num_params) && (section->y_pos + section->num_params) > changes->y_pos)
+            // if within bounds of changes, move the section
+            if(section->x_pos < (changes->x_pos + changes->width) && (section->x_pos + section->width) > changes->x_pos &&
+                section->y_pos < (changes->y_pos + changes->num_params) && (section->y_pos + section->num_params + PADDING) > changes->y_pos)
+            {
+                if(window_size.ws_col - (changes->x_pos + changes->width) > section->width + PADDING)
                 {
-                    if(window_size.ws_col - (changes->x_pos + changes->width) > section->width + PADDING)
-                    {
-                        section->x_pos = changes->x_pos + changes->width + PADDING;
-                    }
-                    else
-                    {
-                        section->x_pos = -1;
-                        section->y_pos = -1;
-                    }
+                    section->x_pos = changes->x_pos + changes->width;
+                }
+                else
+                {
+                    section->x_pos = -1;
+                    section->y_pos = -1;
                 }
             }
         }
@@ -891,17 +897,17 @@ bool LiveData::update_param_a(float new_value, float old_value, const string& lo
 
             // if within bounds of changes, move the section
             if(section->x_pos < (changes->x_pos + changes->width) && (section->x_pos + section->width) > changes->x_pos &&
-            section->y_pos < (changes->y_pos + changes->num_params) && (section->y_pos + section->num_params) > changes->y_pos)
+                   section->y_pos < (changes->y_pos + changes->num_params) && (section->y_pos + section->num_params + PADDING) > changes->y_pos)
             {
                 if(window_size.ws_col - (changes->x_pos + changes->width) > section->width + PADDING)
                 {
-                    section->x_pos = changes->x_pos + changes->width + PADDING;
+                    section->x_pos = changes->x_pos + changes->width;
                 }
                 else
                 {
                     section->x_pos = -1;
                     section->y_pos = -1;
-                }   
+                }
             }
         }
         // if there is no room, don't display these sections
@@ -911,10 +917,13 @@ bool LiveData::update_param_a(float new_value, float old_value, const string& lo
             section->y_pos = -1;
         }
         // update last section values
-        last_x = section->x_pos;
-        last_y = section->y_pos;
-        last_width = section->width + 1 + std::to_string(new_value).size();
-        last_height = (section->num_params > last_height) ? section->num_params : last_height;
+        if(section->x_pos != -1)
+        {
+            last_x = section->x_pos;
+            last_y = section->y_pos;
+            last_width = section->width + 1 + std::to_string(new_value).size();
+            last_height = (section->num_params > last_height) ? section->num_params : last_height;
+        }
     }
     // display the header if on display
     if(section->x_pos >= 0 && section->y_pos >= 0)
@@ -930,7 +939,7 @@ bool LiveData::update_param_a(float new_value, float old_value, const string& lo
             LOG_PRINT(("%s", DOWN));
         }
         // pad the section params based on the width
-        LOG_PRINT(("%-*s:%.1f", section->width, section->params[section->param_index].c_str(), new_value));
+        LOG_PRINT(("%-*s:%i", section->width, section->params[section->param_index].c_str(), new_value));
 
         section->param_index++;
     }
@@ -957,20 +966,25 @@ bool LiveData::update_param_s(uint8_t new_value, uint8_t old_value, const string
     std::stringstream stream;
     if ((new_value != old_value && section->selected_option == ACTIVE_FLAG) || refresh)
     {
+        changes->num_params = 10;
+        string pos = "\033[" + std::to_string(window_size.ws_row - changes->num_params) + ";0f";
         end = std::chrono::steady_clock::now();
-        LOG_PRINT(("%s%s%sLAST 10 CHANGES%s", COORD0, UP, RED_TITLE, ATTRIB_OFF));
+        LOG_PRINT(("%s%s%sLAST 10 CHANGES%s", pos.c_str(), UP, RED_TITLE, ATTRIB_OFF));
         static int last_size;
         stream << BOLD_ON << std::setw(30) << log_name << ATTRIB_OFF << std::setw(5) << std::to_string(old_value)
                << " -->" << std::setw(5) << std::to_string(new_value) << "   time: " << std::setw(15) << std::fixed
                << std::setprecision(10)
                << std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count() / 1000000.0;
         last_size = stream.str().size();
+        changes->width = last_size;
+        changes->x_pos = 0;
+        changes->y_pos = window_size.ws_row - changes->num_params;
 
         if(refresh && !(new_value != old_value && section->selected_option == ACTIVE_FLAG))
         {
             for (int i = 0; i < top_10.size() / last_size; i++)
             {
-                LOG_PRINT(("%s", COORD0));
+                LOG_PRINT(("%s", pos.c_str()));
                 for (int j = 0; j < i; j++)
                 {
                     LOG_PRINT(("%s", DOWN));
@@ -987,17 +1001,15 @@ bool LiveData::update_param_s(uint8_t new_value, uint8_t old_value, const string
             }
             else
             {
-                top_10 += stream.str();
+                string temp = top_10;
+                top_10 = stream.str();
+                top_10 += temp;
             }
             changes->params.clear();
             changes->params.push_back(top_10);
-            changes->width = last_size;
-            changes->num_params = 10;
-            changes->x_pos = 0;
-            changes->y_pos = 22;
             for (int i = 0; i < top_10.size() / last_size; i++)
             {
-                LOG_PRINT(("%s", COORD0));
+                LOG_PRINT(("%s", pos.c_str()));
                 for (int j = 0; j < i; j++)
                 {
                     LOG_PRINT(("%s", DOWN));
@@ -1044,20 +1056,20 @@ bool LiveData::update_param_s(uint8_t new_value, uint8_t old_value, const string
             {
                 section->x_pos = last_x + last_width + PADDING;
                 section->y_pos = last_y;
+            }
 
-                 // if within bounds of changes, move the section
-                if(section->x_pos < (changes->x_pos + changes->width) && (section->x_pos + section->width) > changes->x_pos &&
-                   section->y_pos < (changes->y_pos + changes->num_params) && (section->y_pos + section->num_params) > changes->y_pos)
+            // if within bounds of changes, move the section
+            if(section->x_pos < (changes->x_pos + changes->width) && (section->x_pos + section->width) > changes->x_pos &&
+                section->y_pos < (changes->y_pos + changes->num_params) && (section->y_pos + section->num_params + PADDING) > changes->y_pos)
+            {
+                if(window_size.ws_col - (changes->x_pos + changes->width) > section->width + PADDING)
                 {
-                    if(window_size.ws_col - (changes->x_pos + changes->width) > section->width + PADDING)
-                    {
-                        section->x_pos = changes->x_pos + changes->width + PADDING;
-                    }
-                    else
-                    {
-                        section->x_pos = -1;
-                        section->y_pos = -1;
-                    }
+                    section->x_pos = changes->x_pos + changes->width;
+                }
+                else
+                {
+                    section->x_pos = -1;
+                    section->y_pos = -1;
                 }
             }
         }
@@ -1069,11 +1081,11 @@ bool LiveData::update_param_s(uint8_t new_value, uint8_t old_value, const string
 
             // if within bounds of changes, move the section
             if(section->x_pos < (changes->x_pos + changes->width) && (section->x_pos + section->width) > changes->x_pos &&
-                   section->y_pos < (changes->y_pos + changes->num_params) && (section->y_pos + section->num_params) > changes->y_pos)
+                   section->y_pos < (changes->y_pos + changes->num_params) && (section->y_pos + section->num_params + PADDING) > changes->y_pos)
             {
                 if(window_size.ws_col - (changes->x_pos + changes->width) > section->width + PADDING)
                 {
-                    section->x_pos = changes->x_pos + changes->width + PADDING;
+                    section->x_pos = changes->x_pos + changes->width;
                 }
                 else
                 {
@@ -1089,10 +1101,13 @@ bool LiveData::update_param_s(uint8_t new_value, uint8_t old_value, const string
             section->y_pos = -1;
         }
         // update last section values
-        last_x = section->x_pos;
-        last_y = section->y_pos;
-        last_width = section->width + 1 + std::to_string(new_value).size();
-        last_height = (section->num_params > last_height) ? section->num_params : last_height;
+        if(section->x_pos != -1)
+        {
+            last_x = section->x_pos;
+            last_y = section->y_pos;
+            last_width = section->width + 1 + std::to_string(new_value).size();
+            last_height = (section->num_params > last_height) ? section->num_params : last_height;
+        }
     }
     // display the header if on display
     if(section->x_pos >= 0 && section->y_pos >= 0)
