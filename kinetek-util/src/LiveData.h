@@ -4,14 +4,14 @@
 #ifndef LIVE_DATA_H
 #define LIVE_DATA_H
 
-#include "SocketCanHelper.h"
-#include "KinetekUtilityCodes.h"
 #include <string>
 #include <chrono>
 #include <vector>
 #include <fstream>
-#include "HexUtility.h"
 #include <sys/ioctl.h>
+#include "HexUtility.h"
+#include "SocketCanHelper.h"
+#include "KinetekUtilityCodes.h"
 
 using std::fstream;
 using std::string;
@@ -42,13 +42,31 @@ class LiveData
     // stores configuration information about each data section
     struct DataSection
     {
-        DataSection(string name, ParamCategory category, uint8_t is_state, int num_params, int width, int x_pos, int y_pos, uint8_t selected_option, int param_index) :
-                    name(name), category(category), is_state(is_state), num_params(num_params), width(width), x_pos(x_pos), y_pos(y_pos), selected_option(selected_option), param_index(param_index) {} 
+        DataSection(string name,
+                    ParamCategory category,
+                    uint8_t is_state,
+                    int num_params,
+                    int width,
+                    int x_pos,
+                    int y_pos,
+                    uint8_t selected_option,
+                    int param_index)
+            : name(name),
+              category(category),
+              is_state(is_state),
+              num_params(num_params),
+              width(width),
+              x_pos(x_pos),
+              y_pos(y_pos),
+              selected_option(selected_option),
+              param_index(param_index)
+        {
+        }
         string name;
         ParamCategory category;
-        uint8_t is_state; // state = 0, analog = 1
-        int num_params; // height
-        int width; // max param length
+        uint8_t is_state;  // state = 0, analog = 1
+        int num_params;    // height
+        int width;         // max param length
         int x_pos;
         int y_pos;
         uint8_t selected_option;
@@ -255,7 +273,7 @@ class LiveData
     string top_10;
     std::chrono::steady_clock::time_point begin;
     std::chrono::steady_clock::time_point end;
-    
+
     // callback function for received messages, not used as of now
     friend void STU_resp_call_back(void* obj, const CO_CANrxMsg_t* can_msg);
 
@@ -263,10 +281,15 @@ class LiveData
     bool update_param_a(float new_value, float old_value, const string& log_name, ParamCategory type);
     bool update_param_s(uint8_t new_value, uint8_t old_value, const string& log_name, ParamCategory type);
 
-    // keeps track of which categories are selected
-    #define ABSENT_FLAG 0b00000000 // 00000000 --> don't show at all
-    #define PRESENT_FLAG 0b00001111 // 00001111 --> show but not in the changes list
-    #define ACTIVE_FLAG 0b11111111 // 11111111 --> show on screen and on changes list
+    // finds the section in hte vector
+    DataSection* get_section(ParamCategory type);
+
+    // edits the last 10 changes when a parameter value updates
+    void update_changes(DataSection* section, std::stringstream& stream, bool just_refresh);
+
+    // initializes the section position accordingly
+    void update_section(DataSection* section, const string& log_name, int param_size);
+
     std::vector<DataSection*> sections;
     DataSection* changes;
 

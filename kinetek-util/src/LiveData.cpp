@@ -21,10 +21,6 @@
 
 // escape sequences to adjust cursor location and text format
 #define TLC "\033[0;0f"
-#define BLC "\033[60;0f"
-#define TLC_ERROR "\033[38;0f"
-#define TLC_ERROR_S1 "\033[40;0f"
-#define TLC_ERROR_S2 "\033[40;40f"
 #define SAVE "\033[s"
 #define RESTORE "\033[u"
 #define BACK "\033[1D"
@@ -35,9 +31,12 @@
 #define RED_TITLE "\033[1;31m"
 #define ATTRIB_OFF "\033[0m"
 #define CLEAR "\033[2J"
-#define FULL_SCREEN "\e[8;200;200t"
 #define PADDING 3
-#define COORD "\033[100;150f"
+
+// keeps track of which categories are selected
+#define ABSENT_FLAG 0b00000000   // 00000000 --> don't show at all
+#define PRESENT_FLAG 0b00001111  // 00001111 --> show but not in the changes list
+#define ACTIVE_FLAG 0b11110000   // 11110000 --> show on changes list
 
 // initialize objects
 LiveData::LiveData(SocketCanHelper* sc, KU::CanDataList* ku_data)
@@ -58,7 +57,6 @@ LiveData::LiveData(SocketCanHelper* sc, KU::CanDataList* ku_data)
     hb = new controller_heartbeat;
 
     // create all the sections
-    std::vector<int> nums;
     sections.push_back(new DataSection("TRACTION_STATE", TRACTION_STATE, 1, -1, -1, -1, -1, 0, -1));
     sections.push_back(new DataSection("SCRUBBER_STATE", SCRUBBER_STATE, 1, -1, -1, -1, -1, 0, -1));
     sections.push_back(new DataSection("RECOVERY_STATE", RECOVERY_STATE, 1, -1, -1, -1, -1, 0, -1));
@@ -72,12 +70,7 @@ LiveData::LiveData(SocketCanHelper* sc, KU::CanDataList* ku_data)
     sections.push_back(new DataSection("RECOVERY_ANALOG", RECOVERY_ANALOG, 0, -1, -1, -1, -1, 0, -1));
     sections.push_back(new DataSection("MISC_ANALOG", MISC_ANALOG, 0, -1, -1, -1, -1, 0, -1));
     sections.push_back(new DataSection("BATTERY_ANALOG", BATTERY_ANALOG, 0, -1, -1, -1, -1, 0, -1));
-    //sections.push_back(new DataSection("LATEST_CHANGES", LATEST_CHANGES, 0, -1, -1, -1, -1, 0, 0));
     changes = new DataSection("LATEST_CHANGES", LATEST_CHANGES, 0, -1, -1, -1, -1, 0, -1);
-
-    // make the terminal full screen and get the width and height
-    // printf("%s", FULL_SCREEN);
-    // ioctl(STDOUT_FILENO, TIOCGWINSZ, &size);
 
     // start the clock on launch
     begin = std::chrono::steady_clock::now();
@@ -86,7 +79,7 @@ LiveData::LiveData(SocketCanHelper* sc, KU::CanDataList* ku_data)
 // deallocate memory
 LiveData::~LiveData()
 {
-    for(int i = 0; i < sections.size(); i++)
+    for (int i = 0; i < sections.size(); i++)
     {
         delete sections[i];
     }
@@ -99,20 +92,25 @@ void LiveData_resp_call_back(void* obj, const CO_CANrxMsg_t* can_msg)
     // nothing needed
 }
 
-// clear the screen upon exit
-void my_handler(int s)
+// move cursor back to bottom left corner on CTRL + C
+void on_quit(int s)
 {
-    printf("%s", BLC);
+    winsize tmp_win;
+    ioctl(STDOUT_FILENO, TIOCGWINSZ, &tmp_win);
+    string pos = "\033[" + std::to_string(tmp_win.ws_row) + ";0f";
+    printf("%s", pos.c_str());
     exit(1);
 }
 
-// updates the heartbeat struct every page
+// loop that updates the heartbeat struct every page
 KU::StatusCode LiveData::update_heartbeat()
 {
+    // check section configuration settings
     parse_ini("live_data_options.ini");
-    signal (SIGINT,my_handler);
-    // the first run of the while loop
-    static bool is_first = true;
+    signal(SIGINT, on_quit);
+
+    // cycles the loop until get back to page 1
+    bool is_first = true;
 
     // clear the screen
     printf("%s%s", CLEAR, "\033[0;0f");
@@ -124,13 +122,14 @@ KU::StatusCode LiveData::update_heartbeat()
     uint8_t last_page_num = 0;
     while (true)
     {
+        // if the window size has changed, then reset the sections
         winsize tmp_win;
         ioctl(STDOUT_FILENO, TIOCGWINSZ, &tmp_win);
-        if(tmp_win.ws_col != window_size.ws_col || tmp_win.ws_row != window_size.ws_row)
+        if (tmp_win.ws_col != window_size.ws_col || tmp_win.ws_row != window_size.ws_row)
         {
             printf("%s", CLEAR);
             ioctl(STDOUT_FILENO, TIOCGWINSZ, &window_size);
-            for(int i = 0; i < sections.size(); i++)
+            for (int i = 0; i < sections.size(); i++)
             {
                 sections[i]->param_index = -1;
                 sections[i]->x_pos = -1;
@@ -153,6 +152,7 @@ KU::StatusCode LiveData::update_heartbeat()
 
         last_page_num = page_num;
         page_num = resp->data[1];
+        // wait until start at page 1
         if (is_first)
         {
             while (page_num != 1)
@@ -164,23 +164,23 @@ KU::StatusCode LiveData::update_heartbeat()
         }
         else
         {
-            if(last_page_num+1 == 11)
+            if (last_page_num + 1 == 11)
             {
                 last_page_num = 0;
             }
-            while (page_num != last_page_num+1)
+            // if a page was missed, wait until the missed page is received again
+            while (page_num != last_page_num + 1)
             {
-                //printf("%s%s", "\033[20;0f", "MISSED A PAGE");
                 resp = sc->get_frame(KU::HEART_BEAT_ID, this, LiveData_resp_call_back, 500);
                 page_num = resp->data[1];
-            } 
+            }
         }
-        
+
+        // update all the parameters according to the page
         switch (page_num)
         {
             case 1:
             {
-                // copy the page data into the tmp variable
                 memcpy(&tmp.page1, resp->data + 2, sizeof(tmp.page1));
                 hb->page1.vehicle_state =
                     update_param_s(tmp.page1.vehicle_state, hb->page1.vehicle_state, "vehicle_state", TRACTION_STATE)
@@ -320,7 +320,6 @@ KU::StatusCode LiveData::update_heartbeat()
             case 2:
             {
                 memcpy(&tmp.page2, resp->data + 2, sizeof(tmp.page2));
-
                 // input_flag4
                 hb->page2.clean_water_buf = update_param_s(tmp.page2.clean_water_buf, hb->page2.clean_water_buf,
                                                            "clean_water_buf", SCRUBBER_STATE)
@@ -762,92 +761,87 @@ KU::StatusCode LiveData::update_heartbeat()
     }
 }
 
-// update an analog parameter value
-bool LiveData::update_param_a(float new_value, float old_value, const string& log_name, ParamCategory type)
+LiveData::DataSection* LiveData::get_section(ParamCategory type)
 {
-    // get the according section
-    DataSection* section;
-    for(int i = 0; i < sections.size(); i++)
+    for (int i = 0; i < sections.size(); i++)
     {
-        if(sections[i]->category == type)
+        if (sections[i]->category == type)
         {
-            section = sections[i];
-            break;
+            return sections[i];
         }
     }
-    
-    // display changes if parameter is active
-    std::stringstream stream;
-    if ((new_value != old_value && section->selected_option == ACTIVE_FLAG) || refresh)
+}
+
+void LiveData::update_changes(DataSection* section, std::stringstream& stream, bool just_refresh)
+{
+    // the changes are posted in the bottom left corner
+    changes->num_params = 10;
+    string pos = "\033[" + std::to_string(window_size.ws_row - changes->num_params) + ";0f";
+
+    end = std::chrono::steady_clock::now();
+    LOG_PRINT(("%s%s%sLAST 10 CHANGES%s", pos.c_str(), UP, RED_TITLE, ATTRIB_OFF));
+
+    // configure the section parameters
+    changes->width = stream.str().size();
+    changes->x_pos = 0;
+    changes->y_pos = window_size.ws_row - changes->num_params;
+    // /LOG_PRINT(("\033[60;60f %i", changes->width));
+
+    // if the value hasn't changed but the window size has
+    if (just_refresh)
     {
-        changes->num_params = 10;
-        string pos = "\033[" + std::to_string(window_size.ws_row - changes->num_params) + ";0f";
-
-        end = std::chrono::steady_clock::now();
-        LOG_PRINT(("%s%s%sLAST 10 CHANGES%s", pos.c_str(), UP, RED_TITLE, ATTRIB_OFF));
-        static int last_size;
-        stream << BOLD_ON << std::setw(30) << log_name << ATTRIB_OFF << std::setw(10) << old_value
-               << " -->" << std::setw(10) << new_value << "   time: " << std::setw(10) << std::fixed
-               << std::setprecision(5)
-               << std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count() / 1000000.0;
-
-        last_size = stream.str().size();
-        changes->width = (last_size > changes->width) ? last_size : changes->width;
-        changes->x_pos = 0;
-        changes->y_pos = window_size.ws_row - changes->num_params;
-       //LOG_PRINT(("%s %i %i", COORD, last_size, changes->width));
-
-        if(refresh && !(new_value != old_value && section->selected_option == ACTIVE_FLAG))
+        for (int i = 0; i < top_10.size() / changes->width; i++)
         {
-            for (int i = 0; i < top_10.size() / changes->width; i++)
+            LOG_PRINT(("%s", pos.c_str()));
+            for (int j = 0; j < i; j++)
             {
-                LOG_PRINT(("%s", pos.c_str()));
-                for (int j = 0; j < i; j++)
-                {
-                    LOG_PRINT(("%s", DOWN));
-                }
-                LOG_PRINT(("%i. %s", i, top_10.substr(changes->width * (i), changes->width).c_str()));
+                LOG_PRINT(("%s", DOWN));
             }
-            refresh = false;
+            LOG_PRINT(("%i. %s", i, top_10.substr(changes->width * (i), changes->width).c_str()));
+        }
+        refresh = false;
+    }
+    // when a new value changes, grab the top 9 changes and insert the latest at the front
+    else
+    {
+        if (top_10.size() >= changes->width * 10)
+        {
+            top_10 = stream.str() + top_10.substr(0, top_10.size() - changes->width);
         }
         else
         {
-            if (top_10.size() >= changes->width * 10)
+            string temp = top_10;
+            top_10 = stream.str();
+            top_10 += temp;
+        }
+        changes->params.clear();
+        changes->params.push_back(top_10);
+
+        for (int i = 0; i < top_10.size() / changes->width; i++)
+        {
+            LOG_PRINT(("%s", pos.c_str()));
+            for (int j = 0; j < i; j++)
             {
-                top_10 = stream.str() + top_10.substr(0, top_10.size() - changes->width);
+                LOG_PRINT(("%s", DOWN));
             }
-            else
-            {
-                string temp = top_10;
-                top_10 = stream.str();
-                top_10 += temp;
-            }
-            changes->params.clear();
-            changes->params.push_back(top_10);
-            
-            for (int i = 0; i < top_10.size() / changes->width; i++)
-            {
-                LOG_PRINT(("%s", pos.c_str()));
-                for (int j = 0; j < i; j++)
-                {
-                    LOG_PRINT(("%s", DOWN));
-                }
-                LOG_PRINT(("%i. %s", i, top_10.substr(changes->width * (i), changes->width).c_str()));
-            }
+            LOG_PRINT(("%i. %s", i, top_10.substr(changes->width * (i), changes->width).c_str()));
         }
     }
+}
 
+void LiveData::update_section(DataSection* section, const string& log_name, int param_size)
+{
     // if not finished loading, add current parameter to the section
-    if(!finished_loading)
+    if (!finished_loading)
     {
         section->params.push_back(log_name);
 
         // find the section width and height
-        for(int i = 0; i < section->params.size(); i++)
+        for (int i = 0; i < section->params.size(); i++)
         {
-            int new_width = section->params[i].size(); 
+            int new_width = section->params[i].size();
             int curr_width = section->width;
-            if(new_width > curr_width)
+            if (new_width > curr_width)
             {
                 section->width = section->params[i].size();
             }
@@ -855,22 +849,22 @@ bool LiveData::update_param_a(float new_value, float old_value, const string& lo
         section->num_params = section->params.size();
     }
     // update the sections to display when need to refresh or it is the first time publishing
-    if((section->param_index < 0) && finished_loading && (section->selected_option & PRESENT_FLAG))
+    if ((section->param_index < 0) && finished_loading && (section->selected_option & PRESENT_FLAG))
     {
-        if(section->param_index < 0)
+        if (section->param_index < 0)
         {
             section->param_index = 0;
         }
         // if the section can fit in the remaining width space, then display it
-        if(window_size.ws_col - (last_x + last_width) > section->width + PADDING)
+        if (window_size.ws_col - (last_x + last_width) > section->width + PADDING)
         {
             // first section to display
-            if(last_width == 0)
+            if (last_width == 0)
             {
                 section->x_pos = 0;
                 section->y_pos = 0;
             }
-            
+
             else
             {
                 section->x_pos = last_x + last_width + PADDING;
@@ -878,10 +872,12 @@ bool LiveData::update_param_a(float new_value, float old_value, const string& lo
             }
 
             // if within bounds of changes, move the section
-            if(section->x_pos < (changes->x_pos + changes->width) && (section->x_pos + section->width) > changes->x_pos &&
-                section->y_pos < (changes->y_pos + changes->num_params) && (section->y_pos + section->num_params + PADDING) > changes->y_pos)
+            if (section->x_pos < (changes->x_pos + changes->width) &&
+                (section->x_pos + section->width) > changes->x_pos &&
+                section->y_pos < (changes->y_pos + changes->num_params) &&
+                (section->y_pos + section->num_params + PADDING) > changes->y_pos)
             {
-                if(window_size.ws_col - (changes->x_pos + changes->width) > section->width + PADDING)
+                if (window_size.ws_col - (changes->x_pos + changes->width) > section->width + PADDING)
                 {
                     section->x_pos = changes->x_pos + changes->width;
                 }
@@ -893,16 +889,18 @@ bool LiveData::update_param_a(float new_value, float old_value, const string& lo
             }
         }
         // if the section can fit in the remaining height of the next section row
-        else if(window_size.ws_row - (last_y + last_height) > section->num_params + PADDING)
+        else if (window_size.ws_row - (last_y + last_height) > section->num_params + PADDING)
         {
             section->x_pos = 0;
             section->y_pos = last_y + last_height + PADDING;
 
             // if within bounds of changes, move the section
-            if(section->x_pos < (changes->x_pos + changes->width) && (section->x_pos + section->width) > changes->x_pos &&
-                   section->y_pos < (changes->y_pos + changes->num_params) && (section->y_pos + section->num_params + PADDING) > changes->y_pos)
+            if (section->x_pos < (changes->x_pos + changes->width) &&
+                (section->x_pos + section->width) > changes->x_pos &&
+                section->y_pos < (changes->y_pos + changes->num_params) &&
+                (section->y_pos + section->num_params + PADDING) > changes->y_pos)
             {
-                if(window_size.ws_col - (changes->x_pos + changes->width) > section->width + PADDING)
+                if (window_size.ws_col - (changes->x_pos + changes->width) > section->width + PADDING)
                 {
                     section->x_pos = changes->x_pos + changes->width;
                 }
@@ -920,23 +918,49 @@ bool LiveData::update_param_a(float new_value, float old_value, const string& lo
             section->y_pos = -1;
         }
         // update last section values
-        if(section->x_pos != -1)
+        if (section->x_pos != -1)
         {
             last_x = section->x_pos;
             last_y = section->y_pos;
-            last_width = section->width + 1 + std::to_string(new_value).size();
+            last_width = section->width + 1 + param_size;
             last_height = (section->num_params > last_height) ? section->num_params : last_height;
         }
     }
-    // display the header if on display
-    if(section->x_pos >= 0 && section->y_pos >= 0)
+}
+
+// update an analog parameter value
+bool LiveData::update_param_a(float new_value, float old_value, const string& log_name, ParamCategory type)
+{
+    // get the according section
+    DataSection* section = get_section(type);
+
+    // display changes if parameter is active
+    std::stringstream stream;
+    stream << BOLD_ON << std::setw(30) << log_name << ATTRIB_OFF << std::setw(10) << old_value << " -->"
+               << std::setw(10) << new_value << "   time: " << std::setw(10) << std::fixed << std::setprecision(5)
+               << std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count() / 1000000.0;
+    
+    if (refresh)
     {
-        if(section->param_index == section->num_params)
+        update_changes(section, stream, true);
+    }      
+    else if(new_value != old_value && (section->selected_option & ACTIVE_FLAG) == ACTIVE_FLAG)
+    {
+        update_changes(section, stream, false);
+    }
+
+    update_section(section, log_name, std::to_string(new_value).size());
+
+    // display the header if on display
+    if (section->x_pos >= 0 && section->y_pos >= 0)
+    {
+        if (section->param_index == section->num_params)
         {
             section->param_index = 0;
         }
         string section_position = "\033[" + std::to_string(section->y_pos) + ';' + std::to_string(section->x_pos) + "f";
-        LOG_PRINT(("%s%s%s%s%s%s", section_position.c_str(),YELLOW_TITLE, section->name.c_str(), ATTRIB_OFF, section_position.c_str(), DOWN));
+        LOG_PRINT(("%s%s%s%s%s%s", section_position.c_str(), YELLOW_TITLE, section->name.c_str(), ATTRIB_OFF,
+                   section_position.c_str(), DOWN));
         for (int i = 0; i < section->param_index; i++)
         {
             LOG_PRINT(("%s", DOWN));
@@ -956,171 +980,33 @@ bool LiveData::update_param_a(float new_value, float old_value, const string& lo
 bool LiveData::update_param_s(uint8_t new_value, uint8_t old_value, const string& log_name, ParamCategory type)
 {
     // get the according section
-    DataSection* section;
-    for(int i = 0; i < sections.size(); i++)
-    {
-        if(sections[i]->category == type)
-        {
-            section = sections[i];
-            break;
-        }
-    }
+    DataSection* section = get_section(type);
 
     std::stringstream stream;
-    if ((new_value != old_value && section->selected_option == ACTIVE_FLAG) || refresh)
-    {
-        changes->num_params = 10;
-        string pos = "\033[" + std::to_string(window_size.ws_row - changes->num_params) + ";0f";
-        end = std::chrono::steady_clock::now();
-        LOG_PRINT(("%s%s%sLAST 10 CHANGES%s", pos.c_str(), UP, RED_TITLE, ATTRIB_OFF));
-        static int last_size;
-        stream << BOLD_ON << std::setw(30) << log_name << ATTRIB_OFF << std::setw(10) << std::to_string(old_value)
+    stream << BOLD_ON << std::setw(30) << log_name << ATTRIB_OFF << std::setw(10) << std::to_string(old_value)
                << " -->" << std::setw(10) << std::to_string(new_value) << "   time: " << std::setw(10) << std::fixed
-               << std::setprecision(5)
-               << std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count() / 1000000.0;
-        last_size = stream.str().size();
-        changes->width = (last_size > changes->width) ? last_size : changes->width;
-        changes->x_pos = 0;
-        changes->y_pos = window_size.ws_row - changes->num_params;
-        // LOG_PRINT(("%s %i %i", COORD, last_size, changes->width));
-        if(refresh && !(new_value != old_value && section->selected_option == ACTIVE_FLAG))
-        {
-            for (int i = 0; i < top_10.size() / changes->width; i++)
-            {
-                LOG_PRINT(("%s", pos.c_str()));
-                for (int j = 0; j < i; j++)
-                {
-                    LOG_PRINT(("%s", DOWN));
-                }
-                LOG_PRINT(("%i. %s", i, top_10.substr(changes->width * (i), changes->width).c_str()));
-            }
-            refresh = false;
-        }
-        else
-        {
-            if (top_10.size() >= last_size * 10)
-            {
-                top_10 = stream.str() + top_10.substr(0, top_10.size() - changes->width);
-            }
-            else
-            {
-                string temp = top_10;
-                top_10 = stream.str();
-                top_10 += temp;
-            }
-            changes->params.clear();
-            changes->params.push_back(top_10);
-            for (int i = 0; i < top_10.size() / changes->width; i++)
-            {
-                LOG_PRINT(("%s", pos.c_str()));
-                for (int j = 0; j < i; j++)
-                {
-                    LOG_PRINT(("%s", DOWN));
-                }
-                LOG_PRINT(("%i. %s", i, top_10.substr(changes->width * (i), changes->width).c_str()));
-            }
-        }
-    }
-    
-    // if not finished loading, add current parameter to the section
-    if(!finished_loading)
+               << std::setprecision(5) << std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count() / 1000000.0;
+    if (refresh)
     {
-        section->params.push_back(log_name);
-
-        // find the section width and height
-        for(int i = 0; i < section->params.size(); i++)
-        {
-            int new_width = section->params[i].size(); 
-            int curr_width = section->width;
-            if(new_width > curr_width)
-            {
-                section->width = section->params[i].size();
-            }
-        }
-        section->num_params = section->params.size();
-    }
-    // update the sections to display when need to refresh or it is the first time publishing
-    if((section->param_index < 0) && finished_loading && (section->selected_option & PRESENT_FLAG))
+        update_changes(section, stream, true);
+    }      
+    else if(new_value != old_value && (section->selected_option & ACTIVE_FLAG) == ACTIVE_FLAG)
     {
-        if(section->param_index < 0)
-        {
-            section->param_index = 0;
-        }
-        // if the section can fit in the remaining width space, then display it
-        if(window_size.ws_col - (last_x + last_width) > section->width + PADDING)
-        {
-            // first section to display
-            if(last_width == 0)
-            {
-                section->x_pos = 0;
-                section->y_pos = 0;
-            }
-            else
-            {
-                section->x_pos = last_x + last_width + PADDING;
-                section->y_pos = last_y;
-            }
-
-            // if within bounds of changes, move the section
-            if(section->x_pos < (changes->x_pos + changes->width) && (section->x_pos + section->width) > changes->x_pos &&
-                section->y_pos < (changes->y_pos + changes->num_params) && (section->y_pos + section->num_params + PADDING) > changes->y_pos)
-            {
-                if(window_size.ws_col - (changes->x_pos + changes->width) > section->width + PADDING)
-                {
-                    section->x_pos = changes->x_pos + changes->width;
-                }
-                else
-                {
-                    section->x_pos = -1;
-                    section->y_pos = -1;
-                }
-            }
-        }
-        // if the section can fit in the remaining height of the next section row
-        else if(window_size.ws_row - (last_y + last_height) > section->num_params + PADDING)
-        {
-            section->x_pos = 0;
-            section->y_pos = last_y + last_height + PADDING;
-
-            // if within bounds of changes, move the section
-            if(section->x_pos < (changes->x_pos + changes->width) && (section->x_pos + section->width) > changes->x_pos &&
-                   section->y_pos < (changes->y_pos + changes->num_params) && (section->y_pos + section->num_params + PADDING) > changes->y_pos)
-            {
-                if(window_size.ws_col - (changes->x_pos + changes->width) > section->width + PADDING)
-                {
-                    section->x_pos = changes->x_pos + changes->width;
-                }
-                else
-                {
-                    section->x_pos = -1;
-                    section->y_pos = -1;
-                }
-            }
-        }
-        // if there is no room, don't display these sections
-        else
-        {
-            section->x_pos = -1;
-            section->y_pos = -1;
-        }
-        // update last section values
-        if(section->x_pos != -1)
-        {
-            last_x = section->x_pos;
-            last_y = section->y_pos;
-            last_width = section->width + 1 + std::to_string(new_value).size();
-            last_height = (section->num_params > last_height) ? section->num_params : last_height;
-        }
+        update_changes(section, stream, false);
     }
+
+    update_section(section, log_name, std::to_string(new_value).size());
+
     // display the header if on display
-    if(section->x_pos >= 0 && section->y_pos >= 0)
+    if (section->x_pos >= 0 && section->y_pos >= 0)
     {
-        if(section->param_index == section->num_params)
+        if (section->param_index == section->num_params)
         {
             section->param_index = 0;
         }
         string section_position = "\033[" + std::to_string(section->y_pos) + ';' + std::to_string(section->x_pos) + "f";
-        LOG_PRINT(("%s%s%s%s%s%s", section_position.c_str(),YELLOW_TITLE, section->name.c_str(), ATTRIB_OFF, section_position.c_str(), DOWN));
+        LOG_PRINT(("%s%s%s%s%s%s", section_position.c_str(), YELLOW_TITLE, section->name.c_str(), ATTRIB_OFF,
+                   section_position.c_str(), DOWN));
         for (int i = 0; i < section->param_index; i++)
         {
             LOG_PRINT(("%s", DOWN));
@@ -1139,78 +1025,80 @@ bool LiveData::update_param_s(uint8_t new_value, uint8_t old_value, const string
 
 KU::StatusCode LiveData::parse_ini(const string& file_path)
 {
-    #define DISPLAY_OFF "=0"
-    #define DISPLAY_ON "=1"
-    #define STATE_SECTION "[STATE]"
-    #define ANALOG_SECTION "[ANALOG]"
-    #define CHANGES_SECTION "[CHANGES]"
+#define DISPLAY_OFF "=0"
+#define DISPLAY_ON "=1"
+#define STATE_SECTION "[STATE]"
+#define ANALOG_SECTION "[ANALOG]"
+#define CHANGES_SECTION "[CHANGES]"
     // first try to open the file, if DNE create it and output the following default options
-    fstream stu_file;
-    stu_file.open(file_path, std::ios::in);
-    if (stu_file.fail())
+    fstream config_file;
+    config_file.open(file_path, std::ios::in);
+    if (config_file.fail())
     {
-        stu_file.open(file_path, std::ios::out);
+        config_file.open(file_path, std::ios::out);
 
         // turn on error state and meta data by default
-        stu_file << STATE_SECTION << "\n";
-        for(int i = 0; i < sections.size(); i++)
+        config_file << STATE_SECTION << "\n";
+        for (int i = 0; i < sections.size(); i++)
         {
-            if(sections[i]->is_state && (sections[i]->category != ERROR_STATE && sections[i]->category != META_STATE && sections[i]->category != TRACTION_STATE))
+            if (sections[i]->is_state && (sections[i]->category != ERROR_STATE && sections[i]->category != META_STATE &&
+                                          sections[i]->category != TRACTION_STATE))
             {
-                stu_file << sections[i]->name << DISPLAY_OFF << "\n";
+                config_file << sections[i]->name << DISPLAY_OFF << "\n";
             }
-            else if(sections[i]->is_state && (sections[i]->category == ERROR_STATE || sections[i]->category == META_STATE || sections[i]->category == TRACTION_STATE))
+            else if (sections[i]->is_state &&
+                     (sections[i]->category == ERROR_STATE || sections[i]->category == META_STATE ||
+                      sections[i]->category == TRACTION_STATE))
             {
-                stu_file << sections[i]->name << DISPLAY_ON << "\n";
+                config_file << sections[i]->name << DISPLAY_ON << "\n";
             }
         }
         // no analog values by default
-        stu_file << ANALOG_SECTION << "\n";
-        for(int i = 0; i < sections.size(); i++)
+        config_file << ANALOG_SECTION << "\n";
+        for (int i = 0; i < sections.size(); i++)
         {
-            if(!sections[i]->is_state)
+            if (!sections[i]->is_state)
             {
-                stu_file << sections[i]->name << DISPLAY_OFF << "\n";
+                config_file << sections[i]->name << DISPLAY_OFF << "\n";
             }
         }
         // only error values show up in last changes by default
-        stu_file << CHANGES_SECTION << "\n";
-        for(int i = 0; i < sections.size(); i++)
+        config_file << CHANGES_SECTION << "\n";
+        for (int i = 0; i < sections.size(); i++)
         {
-            if(sections[i]->category != ERROR_STATE && sections[i]->category != TRACTION_STATE)
+            if (sections[i]->category != ERROR_STATE && sections[i]->category != TRACTION_STATE)
             {
-                stu_file << sections[i]->name << DISPLAY_OFF << "\n";
+                config_file << sections[i]->name << DISPLAY_OFF << "\n";
             }
             else
             {
-                stu_file << sections[i]->name << DISPLAY_ON << "\n";
+                config_file << sections[i]->name << DISPLAY_ON << "\n";
             }
-            
         }
-        stu_file.close();  
+        config_file.close();
     }
 
     // parse the ini file and initialize the options accordingly
-    if(!stu_file.is_open())
+    if (!config_file.is_open())
     {
-        stu_file.open(file_path, std::ios::in);
+        config_file.open(file_path, std::ios::in);
     }
     string curr_line = "";
     string parameter = "";
     string status = "";
-    hu_getline(stu_file, curr_line);
-    if(curr_line == STATE_SECTION)
+    hu_getline(config_file, curr_line);
+    if (curr_line == STATE_SECTION)
     {
         // for items in state section, determine if on/off
-        while(curr_line != ANALOG_SECTION)
+        while (curr_line != ANALOG_SECTION)
         {
-            hu_getline(stu_file, curr_line);
+            hu_getline(config_file, curr_line);
             parameter = curr_line.substr(0, curr_line.find('='));
-            for(int i = 0; i < sections.size(); i++)
+            for (int i = 0; i < sections.size(); i++)
             {
-                if(sections[i]->name == parameter)
+                if (sections[i]->name == parameter)
                 {
-                    if(curr_line.substr(curr_line.find('=')+1, 1) == "1")
+                    if (curr_line.substr(curr_line.find('=') + 1, 1) == "1")
                     {
                         sections[i]->selected_option |= PRESENT_FLAG;
                     }
@@ -1222,28 +1110,28 @@ KU::StatusCode LiveData::parse_ini(const string& file_path)
     if (curr_line == ANALOG_SECTION)
     {
         // for items in analog section, determine if on/off
-        while(curr_line != CHANGES_SECTION)
+        while (curr_line != CHANGES_SECTION)
         {
-            hu_getline(stu_file, curr_line);
+            hu_getline(config_file, curr_line);
             parameter = curr_line.substr(0, curr_line.find('='));
-            for(int i = 0; i < sections.size(); i++)
+            for (int i = 0; i < sections.size(); i++)
             {
-                if(sections[i]->name == parameter && curr_line.substr(curr_line.find('=')+1, 1) == "1")
+                if (sections[i]->name == parameter && curr_line.substr(curr_line.find('=') + 1, 1) == "1")
                 {
                     sections[i]->selected_option |= PRESENT_FLAG;
                 }
             }
         }
     }
-    if(curr_line == CHANGES_SECTION)
+    if (curr_line == CHANGES_SECTION)
     {
         // for items in changes section, determine if on/off
-        while(hu_getline(stu_file, curr_line))
+        while (hu_getline(config_file, curr_line))
         {
             parameter = curr_line.substr(0, curr_line.find('='));
-            for(int i = 0; i < sections.size(); i++)
+            for (int i = 0; i < sections.size(); i++)
             {
-                if(sections[i]->name == parameter && curr_line.substr(curr_line.find('=')+1, 1) == "1")
+                if (sections[i]->name == parameter && curr_line.substr(curr_line.find('=') + 1, 1) == "1")
                 {
                     sections[i]->selected_option |= ACTIVE_FLAG;
                 }
