@@ -37,6 +37,7 @@
 #define CLEAR "\033[2J"
 #define FULL_SCREEN "\e[8;200;200t"
 #define PADDING 3
+#define COORD "\033[100;150f"
 
 // initialize objects
 LiveData::LiveData(SocketCanHelper* sc, KU::CanDataList* ku_data)
@@ -785,33 +786,35 @@ bool LiveData::update_param_a(float new_value, float old_value, const string& lo
         end = std::chrono::steady_clock::now();
         LOG_PRINT(("%s%s%sLAST 10 CHANGES%s", pos.c_str(), UP, RED_TITLE, ATTRIB_OFF));
         static int last_size;
-        stream << BOLD_ON << std::setw(30) << log_name << ATTRIB_OFF << std::setw(5) << std::to_string(old_value)
-               << " -->" << std::setw(5) << std::to_string(new_value) << "   time: " << std::setw(15) << std::fixed
-               << std::setprecision(10)
+        stream << BOLD_ON << std::setw(30) << log_name << ATTRIB_OFF << std::setw(10) << old_value
+               << " -->" << std::setw(10) << new_value << "   time: " << std::setw(10) << std::fixed
+               << std::setprecision(5)
                << std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count() / 1000000.0;
+
         last_size = stream.str().size();
-        changes->width = last_size;
+        changes->width = (last_size > changes->width) ? last_size : changes->width;
         changes->x_pos = 0;
         changes->y_pos = window_size.ws_row - changes->num_params;
+       //LOG_PRINT(("%s %i %i", COORD, last_size, changes->width));
 
         if(refresh && !(new_value != old_value && section->selected_option == ACTIVE_FLAG))
         {
-            for (int i = 0; i < top_10.size() / last_size; i++)
+            for (int i = 0; i < top_10.size() / changes->width; i++)
             {
                 LOG_PRINT(("%s", pos.c_str()));
                 for (int j = 0; j < i; j++)
                 {
                     LOG_PRINT(("%s", DOWN));
                 }
-                LOG_PRINT(("%i. %s", i, top_10.substr(last_size * (i), last_size).c_str()));
+                LOG_PRINT(("%i. %s", i, top_10.substr(changes->width * (i), changes->width).c_str()));
             }
             refresh = false;
         }
         else
         {
-            if (top_10.size() >= last_size * 10)
+            if (top_10.size() >= changes->width * 10)
             {
-                top_10 = stream.str() + top_10.substr(0, top_10.size() - last_size);
+                top_10 = stream.str() + top_10.substr(0, top_10.size() - changes->width);
             }
             else
             {
@@ -822,14 +825,14 @@ bool LiveData::update_param_a(float new_value, float old_value, const string& lo
             changes->params.clear();
             changes->params.push_back(top_10);
             
-            for (int i = 0; i < top_10.size() / last_size; i++)
+            for (int i = 0; i < top_10.size() / changes->width; i++)
             {
                 LOG_PRINT(("%s", pos.c_str()));
                 for (int j = 0; j < i; j++)
                 {
                     LOG_PRINT(("%s", DOWN));
                 }
-                LOG_PRINT(("%i. %s", i, top_10.substr(last_size * (i), last_size).c_str()));
+                LOG_PRINT(("%i. %s", i, top_10.substr(changes->width * (i), changes->width).c_str()));
             }
         }
     }
@@ -939,7 +942,7 @@ bool LiveData::update_param_a(float new_value, float old_value, const string& lo
             LOG_PRINT(("%s", DOWN));
         }
         // pad the section params based on the width
-        LOG_PRINT(("%-*s:%i", section->width, section->params[section->param_index].c_str(), new_value));
+        LOG_PRINT(("%-*s:%0.1f", section->width, section->params[section->param_index].c_str(), new_value));
 
         section->param_index++;
     }
@@ -971,25 +974,25 @@ bool LiveData::update_param_s(uint8_t new_value, uint8_t old_value, const string
         end = std::chrono::steady_clock::now();
         LOG_PRINT(("%s%s%sLAST 10 CHANGES%s", pos.c_str(), UP, RED_TITLE, ATTRIB_OFF));
         static int last_size;
-        stream << BOLD_ON << std::setw(30) << log_name << ATTRIB_OFF << std::setw(5) << std::to_string(old_value)
-               << " -->" << std::setw(5) << std::to_string(new_value) << "   time: " << std::setw(15) << std::fixed
-               << std::setprecision(10)
+        stream << BOLD_ON << std::setw(30) << log_name << ATTRIB_OFF << std::setw(10) << std::to_string(old_value)
+               << " -->" << std::setw(10) << std::to_string(new_value) << "   time: " << std::setw(10) << std::fixed
+               << std::setprecision(5)
                << std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count() / 1000000.0;
         last_size = stream.str().size();
-        changes->width = last_size;
+        changes->width = (last_size > changes->width) ? last_size : changes->width;
         changes->x_pos = 0;
         changes->y_pos = window_size.ws_row - changes->num_params;
-
+        // LOG_PRINT(("%s %i %i", COORD, last_size, changes->width));
         if(refresh && !(new_value != old_value && section->selected_option == ACTIVE_FLAG))
         {
-            for (int i = 0; i < top_10.size() / last_size; i++)
+            for (int i = 0; i < top_10.size() / changes->width; i++)
             {
                 LOG_PRINT(("%s", pos.c_str()));
                 for (int j = 0; j < i; j++)
                 {
                     LOG_PRINT(("%s", DOWN));
                 }
-                LOG_PRINT(("%i. %s", i, top_10.substr(last_size * (i), last_size).c_str()));
+                LOG_PRINT(("%i. %s", i, top_10.substr(changes->width * (i), changes->width).c_str()));
             }
             refresh = false;
         }
@@ -997,7 +1000,7 @@ bool LiveData::update_param_s(uint8_t new_value, uint8_t old_value, const string
         {
             if (top_10.size() >= last_size * 10)
             {
-                top_10 = stream.str() + top_10.substr(0, top_10.size() - last_size);
+                top_10 = stream.str() + top_10.substr(0, top_10.size() - changes->width);
             }
             else
             {
@@ -1007,14 +1010,14 @@ bool LiveData::update_param_s(uint8_t new_value, uint8_t old_value, const string
             }
             changes->params.clear();
             changes->params.push_back(top_10);
-            for (int i = 0; i < top_10.size() / last_size; i++)
+            for (int i = 0; i < top_10.size() / changes->width; i++)
             {
                 LOG_PRINT(("%s", pos.c_str()));
                 for (int j = 0; j < i; j++)
                 {
                     LOG_PRINT(("%s", DOWN));
                 }
-                LOG_PRINT(("%i. %s", i, top_10.substr(last_size * (i), last_size).c_str()));
+                LOG_PRINT(("%i. %s", i, top_10.substr(changes->width * (i), changes->width).c_str()));
             }
         }
     }
