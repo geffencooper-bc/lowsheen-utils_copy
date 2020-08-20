@@ -30,7 +30,7 @@
 #define BACK "\033[1D"
 #define DOWN "\033[1B"
 #define UP "\033[1A"
-#define COORD0 "\033[39;80f"
+#define COORD0 "\033[22;0f"
 #define BOLD_ON "\033[1m"
 #define YELLOW_TITLE "\033[1;33m"
 #define RED_TITLE "\033[1;31m"
@@ -38,40 +38,6 @@
 #define CLEAR "\033[2J"
 #define FULL_SCREEN "\e[8;200;200t"
 #define PADDING 3
-#define RIGHT_EDGE 150
-#define BOTTOM_EDGE 23
-
-// number of parameters in each category
-#define TRAC_S_SIZE 15
-#define SCRUB_S_SIZE 19
-#define RECOV_S_SIZE 7
-#define MISC_S_SIZE 15
-#define BATT_S_SIZE 3
-#define UNKNOWN_S_SIZE 13
-#define META_S_SIZE 5
-#define TRAC_V_SIZE 9
-#define SCRUB_V_SIZE 5
-#define RECOV_V_SIZE 5
-#define MISC_V_SIZE 8
-#define BATT_V_SIZE 1
-#define ERROR_S1_size 8
-#define ERROR_S2_size 8
-
-// width of each category
-#define TRAC_S_WIDTH 33
-#define SCRUB_S_WIDTH 33
-#define RECOV_S_WIDTH 33
-#define MISC_S_WIDTH 33
-#define BATT_S_WIDTH 23
-#define UNKNOWN_S_WIDTH 20
-#define META_S_WIDTH 25
-#define TRAC_V_WIDTH 40
-#define SCRUB_V_WIDTH 40
-#define RECOV_V_WIDTH 40
-#define MISC_V_WIDTH 40
-#define BATT_V_WIDTH 30
-#define ERROR_S1_WIDTH 35
-#define ERROR_S2_WIDTH 35
 
 // initialize objects
 LiveData::LiveData(SocketCanHelper* sc, KU::CanDataList* ku_data)
@@ -96,7 +62,7 @@ LiveData::LiveData(SocketCanHelper* sc, KU::CanDataList* ku_data)
     sections.push_back(new DataSection("TRACTION_STATE", TRACTION_STATE, 1, -1, -1, -1, -1, 0, -1));
     sections.push_back(new DataSection("SCRUBBER_STATE", SCRUBBER_STATE, 1, -1, -1, -1, -1, 0, -1));
     sections.push_back(new DataSection("RECOVERY_STATE", RECOVERY_STATE, 1, -1, -1, -1, -1, 0, -1));
-    sections.push_back(new DataSection("BATTERY_STATE", TRACTION_STATE, 1, -1, -1, -1, -1, 0, -1));
+    sections.push_back(new DataSection("BATTERY_STATE", BATTERY_STATE, 1, -1, -1, -1, -1, 0, -1));
     sections.push_back(new DataSection("METADATA", META_STATE, 1, -1, -1, -1, -1, 0, -1));
     sections.push_back(new DataSection("ERROR_STATE", ERROR_STATE, 1, -1, -1, -1, -1, 0, -1));
     sections.push_back(new DataSection("MISC_STATE", MISC_STATE, 1, -1, -1, -1, -1, 0, -1));
@@ -106,6 +72,7 @@ LiveData::LiveData(SocketCanHelper* sc, KU::CanDataList* ku_data)
     sections.push_back(new DataSection("MISC_ANALOG", MISC_ANALOG, 0, -1, -1, -1, -1, 0, -1));
     sections.push_back(new DataSection("BATTERY_ANALOG", BATTERY_ANALOG, 0, -1, -1, -1, -1, 0, -1));
     //sections.push_back(new DataSection("LATEST_CHANGES", LATEST_CHANGES, 0, -1, -1, -1, -1, 0, 0));
+    changes = new DataSection("LATEST_CHANGES", LATEST_CHANGES, 0, -1, -1, -1, -1, 0, -1);
 
     // make the terminal full screen and get the width and height
     // printf("%s", FULL_SCREEN);
@@ -172,6 +139,7 @@ KU::StatusCode LiveData::update_heartbeat()
                 last_width = 0;
                 last_height = 0;
                 is_first = true;
+                refresh = true;
             }
         }
         // get the next page
@@ -809,7 +777,7 @@ bool LiveData::update_param_a(float new_value, float old_value, const string& lo
     
     // display changes if parameter is active
     std::stringstream stream;
-    if (new_value != old_value && section->selected_option == ACTIVE_FLAG)
+    if ((new_value != old_value && section->selected_option == ACTIVE_FLAG) || refresh)
     {
         end = std::chrono::steady_clock::now();
         LOG_PRINT(("%s%s%sLAST 10 CHANGES%s", COORD0, UP, RED_TITLE, ATTRIB_OFF));
@@ -820,29 +788,45 @@ bool LiveData::update_param_a(float new_value, float old_value, const string& lo
                << std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count() / 1000000.0;
         last_size = stream.str().size();
 
-        if (top_10.size() >= last_size * 10)
+        if(refresh && !(new_value != old_value && section->selected_option == ACTIVE_FLAG))
         {
-            top_10 = stream.str() + top_10.substr(0, top_10.size() - last_size);
+            for (int i = 0; i < top_10.size() / last_size; i++)
+            {
+                LOG_PRINT(("%s", COORD0));
+                for (int j = 0; j < i; j++)
+                {
+                    LOG_PRINT(("%s", DOWN));
+                }
+                LOG_PRINT(("%i. %s", i, top_10.substr(last_size * (i), last_size).c_str()));
+            }
+            refresh = false;
         }
         else
         {
-            top_10 += stream.str();
-        }
-        for (int i = 0; i < top_10.size() / last_size; i++)
-        {
-            LOG_PRINT(("%s", COORD0));
-            for (int j = 0; j < i; j++)
+            if (top_10.size() >= last_size * 10)
             {
-                LOG_PRINT(("%s", DOWN));
+                top_10 = stream.str() + top_10.substr(0, top_10.size() - last_size);
             }
-            LOG_PRINT(("%i. %s", i, top_10.substr(last_size * (i), last_size).c_str()));
+            else
+            {
+                top_10 += stream.str();
+            }
+            changes->params.clear();
+            changes->params.push_back(top_10);
+            changes->width = last_size;
+            changes->num_params = 10;
+            changes->x_pos = 0;
+            changes->y_pos = 22;
+            for (int i = 0; i < top_10.size() / last_size; i++)
+            {
+                LOG_PRINT(("%s", COORD0));
+                for (int j = 0; j < i; j++)
+                {
+                    LOG_PRINT(("%s", DOWN));
+                }
+                LOG_PRINT(("%i. %s", i, top_10.substr(last_size * (i), last_size).c_str()));
+            }
         }
-        LOG_PRINT(("%s", COORD0));
-        for(int i = 0; i < 11; i++)
-        {
-            LOG_PRINT(("%s", DOWN));
-        }
-        //LOG_PRINT(("size: %i", last_size));
     }
 
     // if not finished loading, add current parameter to the section
@@ -882,6 +866,21 @@ bool LiveData::update_param_a(float new_value, float old_value, const string& lo
             {
                 section->x_pos = last_x + last_width + PADDING;
                 section->y_pos = last_y;
+
+                // if within bounds of changes, move the section
+                if(section->x_pos < (changes->x_pos + changes->width) && (section->x_pos + section->width) > changes->x_pos &&
+                   section->y_pos < (changes->y_pos + changes->num_params) && (section->y_pos + section->num_params) > changes->y_pos)
+                {
+                    if(window_size.ws_col - (changes->x_pos + changes->width) > section->width + PADDING)
+                    {
+                        section->x_pos = changes->x_pos + changes->width + PADDING;
+                    }
+                    else
+                    {
+                        section->x_pos = -1;
+                        section->y_pos = -1;
+                    }
+                }
             }
         }
         // if the section can fit in the remaining height of the next section row
@@ -889,6 +888,21 @@ bool LiveData::update_param_a(float new_value, float old_value, const string& lo
         {
             section->x_pos = 0;
             section->y_pos = last_y + last_height + PADDING;
+
+            // if within bounds of changes, move the section
+            if(section->x_pos < (changes->x_pos + changes->width) && (section->x_pos + section->width) > changes->x_pos &&
+            section->y_pos < (changes->y_pos + changes->num_params) && (section->y_pos + section->num_params) > changes->y_pos)
+            {
+                if(window_size.ws_col - (changes->x_pos + changes->width) > section->width + PADDING)
+                {
+                    section->x_pos = changes->x_pos + changes->width + PADDING;
+                }
+                else
+                {
+                    section->x_pos = -1;
+                    section->y_pos = -1;
+                }   
+            }
         }
         // if there is no room, don't display these sections
         else
@@ -941,7 +955,7 @@ bool LiveData::update_param_s(uint8_t new_value, uint8_t old_value, const string
     }
 
     std::stringstream stream;
-    if (new_value != old_value && section->selected_option == ACTIVE_FLAG)
+    if ((new_value != old_value && section->selected_option == ACTIVE_FLAG) || refresh)
     {
         end = std::chrono::steady_clock::now();
         LOG_PRINT(("%s%s%sLAST 10 CHANGES%s", COORD0, UP, RED_TITLE, ATTRIB_OFF));
@@ -952,32 +966,47 @@ bool LiveData::update_param_s(uint8_t new_value, uint8_t old_value, const string
                << std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count() / 1000000.0;
         last_size = stream.str().size();
 
-        if (top_10.size() >= last_size * 10)
+        if(refresh && !(new_value != old_value && section->selected_option == ACTIVE_FLAG))
         {
-            top_10 = stream.str() + top_10.substr(0, top_10.size() - last_size);
+            for (int i = 0; i < top_10.size() / last_size; i++)
+            {
+                LOG_PRINT(("%s", COORD0));
+                for (int j = 0; j < i; j++)
+                {
+                    LOG_PRINT(("%s", DOWN));
+                }
+                LOG_PRINT(("%i. %s", i, top_10.substr(last_size * (i), last_size).c_str()));
+            }
+            refresh = false;
         }
         else
         {
-            top_10 += stream.str();
-        }
-        for (int i = 0; i < top_10.size() / last_size; i++)
-        {
-            LOG_PRINT(("%s", COORD0));
-            for (int j = 0; j < i; j++)
+            if (top_10.size() >= last_size * 10)
             {
-                LOG_PRINT(("%s", DOWN));
+                top_10 = stream.str() + top_10.substr(0, top_10.size() - last_size);
             }
-            LOG_PRINT(("%i. %s", i, top_10.substr(last_size * (i), last_size).c_str()));
+            else
+            {
+                top_10 += stream.str();
+            }
+            changes->params.clear();
+            changes->params.push_back(top_10);
+            changes->width = last_size;
+            changes->num_params = 10;
+            changes->x_pos = 0;
+            changes->y_pos = 22;
+            for (int i = 0; i < top_10.size() / last_size; i++)
+            {
+                LOG_PRINT(("%s", COORD0));
+                for (int j = 0; j < i; j++)
+                {
+                    LOG_PRINT(("%s", DOWN));
+                }
+                LOG_PRINT(("%i. %s", i, top_10.substr(last_size * (i), last_size).c_str()));
+            }
         }
-        LOG_PRINT(("%s", COORD0));
-        for(int i = 0; i < 11; i++)
-        {
-            LOG_PRINT(("%s", DOWN));
-        }
-        //LOG_PRINT(("size: %i", last_size));
     }
-
-    static int last_size = stream.str().size();
+    
     // if not finished loading, add current parameter to the section
     if(!finished_loading)
     {
@@ -1015,6 +1044,21 @@ bool LiveData::update_param_s(uint8_t new_value, uint8_t old_value, const string
             {
                 section->x_pos = last_x + last_width + PADDING;
                 section->y_pos = last_y;
+
+                 // if within bounds of changes, move the section
+                if(section->x_pos < (changes->x_pos + changes->width) && (section->x_pos + section->width) > changes->x_pos &&
+                   section->y_pos < (changes->y_pos + changes->num_params) && (section->y_pos + section->num_params) > changes->y_pos)
+                {
+                    if(window_size.ws_col - (changes->x_pos + changes->width) > section->width + PADDING)
+                    {
+                        section->x_pos = changes->x_pos + changes->width + PADDING;
+                    }
+                    else
+                    {
+                        section->x_pos = -1;
+                        section->y_pos = -1;
+                    }
+                }
             }
         }
         // if the section can fit in the remaining height of the next section row
@@ -1022,6 +1066,21 @@ bool LiveData::update_param_s(uint8_t new_value, uint8_t old_value, const string
         {
             section->x_pos = 0;
             section->y_pos = last_y + last_height + PADDING;
+
+            // if within bounds of changes, move the section
+            if(section->x_pos < (changes->x_pos + changes->width) && (section->x_pos + section->width) > changes->x_pos &&
+                   section->y_pos < (changes->y_pos + changes->num_params) && (section->y_pos + section->num_params) > changes->y_pos)
+            {
+                if(window_size.ws_col - (changes->x_pos + changes->width) > section->width + PADDING)
+                {
+                    section->x_pos = changes->x_pos + changes->width + PADDING;
+                }
+                else
+                {
+                    section->x_pos = -1;
+                    section->y_pos = -1;
+                }
+            }
         }
         // if there is no room, don't display these sections
         else

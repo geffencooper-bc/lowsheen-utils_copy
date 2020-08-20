@@ -35,8 +35,8 @@ class LiveData
         SCRUBBER_ANALOG,
         RECOVERY_ANALOG,
         BATTERY_ANALOG,
-        MISC_ANALOG
-        //LATEST_CHANGES
+        MISC_ANALOG,
+        LATEST_CHANGES
     };
 
     // stores configuration information about each data section
@@ -268,6 +268,7 @@ class LiveData
     #define PRESENT_FLAG 0b00001111 // 00001111 --> show but not in the changes list
     #define ACTIVE_FLAG 0b11111111 // 11111111 --> show on screen and on changes list
     std::vector<DataSection*> sections;
+    DataSection* changes;
 
     // the position, width, and height of the last section loaded
     int last_x = 0;
