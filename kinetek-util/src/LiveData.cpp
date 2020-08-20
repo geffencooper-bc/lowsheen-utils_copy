@@ -36,7 +36,7 @@
 #define ATTRIB_OFF "\033[0m"
 #define CLEAR "\033[2J"
 #define FULL_SCREEN "\e[8;200;200t"
-#define PADDING 5
+#define PADDING 3
 
 // initialize objects
 LiveData::LiveData(SocketCanHelper* sc, KU::CanDataList* ku_data)
@@ -1152,11 +1152,11 @@ KU::StatusCode LiveData::parse_ini(const string& file_path)
         stu_file << STATE_SECTION << "\n";
         for(int i = 0; i < sections.size(); i++)
         {
-            if(sections[i]->is_state && (sections[i]->category != ERROR_STATE && sections[i]->category != META_STATE))
+            if(sections[i]->is_state && (sections[i]->category != ERROR_STATE && sections[i]->category != META_STATE && sections[i]->category != TRACTION_STATE))
             {
                 stu_file << sections[i]->name << DISPLAY_OFF << "\n";
             }
-            else if(sections[i]->is_state && (sections[i]->category == ERROR_STATE || sections[i]->category == META_STATE))
+            else if(sections[i]->is_state && (sections[i]->category == ERROR_STATE || sections[i]->category == META_STATE || sections[i]->category == TRACTION_STATE))
             {
                 stu_file << sections[i]->name << DISPLAY_ON << "\n";
             }
@@ -1174,7 +1174,7 @@ KU::StatusCode LiveData::parse_ini(const string& file_path)
         stu_file << CHANGES_SECTION << "\n";
         for(int i = 0; i < sections.size(); i++)
         {
-            if(sections[i]->category != ERROR_STATE)
+            if(sections[i]->category != ERROR_STATE && sections[i]->category != TRACTION_STATE)
             {
                 stu_file << sections[i]->name << DISPLAY_OFF << "\n";
             }
