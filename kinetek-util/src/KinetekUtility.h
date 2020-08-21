@@ -6,6 +6,7 @@
 
 #include "IAP.h"
 #include "STUparam.h"
+#include "LiveData.h"
 #include "KinetekUtilityCodes.h"
 
 // This class is the interface and entry point into the kinetek tools
@@ -40,23 +41,22 @@ class KinetekUtility
     KU::StatusCode write_stu_from_file(const string& file_path);
     KU::StatusCode get_stu_param(uint8_t param_num);
     KU::StatusCode set_stu_param(uint8_t param_num, uint8_t new_value);
+    KU::StatusCode get_live_data();
 
     // reset xt_can
     KU::StatusCode reset_xt_can();
 
-    void set_can_interface(const string& interface)
-    {
-        can_interface = interface;
-    }
-
+    void set_can_interface(const string& interface) { can_interface = interface; }
    private:
     SocketCanHelper* sc;
     KU::CanDataList* ku_data;  // holds all can data used by the utilities
     IAP* iap;
     STUparam* stu;
+    LiveData* ld;
 
     bool can_initialized;  // keeps track of whether init_can has been called
-    string can_interface;;
+    string can_interface;
+    ;
 };
 
 #endif

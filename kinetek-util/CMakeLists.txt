@@ -26,6 +26,7 @@ set(SOURCES     ${STACKDRV_SRC}/CO_driver.c
                 ${APP_SRC}/IAP.cpp
                 ${APP_SRC}/KinetekUtilityCodes.cpp
                 ${APP_SRC}/STUparam.cpp
+                ${APP_SRC}/LiveData.cpp
 )
 
 add_executable(${APP_NAME} ${SOURCES})
