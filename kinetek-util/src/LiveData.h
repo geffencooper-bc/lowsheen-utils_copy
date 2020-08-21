@@ -9,6 +9,12 @@
 #include <vector>
 #include <fstream>
 #include <sys/ioctl.h>
+#include <sstream>
+#include <iomanip>
+#include <signal.h>
+#include <stdlib.h>
+#include <stdio.h>
+#include <unistd.h>
 #include "HexUtility.h"
 #include "SocketCanHelper.h"
 #include "KinetekUtilityCodes.h"
@@ -281,19 +287,19 @@ class LiveData
     bool update_param_a(float new_value, float old_value, const string& log_name, ParamCategory type);
     bool update_param_s(uint8_t new_value, uint8_t old_value, const string& log_name, ParamCategory type);
 
-    // finds the section in hte vector
+    // finds the section in the vector
     DataSection* get_section(ParamCategory type);
 
     // edits the last 10 changes when a parameter value updates
     void update_changes(DataSection* section, std::stringstream& stream, bool just_refresh);
 
-    // initializes the section position accordingly
-    void update_section(DataSection* section, const string& log_name, int param_size);
+    // initializes the section position, returns true if position changed
+    bool update_section(DataSection* section, const string& log_name, int param_size);
 
     std::vector<DataSection*> sections;
     DataSection* changes;
 
-    // the position, width, and height of the last section loaded
+    // the position, width, and height of the last section loaded, used for relative positioning
     int last_x = 0;
     int last_y = 0;
     int last_width = 0;

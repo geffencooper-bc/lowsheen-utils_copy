@@ -229,6 +229,9 @@ namespace KU
         STU_PARAM_WRITE_SUCCESS,
         STU_PARAM_READ_SUCCESS,
 
+        // Live Data status codes
+        INVALID_INI_FILE,
+
         // Standard status codes
         INIT_CAN_FAIL,
         INIT_CAN_SUCCESS,

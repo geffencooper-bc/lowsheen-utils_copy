@@ -181,6 +181,10 @@ string KinetekUtility::translate_status_code(KU::StatusCode status)
         {
             return "The stu parameter was written successfully";
         }
+        case KU::INVALID_INI_FILE:
+        {
+            return "The ini sections are invalid. Delete the file and run the tool again";
+        }
         case KU::NO_ERROR:
         {
             return "No error";
