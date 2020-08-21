@@ -866,7 +866,7 @@ bool LiveData::update_section(DataSection* section, const string& log_name, int 
         int cols_left = window_size.ws_col - (last_x + last_width);
         int rows_left = window_size.ws_row - (last_y + last_height);
         // if the section can fit in the remaining width and height space then display it
-        if (cols_left > section->width + PADDING && window_size.ws_row - last_y > last_y + section->num_params)
+        if (cols_left > section->width + PADDING && window_size.ws_row - last_y > section->num_params)
         {
             // check if first section to display
             if (last_width == 0)
