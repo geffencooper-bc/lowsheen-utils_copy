@@ -359,212 +359,85 @@ KU::StatusCode KinetekUtility::reset_xt_can()
 
 // ===================================== Argument Parsing ================================================
 
-// gets the length of the current arg
-static int get_arg_len(char* arg)
+// determines if arg is a number, returns number if it is and -1 if not
+static int is_number(char* arg)
 {
-    int len = 0;
-    int pos = 0;
-    while (arg[pos] == ' ')
+    // if hex, remove the 0x
+    if (strlen(arg) >= 3)
     {
-        pos++;
-    }
-    char c = arg[pos];
-    while (c != '-' && c != ' ')
-    {
-        len++;
-        pos++;
-        c = arg[pos];
-    }
-    return len;
-}
-
-static bool is_number(char* arg)
-{
-    int start = 0;
-    while (arg[start] == ' ')
-    {
-        start++;
-    }
-    if (get_arg_len(arg) >= 3)
-    {
-        if (arg[start] == '0' || arg[start + 1] == 'x')
+        if (arg[0] == '0' && arg[1] == 'x')
         {
-            start = start + 2;
+            arg+=2;
+            return strtol(arg, NULL, 16);
         }
     }
 
-    for (int i = 0; i < get_arg_len(arg); i++)
+    // determine if it is a number or file
+    for (int i = 0; i < strlen(arg); i++)
     {
-        if (isdigit(arg[i + start]) == false)
+        if (isdigit(arg[i]) == false)
         {
-            return false;
+            return -1;
         }
     }
-    return true;
+    return strtol(arg, NULL, 10);
 }
 
-static struct argp_option options[] = {{"set_param", 's', "PARAM#", 0, "Set a STU param, [-s PARAM# -v VAL]"},
-                                       {"get_param", 'g', "PARAM#", 0, "Get a STU param"},
-                                       {"value", 'v', "VAL", 0, "STU param value (used with set_param)"},
-                                       {"read_stu", 'r', "FILENAME", 0, "Read STU params to a file"},
-                                       {"write_stu", 'w', "FILENAME", 0, "Write STU params from a file"},
-                                       {"update", 'u', "FILENAME", 0, "Update the Kinetek firmware"},
-                                       {"cycle_xt", 'c', 0, 0, "Reset xt_can"},
-                                       {"interface", 'i', 0, 0, "Set can interface, defaults to can0"},
-                                       {0}};
-// static struct argp_option options[] = {{"read", 'r', "ARG", 0, "Read a parameter or file"},
-//                                        {"write", 'w', "ARG", 0, "Write a parameter or file\nParameter requires value
-//                                        argument"},
-//                                        {"interface", 'i', "NAME", 0, "Specify interface name, can0 by default"},
-//                                        {"cycle", 'c', 0, 0, "Reset xt can"},
-//                                        {"estop", 'e', "STATE", 0, "Toggle estop, 1 = trigger estop 2 = disable
-//                                        estop"},
-//                                        {"value", 'v', "VAL", 0, "Value arg for write parameter"},
+// static struct argp_option options[] = {{"set_param", 's', "PARAM#", 0, "Set a STU param, [-s PARAM# -v VAL]"},
+//                                        {"get_param", 'g', "PARAM#", 0, "Get a STU param"},
+//                                        {"value", 'v', "VAL", 0, "STU param value (used with set_param)"},
+//                                        {"read_stu", 'r', "FILENAME", 0, "Read STU params to a file"},
+//                                        {"write_stu", 'w', "FILENAME", 0, "Write STU params from a file"},
+//                                        {"update", 'u', "FILENAME", 0, "Update the Kinetek firmware"},
+//                                        {"cycle_xt", 'c', 0, 0, "Reset xt_can"},
+//                                        {"interface", 'i', 0, 0, "Set can interface, defaults to can0"},
 //                                        {0}};
+static struct argp_option options[] = {{"read", 'r', "ARG", 0, "Read a parameter or file"},
+                                       {"write", 'w', "ARG", 0, "Write a parameter or file\nParameter requires value argument"},
+                                       {"interface", 'i', "NAME", 0, "Specify interface name, can0 by default"},
+                                       {"cycle", 'c', 0, 0, "Reset xt can"},
+                                       {"estop", 'e', "STATE", 0, "Toggle estop, 1 = trigger estop 2 = disable estop"},
+                                       {"value", 'v', "VAL", 0, "Value arg for write parameter"},
+                                       {"heartbeat", 'h', 0, 0,"Launch the live data output"},
+                                       {0}};
 
 // callback function
-static int parse_opt(int key, char* arg, struct argp_state* state)
-{
-    KinetekUtility* ku = (KinetekUtility*)(state->input);
-    static int param_num = -1;
-    switch (key)
-    {
-        case 's':
-        {
-            ku->init_can();
-            param_num = atoi(arg);
-            break;
-        }
-        case 'g':
-        {
-            ku->init_can();
-            int ar = atoi(arg);
-            ku->get_stu_param(ar);
-            break;
-        }
-        case 'r':
-        {
-            ku->init_can();
-            ku->read_stu_to_file(string(arg));
-            break;
-        }
-        case 'w':
-        {
-            ku->init_can();
-            ku->write_stu_from_file(string(arg));
-            break;
-        }
-        case 'u':
-        {
-            ku->init_can();
-            ku->run_iap(string(arg), 1);
-            break;
-        }
-        case 'c':
-        {
-            ku->init_can();
-            ku->reset_xt_can();
-            break;
-        }
-        case 'i':
-        {
-            ku->set_can_interface(string(arg));
-            ku->init_can();
-            break;
-        }
-        case 'v':
-        {
-            if (param_num < 0)
-            {
-                printf("Need to provide a parameter number and a value\n");
-            }
-            int ar = atoi(arg);
-            ku->set_stu_param(param_num, ar);
-            break;
-        }
-    }
-    return 0;
-}
 // static int parse_opt(int key, char* arg, struct argp_state* state)
 // {
 //     KinetekUtility* ku = (KinetekUtility*)(state->input);
-//     static int param_num;
+//     static int param_num = -1;
 //     switch (key)
 //     {
+//         case 's':
+//         {
+//             ku->init_can();
+//             param_num = atoi(arg);
+//             break;
+//         }
+//         case 'g':
+//         {
+//             ku->init_can();
+//             int ar = atoi(arg);
+//             ku->get_stu_param(ar);
+//             break;
+//         }
 //         case 'r':
 //         {
 //             ku->init_can();
-//             // distinguish between individual parameter and file
-//             if(is_number(arg))
-//             {
-//                 int param;
-//                 int start = 0;
-//                 while(arg[start] == ' ')
-//                 {
-//                     start++;
-//                 }
-//                 if(get_arg_len(arg) >=3)
-//                 {
-//                     if(arg[start] == '0' || arg[start+1] == 'x')
-//                     {
-//                         param = strtol(arg+start, NULL, 16);
-//                     }
-//                     else
-//                     {
-//                         param = strtol(arg+start, NULL, 10);
-//                     }
-//                 }
-//                 else
-//                 {
-//                     param = atoi(arg);
-//                 }
-//                 ku->get_stu_param(param);
-//             }
-//             else
-//             {
-//                 ku->read_stu_to_file(arg);
-//             }
+//             ku->read_stu_to_file(string(arg));
 //             break;
 //         }
 //         case 'w':
 //         {
 //             ku->init_can();
-//             if(is_number(arg))
-//             {
-//                 int start = 0;
-//                 while(arg[start] == ' ')
-//                 {
-//                     start++;
-//                 }
-//                 if(get_arg_len(arg) >=3)
-//                 {
-//                     if(arg[start] == '0' || arg[start+1] == 'x')
-//                     {
-//                         param_num = strtol(arg+start, NULL, 16);
-//                     }
-//                     else
-//                     {
-//                         param_num = strtol(arg+start, NULL, 10);
-//                     }
-//                 }
-//                 else
-//                 {
-//                     param_num = atoi(arg);
-//                 }
-//             }
-//             else
-//             {
-//                 ku->write_stu_from_file(string(arg));
-//             }
+//             ku->write_stu_from_file(string(arg));
 //             break;
 //         }
-//         case 'v':
+//         case 'u':
 //         {
-//             if(state->arg_num == 0)
-//             {
-//                 printf("Usage: kintek-util [-w PARAM# -v VAL]\n");
-//             }
-//             ku->set_stu_param(param_num, atoi(arg));
+//             ku->init_can();
+//             ku->run_iap(string(arg), 1);
+//             break;
 //         }
 //         case 'c':
 //         {
@@ -578,9 +451,131 @@ static int parse_opt(int key, char* arg, struct argp_state* state)
 //             ku->init_can();
 //             break;
 //         }
+//         case 'v':
+//         {
+//             if (param_num < 0)
+//             {
+//                 printf("Need to provide a parameter number and a value\n");
+//             }
+//             int ar = atoi(arg);
+//             ku->set_stu_param(param_num, ar);
+//             break;
+//         }
 //     }
 //     return 0;
 // }
+static int parse_opt(int key, char* arg, struct argp_state* state)
+{
+    if(arg == NULL)
+    {
+        return 0;
+    }
+
+    KinetekUtility* ku = (KinetekUtility*)(state->input);
+    static int param_num = -1;
+
+    // remove leading spaces
+    int start = 0;
+    while(arg[start] == ' ')
+    {
+        start++;
+    }
+    arg+=start;
+
+    // if this is the first call and no can interface specified, use default;
+    static bool first_call = true;
+    if(key != 'i' && first_call)
+    {
+        ku->CL_status = ku->init_can();
+        if(ku->CL_status != KU::INIT_CAN_SUCCESS)
+        {
+            return 0;
+        }
+        first_call = false;
+    }
+
+    switch (key)
+    {
+        case 'r':
+        {
+            // distinguish between individual parameter and file
+            int num = is_number(arg);
+            if(num >= 0)
+            {
+                ku->get_stu_param(num);
+            }
+            else
+            {
+                ku->read_stu_to_file(string(arg));
+            }
+            break;
+        }
+        case 'w':
+        {
+            int num = is_number(arg);
+            if(num >= 0)
+            {
+                param_num = num; // call set_stu_param with -v option
+            }
+            else
+            {
+                string file_type = string(arg).substr(strlen(arg) - 3, 3);
+                if(file_type == "hex")
+                {
+                    ku->run_iap(string(arg), 1);
+                }
+                else if(file_type == "stu")
+                {
+                    ku->write_stu_from_file(string(arg));
+                }
+            }
+            break;
+        }
+        case 'v':
+        {
+            if(param_num == -1)
+            {
+                printf("Usage: kintek-util [-w PARAM# -v VAL]\n");
+                return 0;
+            }
+            ku->set_stu_param(param_num, atoi(arg));
+            break;
+        }
+        case 'c':
+        {
+            ku->reset_xt_can();
+            break;
+        }
+        case 'i':
+        {
+            ku->set_can_interface(string(arg));
+            ku->init_can();
+            first_call = false;
+            if(first_call)
+            {
+                first_call = false;
+            }
+            break;
+        }
+        case 'h':
+        {
+            ku->get_live_data();
+            break;
+        }
+        case 'e':
+        {
+            ku->toggle_estop();
+        }
+    }
+    return 0;
+}
+
+void KinetekUtility::toggle_estop()
+{
+    sc->send_frame(KU::XT_CAN_REQUEST_ID, ku_data->disable_kinetek_data, sizeof(ku_data->disable_kinetek_data));
+    usleep(2500000);  // sleep for 2.5 seconds
+    sc->send_frame(KU::XT_CAN_REQUEST_ID, ku_data->enable_kinetek_data, sizeof(ku_data->enable_kinetek_data));
+}
 
 int KinetekUtility::parse_args(int argc, char** argv)
 {

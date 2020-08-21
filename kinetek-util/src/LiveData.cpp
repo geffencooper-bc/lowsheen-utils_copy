@@ -78,19 +78,16 @@ LiveData::LiveData(SocketCanHelper* sc, KU::CanDataList* ku_data)
     sections.push_back(new DataSection("SCRUBBER_STATE", SCRUBBER_STATE, 1, -1, -1, -1, -1, 0, -1));
     sections.push_back(new DataSection("RECOVERY_STATE", RECOVERY_STATE, 1, -1, -1, -1, -1, 0, -1));
     sections.push_back(new DataSection("BATTERY_STATE", BATTERY_STATE, 1, -1, -1, -1, -1, 0, -1));
-    sections.push_back(new DataSection("METADATA", META_STATE, 1, -1, -1, -1, -1, 0, -1));
-    sections.push_back(new DataSection("ERROR_STATE", ERROR_STATE, 1, -1, -1, -1, -1, 0, -1));
-    sections.push_back(new DataSection("MISC_STATE", MISC_STATE, 1, -1, -1, -1, -1, 0, -1));
-    sections.push_back(new DataSection("UNKNOWN", UNKNOWN_STATE, 1, -1, -1, -1, -1, 0, -1));
-    sections.push_back(new DataSection("TRACTION_ANALOG", TRACTION_ANALOG, 0, -1, -1, -1, -1, 0, -1));
-    sections.push_back(new DataSection("SCRUBBER_ANALOG", SCRUBBER_ANALOG, 0, -1, -1, -1, -1, 0, -1));
-    sections.push_back(new DataSection("RECOVERY_ANALOG", RECOVERY_ANALOG, 0, -1, -1, -1, -1, 0, -1));
-    sections.push_back(new DataSection("MISC_ANALOG", MISC_ANALOG, 0, -1, -1, -1, -1, 0, -1));
-    sections.push_back(new DataSection("BATTERY_ANALOG", BATTERY_ANALOG, 0, -1, -1, -1, -1, 0, -1));
-    changes = new DataSection("LATEST_CHANGES", LATEST_CHANGES, 0, -1, -1, -1, -1, 0, -1);
-
-    // start the clock on launch
-    begin = std::chrono::steady_clock::now();
+    //sections.push_back(new DataSection("METADATA", META_STATE, 1, -1, -1, -1, -1, 0, -1));
+     sections.push_back(new DataSection("ERROR_STATE", ERROR_STATE, 1, -1, -1, -1, -1, 0, -1)); // comment this and it works?
+    // sections.push_back(new DataSection("MISC_STATE", MISC_STATE, 1, -1, -1, -1, -1, 0, -1));
+    // sections.push_back(new DataSection("UNKNOWN", UNKNOWN_STATE, 1, -1, -1, -1, -1, 0, -1));
+    // sections.push_back(new DataSection("TRACTION_ANALOG", TRACTION_ANALOG, 0, -1, -1, -1, -1, 0, -1));
+    // sections.push_back(new DataSection("SCRUBBER_ANALOG", SCRUBBER_ANALOG, 0, -1, -1, -1, -1, 0, -1));
+    // sections.push_back(new DataSection("RECOVERY_ANALOG", RECOVERY_ANALOG, 0, -1, -1, -1, -1, 0, -1));
+    // sections.push_back(new DataSection("MISC_ANALOG", MISC_ANALOG, 0, -1, -1, -1, -1, 0, -1));
+    // sections.push_back(new DataSection("BATTERY_ANALOG", BATTERY_ANALOG, 0, -1, -1, -1, -1, 0, -1));
+    // changes = new DataSection("LATEST_CHANGES", LATEST_CHANGES, 0, -1, -1, -1, -1, 0, -1);
 }
 
 // deallocate memory
@@ -122,6 +119,9 @@ void on_quit(int s)
 // loop that updates the heartbeat struct every page
 KU::StatusCode LiveData::update_heartbeat()
 {
+    // start the clock on launch
+    begin = std::chrono::steady_clock::now();
+
     // check section configuration settings
     parse_ini("live_data_options.ini");
     signal(SIGINT, on_quit); // function called on CTRL + C
