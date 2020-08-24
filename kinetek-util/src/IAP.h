@@ -8,7 +8,6 @@
 // information of which can be found at:
 // https://info.braincorp.com/open-source-attributions
 
-
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
@@ -22,8 +21,7 @@
 // limitations under the License.
 //==================================================================
 
-
-// a class is the  IAP tool and is used to update the Kinetek's firmware
+// this class is the  IAP tool and is used to update the Kinetek's firmware
 
 #ifndef IAP_H
 #define IAP_H
@@ -54,7 +52,7 @@ class IAP
     void progress_bar(int current, int total, int bar_length = 20);
 
     // step one of IAP process, uses forced mode by default
-    KU::StatusCode put_in_iap_mode(bool forced_mode);
+    KU::StatusCode put_in_iap_mode(bool forced_mode = true);
 
     // step two of IAP process, send hex file data size, checksum, start address etc
     KU::StatusCode send_init_frames();

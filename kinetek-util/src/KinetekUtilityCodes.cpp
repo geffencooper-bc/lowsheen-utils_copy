@@ -8,7 +8,6 @@
 // information of which can be found at:
 // https://info.braincorp.com/open-source-attributions
 
-
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
@@ -21,7 +20,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //==================================================================
-
 
 #include "KinetekUtilityCodes.h"
 
@@ -44,7 +42,7 @@ uint8_t CanDataList::fw_version_request_data[8] = {0x00, 0x00, 0x00, 0x00, 0x00,
 
 // ID = 0x008/0x048
 uint8_t CanDataList::force_enter_iap_mode_data[8] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
-uint8_t CanDataList::send_bytes_data[8] = {0x88, 0x88, 0x88, 0x88, 0x88, 0x88, 0x88, 0x88};
+uint8_t CanDataList::start_download_data[8] = {0x88, 0x88, 0x88, 0x88, 0x88, 0x88, 0x88, 0x88};
 uint8_t CanDataList::start_address_data[8] = {0x02, 0xFF, 0xFF, 0xFF, 0xFF, 0x9A, 0x00, 0x00};
 uint8_t CanDataList::total_checksum_data[8] = {0x03, 0xFF, 0xFF, 0xFF, 0xFF, 0x9B, 0x00, 0x00};
 uint8_t CanDataList::hex_data_size_data[8] = {0x04, 0xFF, 0xFF, 0xFF, 0xFF, 0x9C, 0x00, 0x00};
@@ -61,7 +59,7 @@ uint8_t CanDataList::kt_calculated_page_checksum_data[5] = {0x84, 0xFF, 0xFF, 0x
 uint8_t CanDataList::fw_version_response_data[8] = {0xFF, 0xFF, 0x5E, 0xFF, 0xFF, 0x00, 0x00, 0x00};
 
 // ID = 0x069/0x089
-uint8_t CanDataList::send_bytes_response_data[8] = {0x99, 0x99, 0x99, 0x99, 0x99, 0x99, 0x99, 0x99};
+uint8_t CanDataList::start_download_response_data[8] = {0x99, 0x99, 0x99, 0x99, 0x99, 0x99, 0x99, 0x99};
 uint8_t CanDataList::start_address_response_data[8] = {0x02, 0x10, 0x10, 0x10, 0x10, 0x10, 0x10, 0x10};
 uint8_t CanDataList::total_checksum_response_data[8] = {0x03, 0x10, 0x10, 0x10, 0x10, 0x10, 0x10, 0x10};
 uint8_t CanDataList::data_size_response_data[8] = {0x04, 0x10, 0x10, 0x10, 0x10, 0x10, 0x10, 0x10};
@@ -129,9 +127,10 @@ KinetekResponse CanDataList::get_response_type(uint32_t can_id, uint8_t* data_ar
         {
             return CALCULATE_PAGE_CHECKSUM_RESPONSE;
         }
-        else if (array_compare(send_bytes_response_data, sizeof(send_bytes_response_data), data_array, arr_size))
+        else if (array_compare(start_download_response_data, sizeof(start_download_response_data), data_array,
+                               arr_size))
         {
-            return SEND_BYTES_RESPONSE;
+            return START_DOWNLOAD_RESPONSE;
         }
         else if (array_compare(start_address_response_data, sizeof(start_address_response_data), data_array, arr_size))
         {

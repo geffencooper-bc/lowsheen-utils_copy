@@ -8,7 +8,6 @@
 // information of which can be found at:
 // https://info.braincorp.com/open-source-attributions
 
-
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
@@ -48,14 +47,14 @@ LiveData::LiveData(SocketCanHelper* sc, KU::CanDataList* ku_data)
 {
     if (sc == nullptr)
     {
-        DEBUG_PRINTF("Socket Can Helper is not initialized\n");
+        DEBUG_PRINTF("Socket Can Helper is not initialized\r\n");
         exit(EXIT_FAILURE);
     }
     this->sc = sc;
 
     if (ku_data == nullptr)
     {
-        DEBUG_PRINTF("Kinetek Utility CanDataList is not initialized\n");
+        DEBUG_PRINTF("Kinetek Utility CanDataList is not initialized\r\n");
         exit(EXIT_FAILURE);
     }
     this->ku_data = ku_data;
@@ -112,7 +111,7 @@ KU::StatusCode LiveData::update_heartbeat()
 
     // check section configuration settings
     parse_ini("live_data_options.ini");
-    signal(SIGINT, on_quit); // function called on CTRL + C
+    signal(SIGINT, on_quit);  // function called on CTRL + C
 
     // set this to cycle the loop until reach page 1
     bool get_first_page = true;
@@ -209,10 +208,10 @@ KU::StatusCode LiveData::update_heartbeat()
                     update_param_s(tmp_hb.page1.brush_running, hb->page1.brush_running, "brush_running", SCRUBBER_STATE)
                         ? tmp_hb.page1.brush_running
                         : hb->page1.brush_running;
-                hb->page1.vacuum_running =
-                    update_param_s(tmp_hb.page1.vacuum_running, hb->page1.vacuum_running, "vacuum_running", RECOVERY_STATE)
-                        ? tmp_hb.page1.vacuum_running
-                        : hb->page1.vacuum_running;
+                hb->page1.vacuum_running = update_param_s(tmp_hb.page1.vacuum_running, hb->page1.vacuum_running,
+                                                          "vacuum_running", RECOVERY_STATE)
+                                               ? tmp_hb.page1.vacuum_running
+                                               : hb->page1.vacuum_running;
                 hb->page1.accel_sro =
                     update_param_s(tmp_hb.page1.accel_sro, hb->page1.accel_sro, "accel_sro", TRACTION_STATE)
                         ? tmp_hb.page1.accel_sro
@@ -221,17 +220,19 @@ KU::StatusCode LiveData::update_heartbeat()
                     update_param_s(tmp_hb.page1.brake_open, hb->page1.brake_open, "brake_open", TRACTION_STATE)
                         ? tmp_hb.page1.brake_open
                         : hb->page1.brake_open;
-                hb->page1.clean_water_state = update_param_s(tmp_hb.page1.clean_water_state, hb->page1.clean_water_state,
-                                                             "clean_water_state", SCRUBBER_STATE)
-                                                  ? tmp_hb.page1.clean_water_state
-                                                  : hb->page1.clean_water_state;
+                hb->page1.clean_water_state =
+                    update_param_s(tmp_hb.page1.clean_water_state, hb->page1.clean_water_state, "clean_water_state",
+                                   SCRUBBER_STATE)
+                        ? tmp_hb.page1.clean_water_state
+                        : hb->page1.clean_water_state;
                 hb->page1.dirty_water_full = update_param_s(tmp_hb.page1.dirty_water_full, hb->page1.dirty_water_full,
                                                             "dirty_water_full", SCRUBBER_STATE)
                                                  ? tmp_hb.page1.dirty_water_full
                                                  : hb->page1.dirty_water_full;
-                hb->page1.not_used = update_param_s(tmp_hb.page1.not_used, hb->page1.not_used, "not_used", UNKNOWN_STATE)
-                                         ? tmp_hb.page1.not_used
-                                         : hb->page1.not_used;
+                hb->page1.not_used =
+                    update_param_s(tmp_hb.page1.not_used, hb->page1.not_used, "not_used", UNKNOWN_STATE)
+                        ? tmp_hb.page1.not_used
+                        : hb->page1.not_used;
 
                 // input_flag1
                 hb->page1.seat_buf = update_param_s(tmp_hb.page1.seat_buf, hb->page1.seat_buf, "seat_buf", MISC_STATE)
@@ -240,9 +241,10 @@ KU::StatusCode LiveData::update_heartbeat()
                 hb->page1.ems_buf = update_param_s(tmp_hb.page1.ems_buf, hb->page1.ems_buf, "ems_buf", MISC_STATE)
                                         ? tmp_hb.page1.ems_buf
                                         : hb->page1.ems_buf;
-                hb->page1.start_buf = update_param_s(tmp_hb.page1.start_buf, hb->page1.start_buf, "start_buf", MISC_STATE)
-                                          ? tmp_hb.page1.start_buf
-                                          : hb->page1.start_buf;
+                hb->page1.start_buf =
+                    update_param_s(tmp_hb.page1.start_buf, hb->page1.start_buf, "start_buf", MISC_STATE)
+                        ? tmp_hb.page1.start_buf
+                        : hb->page1.start_buf;
                 hb->page1.aux1_buf = update_param_s(tmp_hb.page1.aux1_buf, hb->page1.aux1_buf, "aux1_buf", MISC_STATE)
                                          ? tmp_hb.page1.aux1_buf
                                          : hb->page1.aux1_buf;
@@ -278,23 +280,26 @@ KU::StatusCode LiveData::update_heartbeat()
                 hb->page1.alarm_on = update_param_s(tmp_hb.page1.alarm_on, hb->page1.alarm_on, "alarm_on", MISC_STATE)
                                          ? tmp_hb.page1.alarm_on
                                          : hb->page1.alarm_on;
-                hb->page1.valve_on = update_param_s(tmp_hb.page1.valve_on, hb->page1.valve_on, "valve_on", SCRUBBER_STATE)
-                                         ? tmp_hb.page1.valve_on
-                                         : hb->page1.valve_on;
+                hb->page1.valve_on =
+                    update_param_s(tmp_hb.page1.valve_on, hb->page1.valve_on, "valve_on", SCRUBBER_STATE)
+                        ? tmp_hb.page1.valve_on
+                        : hb->page1.valve_on;
                 hb->page1.aux1_on2 = update_param_s(tmp_hb.page1.aux1_on2, hb->page1.aux1_on2, "aux1_on2", MISC_STATE)
                                          ? tmp_hb.page1.aux1_on2
                                          : hb->page1.aux1_on2;
                 hb->page1.aux2_on2 = update_param_s(tmp_hb.page1.aux2_on2, hb->page1.aux2_on2, "aux2_on2", MISC_STATE)
                                          ? tmp_hb.page1.aux2_on2
                                          : hb->page1.aux2_on2;
-                hb->page1.brake_on = update_param_s(tmp_hb.page1.brake_on, hb->page1.brake_on, "brake_on", TRACTION_STATE)
-                                         ? tmp_hb.page1.brake_on
-                                         : hb->page1.brake_on;
+                hb->page1.brake_on =
+                    update_param_s(tmp_hb.page1.brake_on, hb->page1.brake_on, "brake_on", TRACTION_STATE)
+                        ? tmp_hb.page1.brake_on
+                        : hb->page1.brake_on;
 
                 // input_flag3
-                hb->page1.brush_on = update_param_s(tmp_hb.page1.brush_on, hb->page1.brush_on, "brush_on", SCRUBBER_STATE)
-                                         ? tmp_hb.page1.brush_on
-                                         : hb->page1.brush_on;
+                hb->page1.brush_on =
+                    update_param_s(tmp_hb.page1.brush_on, hb->page1.brush_on, "brush_on", SCRUBBER_STATE)
+                        ? tmp_hb.page1.brush_on
+                        : hb->page1.brush_on;
                 hb->page1.vacuum_on =
                     update_param_s(tmp_hb.page1.vacuum_on, hb->page1.vacuum_on, "vacuum_on", RECOVERY_STATE)
                         ? tmp_hb.page1.vacuum_on
@@ -305,18 +310,19 @@ KU::StatusCode LiveData::update_heartbeat()
                 hb->page1.aux2_on3 = update_param_s(tmp_hb.page1.aux2_on3, hb->page1.aux2_on3, "aux2_on3", MISC_STATE)
                                          ? tmp_hb.page1.aux2_on3
                                          : hb->page1.aux2_on3;
-                hb->page1.squeegee_up_limit = update_param_s(tmp_hb.page1.squeegee_up_limit, hb->page1.squeegee_up_limit,
-                                                             "squeegee_up_limit", RECOVERY_STATE)
-                                                  ? tmp_hb.page1.squeegee_up_limit
-                                                  : hb->page1.squeegee_up_limit;
-                hb->page1.squeegee_down_limit =
-                    update_param_s(tmp_hb.page1.squeegee_down_limit, hb->page1.squeegee_down_limit, "squeegee_down_limit",
+                hb->page1.squeegee_up_limit =
+                    update_param_s(tmp_hb.page1.squeegee_up_limit, hb->page1.squeegee_up_limit, "squeegee_up_limit",
                                    RECOVERY_STATE)
+                        ? tmp_hb.page1.squeegee_up_limit
+                        : hb->page1.squeegee_up_limit;
+                hb->page1.squeegee_down_limit =
+                    update_param_s(tmp_hb.page1.squeegee_down_limit, hb->page1.squeegee_down_limit,
+                                   "squeegee_down_limit", RECOVERY_STATE)
                         ? tmp_hb.page1.squeegee_down_limit
                         : hb->page1.squeegee_down_limit;
                 hb->page1.brush_deck_up_limit =
-                    update_param_s(tmp_hb.page1.brush_deck_up_limit, hb->page1.brush_deck_up_limit, "brush_deck_up_limit",
-                                   SCRUBBER_STATE)
+                    update_param_s(tmp_hb.page1.brush_deck_up_limit, hb->page1.brush_deck_up_limit,
+                                   "brush_deck_up_limit", SCRUBBER_STATE)
                         ? tmp_hb.page1.brush_deck_up_limit
                         : hb->page1.brush_deck_up_limit;
                 hb->page1.brush_deck_down_limit =
@@ -338,9 +344,10 @@ KU::StatusCode LiveData::update_heartbeat()
                                                            "dirty_water_buf", SCRUBBER_STATE)
                                                 ? tmp_hb.page2.dirty_water_buf
                                                 : hb->page2.dirty_water_buf;
-                hb->page2.valve_on = update_param_s(tmp_hb.page2.valve_on, hb->page2.valve_on, "valve_on", SCRUBBER_STATE)
-                                         ? tmp_hb.page2.valve_on
-                                         : hb->page2.valve_on;
+                hb->page2.valve_on =
+                    update_param_s(tmp_hb.page2.valve_on, hb->page2.valve_on, "valve_on", SCRUBBER_STATE)
+                        ? tmp_hb.page2.valve_on
+                        : hb->page2.valve_on;
                 hb->page2.alarm_on = update_param_s(tmp_hb.page2.alarm_on, hb->page2.alarm_on, "alarm_on", MISC_STATE)
                                          ? tmp_hb.page2.alarm_on
                                          : hb->page2.alarm_on;
@@ -356,10 +363,10 @@ KU::StatusCode LiveData::update_heartbeat()
                     update_param_s(tmp_hb.page2.battery_low, hb->page2.battery_low, "battery_low", BATTERY_STATE)
                         ? tmp_hb.page2.battery_low
                         : hb->page2.battery_low;
-                hb->page2.lcd_watch_flag =
-                    update_param_s(tmp_hb.page2.lcd_watch_flag, hb->page2.lcd_watch_flag, "lcd_watch_flag", BATTERY_STATE)
-                        ? tmp_hb.page2.lcd_watch_flag
-                        : hb->page2.lcd_watch_flag;
+                hb->page2.lcd_watch_flag = update_param_s(tmp_hb.page2.lcd_watch_flag, hb->page2.lcd_watch_flag,
+                                                          "lcd_watch_flag", BATTERY_STATE)
+                                               ? tmp_hb.page2.lcd_watch_flag
+                                               : hb->page2.lcd_watch_flag;
 
                 // input_flag5-6
                 hb->page2.brush_unload_on = update_param_s(tmp_hb.page2.brush_unload_on, hb->page2.brush_unload_on,
@@ -376,8 +383,8 @@ KU::StatusCode LiveData::update_heartbeat()
                         ? tmp_hb.page2.brush_load_on
                         : hb->page2.brush_load_on;
                 hb->page2.brush_load_complete =
-                    update_param_s(tmp_hb.page2.brush_load_complete, hb->page2.brush_load_complete, "brush_load_complete",
-                                   SCRUBBER_STATE)
+                    update_param_s(tmp_hb.page2.brush_load_complete, hb->page2.brush_load_complete,
+                                   "brush_load_complete", SCRUBBER_STATE)
                         ? tmp_hb.page2.brush_load_complete
                         : hb->page2.brush_load_complete;
                 hb->page2.p3_f1 = update_param_s(tmp_hb.page2.p3_f1, hb->page2.p3_f1, "p3_f1", UNKNOWN_STATE)
@@ -484,19 +491,20 @@ KU::StatusCode LiveData::update_heartbeat()
                         ? tmp_hb.page3.brush_adjust_error
                         : hb->page3.brush_adjust_error;
                 hb->page3.battery_charge_flag =
-                    update_param_s(tmp_hb.page3.battery_charge_flag, hb->page3.battery_charge_flag, "battery_charge_flag",
-                                   BATTERY_STATE)
+                    update_param_s(tmp_hb.page3.battery_charge_flag, hb->page3.battery_charge_flag,
+                                   "battery_charge_flag", BATTERY_STATE)
                         ? tmp_hb.page3.battery_charge_flag
                         : hb->page3.battery_charge_flag;
-                hb->page3.batery_lockout =
-                    update_param_s(tmp_hb.page3.batery_lockout, hb->page3.batery_lockout, "batery_lockout", BATTERY_STATE)
-                        ? tmp_hb.page3.batery_lockout
-                        : hb->page3.batery_lockout;
+                hb->page3.batery_lockout = update_param_s(tmp_hb.page3.batery_lockout, hb->page3.batery_lockout,
+                                                          "batery_lockout", BATTERY_STATE)
+                                               ? tmp_hb.page3.batery_lockout
+                                               : hb->page3.batery_lockout;
 
-                hb->page3.desired_direction = update_param_s(tmp_hb.page3.desired_direction, hb->page3.desired_direction,
-                                                             "desired_direction", TRACTION_STATE)
-                                                  ? tmp_hb.page3.desired_direction
-                                                  : hb->page3.desired_direction;
+                hb->page3.desired_direction =
+                    update_param_s(tmp_hb.page3.desired_direction, hb->page3.desired_direction, "desired_direction",
+                                   TRACTION_STATE)
+                        ? tmp_hb.page3.desired_direction
+                        : hb->page3.desired_direction;
                 hb->page3.actual_direction = update_param_s(tmp_hb.page3.actual_direction, hb->page3.actual_direction,
                                                             "actual_direction", TRACTION_STATE)
                                                  ? tmp_hb.page3.actual_direction
@@ -519,11 +527,12 @@ KU::StatusCode LiveData::update_heartbeat()
                                    "heatsink_volt_traction_81_V", MISC_ANALOG)
                         ? tmp_hb.page4.heatsink_volt_traction_81_V
                         : hb->page4.heatsink_volt_traction_81_V;
-                hb->page4.heatsink_volt_other_81_V = update_param_a((float)tmp_hb.page4.heatsink_volt_other_81_V * 16 / 81,
-                                                                    (float)hb->page4.heatsink_volt_other_81_V * 16 / 81,
-                                                                    "heatsink_volt_other_81_V", MISC_ANALOG)
-                                                         ? tmp_hb.page4.heatsink_volt_other_81_V
-                                                         : hb->page4.heatsink_volt_other_81_V;
+                hb->page4.heatsink_volt_other_81_V =
+                    update_param_a((float)tmp_hb.page4.heatsink_volt_other_81_V * 16 / 81,
+                                   (float)hb->page4.heatsink_volt_other_81_V * 16 / 81, "heatsink_volt_other_81_V",
+                                   MISC_ANALOG)
+                        ? tmp_hb.page4.heatsink_volt_other_81_V
+                        : hb->page4.heatsink_volt_other_81_V;
                 hb->page4.tract_ddc =
                     update_param_a(tmp_hb.page4.tract_ddc, hb->page4.tract_ddc, "tract_ddc", TRACTION_ANALOG)
                         ? tmp_hb.page4.tract_ddc
@@ -590,11 +599,12 @@ KU::StatusCode LiveData::update_heartbeat()
                                    "traction_rev_current_A", TRACTION_ANALOG)
                         ? tmp_hb.page6.traction_rev_current_A
                         : hb->page6.traction_rev_current_A;
-                hb->page6.traction_left_null_current = update_param_a(__bswap_16(tmp_hb.page6.traction_left_null_current),
-                                                                      __bswap_16(hb->page6.traction_left_null_current),
-                                                                      "traction_left_null_current", TRACTION_ANALOG)
-                                                           ? tmp_hb.page6.traction_left_null_current
-                                                           : hb->page6.traction_left_null_current;
+                hb->page6.traction_left_null_current =
+                    update_param_a(__bswap_16(tmp_hb.page6.traction_left_null_current),
+                                   __bswap_16(hb->page6.traction_left_null_current), "traction_left_null_current",
+                                   TRACTION_ANALOG)
+                        ? tmp_hb.page6.traction_left_null_current
+                        : hb->page6.traction_left_null_current;
                 hb->page6.traction_fwd_current_dir =
                     update_param_s(tmp_hb.page6.traction_fwd_current_dir, hb->page6.traction_fwd_current_dir,
                                    "traction_fwd_current_dir", TRACTION_STATE)
@@ -730,8 +740,8 @@ KU::StatusCode LiveData::update_heartbeat()
 
                 // input_flag16
                 hb->page10.squeegee_init_flag =
-                    update_param_s(tmp_hb.page10.squeegee_init_flag, hb->page10.squeegee_init_flag, "squeegee_init_flag",
-                                   RECOVERY_STATE)
+                    update_param_s(tmp_hb.page10.squeegee_init_flag, hb->page10.squeegee_init_flag,
+                                   "squeegee_init_flag", RECOVERY_STATE)
                         ? tmp_hb.page10.squeegee_init_flag
                         : hb->page10.squeegee_init_flag;
                 hb->page10.brush_deck_init_flag =
@@ -743,10 +753,11 @@ KU::StatusCode LiveData::update_heartbeat()
                     update_param_s(tmp_hb.page10.turn_buf, hb->page10.turn_buf, "turn_buf", TRACTION_STATE)
                         ? tmp_hb.page10.turn_buf
                         : hb->page10.turn_buf;
-                hb->page10.battery_very_low = update_param_s(tmp_hb.page10.battery_very_low, hb->page10.battery_very_low,
-                                                             "battery_very_low", BATTERY_STATE)
-                                                  ? tmp_hb.page10.battery_very_low
-                                                  : hb->page10.battery_very_low;
+                hb->page10.battery_very_low =
+                    update_param_s(tmp_hb.page10.battery_very_low, hb->page10.battery_very_low, "battery_very_low",
+                                   BATTERY_STATE)
+                        ? tmp_hb.page10.battery_very_low
+                        : hb->page10.battery_very_low;
                 hb->page10.accelerator_pressed =
                     update_param_s(tmp_hb.page10.accelerator_pressed, hb->page10.accelerator_pressed,
                                    "accelerator_pressed", MISC_STATE)
@@ -757,12 +768,14 @@ KU::StatusCode LiveData::update_heartbeat()
                                    "brush_deck_down_protection", SCRUBBER_STATE)
                         ? tmp_hb.page10.brush_deck_down_protection
                         : hb->page10.brush_deck_down_protection;
-                hb->page10.aux4_buf = update_param_s(tmp_hb.page10.aux4_buf, hb->page10.aux4_buf, "aux4_buf", MISC_STATE)
-                                          ? tmp_hb.page10.aux4_buf
-                                          : hb->page10.aux4_buf;
-                hb->page10.aux5_buf = update_param_s(tmp_hb.page10.aux5_buf, hb->page10.aux5_buf, "aux5_buf", MISC_STATE)
-                                          ? tmp_hb.page10.aux5_buf
-                                          : hb->page10.aux5_buf;
+                hb->page10.aux4_buf =
+                    update_param_s(tmp_hb.page10.aux4_buf, hb->page10.aux4_buf, "aux4_buf", MISC_STATE)
+                        ? tmp_hb.page10.aux4_buf
+                        : hb->page10.aux4_buf;
+                hb->page10.aux5_buf =
+                    update_param_s(tmp_hb.page10.aux5_buf, hb->page10.aux5_buf, "aux5_buf", MISC_STATE)
+                        ? tmp_hb.page10.aux5_buf
+                        : hb->page10.aux5_buf;
                 finished_loading = true;
                 break;
             }
@@ -821,7 +834,7 @@ void LiveData::update_changes(DataSection* section, std::stringstream& latest_ch
             top_10 = latest_change.str() + top_10.substr(0, top_10.size() - changes->width);
         }
         // otherwise just insert at the front
-        else 
+        else
         {
             string temp = top_10;
             top_10 = latest_change.str();
@@ -910,8 +923,7 @@ bool LiveData::update_section(DataSection* section, const string& log_name, int 
             section->y_pos = -1;
         }
         // if placed section within bounds of changes section, move the section or don't display it
-        if (section->x_pos < (changes->x_pos + changes->width) &&
-            (section->x_pos + section->width) > changes->x_pos &&
+        if (section->x_pos < (changes->x_pos + changes->width) && (section->x_pos + section->width) > changes->x_pos &&
             section->y_pos < (changes->y_pos + changes->num_params) &&
             (section->y_pos + section->num_params + PADDING) > changes->y_pos)
         {
@@ -933,7 +945,7 @@ bool LiveData::update_section(DataSection* section, const string& log_name, int 
         {
             last_x = section->x_pos;
             last_y = section->y_pos;
-            last_width = section->width + 1 + param_size; // 1 accounts for the colon
+            last_width = section->width + 1 + param_size;  // 1 accounts for the colon
             last_height = (section->num_params > last_height) ? section->num_params : last_height;
         }
         return true;
@@ -950,15 +962,15 @@ bool LiveData::update_param_a(float new_value, float old_value, const string& lo
     // display changes if parameter is active
     std::stringstream stream;
     stream << BOLD_ON << std::setw(30) << log_name << ATTRIB_OFF << std::setw(10) << old_value << " -->"
-               << std::setw(10) << new_value << "   time: " << std::setw(10) << std::fixed << std::setprecision(5)
-               << std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count() / 1000000.0;
-    
+           << std::setw(10) << new_value << "   time: " << std::setw(10) << std::fixed << std::setprecision(5)
+           << std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count() / 1000000.0;
+
     // update changes sections if window size changed or parameter value changed
     if (refresh)
     {
         update_changes(section, stream, true);
-    }      
-    else if(new_value != old_value && (section->selected_option & ACTIVE_FLAG) == ACTIVE_FLAG)
+    }
+    else if (new_value != old_value && (section->selected_option & ACTIVE_FLAG) == ACTIVE_FLAG)
     {
         update_changes(section, stream, false);
     }
@@ -974,7 +986,7 @@ bool LiveData::update_param_a(float new_value, float old_value, const string& lo
         }
         string section_position = "\033[" + std::to_string(section->y_pos) + ';' + std::to_string(section->x_pos) + "f";
         printf("%s%s%s%s%s%s", section_position.c_str(), YELLOW_TITLE, section->name.c_str(), ATTRIB_OFF,
-                   section_position.c_str(), DOWN);
+               section_position.c_str(), DOWN);
         for (int i = 0; i < section->param_index; i++)
         {
             printf(("%s", DOWN));
@@ -998,15 +1010,16 @@ bool LiveData::update_param_s(uint8_t new_value, uint8_t old_value, const string
     DataSection* section = get_section(type);
 
     std::stringstream stream;
-    stream << BOLD_ON << std::setw(30) << log_name << ATTRIB_OFF << std::setw(10) << std::to_string(old_value)
-               << " -->" << std::setw(10) << std::to_string(new_value) << "   time: " << std::setw(10) << std::fixed
-               << std::setprecision(5) << std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count() / 1000000.0;
+    stream << BOLD_ON << std::setw(30) << log_name << ATTRIB_OFF << std::setw(10) << std::to_string(old_value) << " -->"
+           << std::setw(10) << std::to_string(new_value) << "   time: " << std::setw(10) << std::fixed
+           << std::setprecision(5)
+           << std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count() / 1000000.0;
     // update changes sections if window size changed or parameter value changed
     if (refresh)
     {
         update_changes(section, stream, true);
-    }      
-    else if(new_value != old_value && (section->selected_option & ACTIVE_FLAG) == ACTIVE_FLAG)
+    }
+    else if (new_value != old_value && (section->selected_option & ACTIVE_FLAG) == ACTIVE_FLAG)
     {
         update_changes(section, stream, false);
     }
@@ -1022,7 +1035,7 @@ bool LiveData::update_param_s(uint8_t new_value, uint8_t old_value, const string
         }
         string section_position = "\033[" + std::to_string(section->y_pos) + ';' + std::to_string(section->x_pos) + "f";
         printf("%s%s%s%s%s%s", section_position.c_str(), YELLOW_TITLE, section->name.c_str(), ATTRIB_OFF,
-                   section_position.c_str(), DOWN);
+               section_position.c_str(), DOWN);
         for (int i = 0; i < section->param_index; i++)
         {
             printf(("%s", DOWN));

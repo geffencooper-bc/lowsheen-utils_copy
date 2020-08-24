@@ -8,7 +8,6 @@
 // information of which can be found at:
 // https://info.braincorp.com/open-source-attributions
 
-
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
@@ -23,18 +22,33 @@
 //==================================================================
 
 #include "SocketCanHelper.h"
-
-// if defined then will print out can trace
 #include "debug.h"
+
+// the can trace is written to a log file to avoid saturation
+static FILE* can_trace;
+
 #if DEBUG_SOCKET_CAN
+#define DEBUG_PRINTF(...)                \
+    do                                   \
+    {                                    \
+        fprintf(can_trace, __VA_ARGS__); \
+    } while (0)
 #else
 #define DEBUG_PRINTF(...) \
-        do {} while (0)
+    do                    \
+    {                     \
+    } while (0)
 #endif
 
 // create timer used for receive message timeouts
 SocketCanHelper::SocketCanHelper()
 {
+    can_trace = fopen("/home/brain/SocketCanHelper_trace.txt", "w");
+    if (can_trace == NULL)
+    {
+        printf("Cannot open file\n");
+        exit(EXIT_FAILURE);
+    }
     time_out = new itimerspec;
     timer_fd = timerfd_create(CLOCK_REALTIME, 0);
 }
@@ -48,6 +62,7 @@ SocketCanHelper::~SocketCanHelper()
     delete can_msg;
     delete can_module;
     delete time_out;
+    fclose(can_trace);
 }
 
 // initialize CO_driver objects and connects to can interface, ex: "can0"
@@ -67,17 +82,17 @@ int SocketCanHelper::init_socketcan(const char* interface_name)
     unsigned int if_index = if_nametoindex(interface_name);
     if (if_index == 0)
     {
-        printf("If Index Error\n");
+        DEBUG_PRINTF("If Index Error\r\n");
         return -1;
     }
 
     uintptr_t can_interface = if_index;
-    DEBUG_PRINTF("if index: %i\n", can_interface);
+    DEBUG_PRINTF("if index: %i\r\n", can_interface);
 
     int err = CO_CANmodule_init(can_module, (void*)if_index, rx_arr, 1, tx_arr, 1, 250);
     if (err != 0)
     {
-        printf("Init CO_CANmodule. Error: %i\tInterface Count: %i\n", err, can_module->CANinterfaceCount);
+        DEBUG_PRINTF("Init CO_CANmodule. Error: %i\tInterface Count: %i\r\n", err, can_module->CANinterfaceCount);
     }
 
     // sets up Rx filters
@@ -106,7 +121,7 @@ int SocketCanHelper::send_frame(uint32_t can_id, uint8_t* data, uint8_t data_len
         tx1 = CO_CANtxBufferInit(can_module, 0, can_id, 0, data_len, false);
     }
 
-    DEBUG_PRINTF("Sending Message-->");
+    DEBUG_PRINTF("Sending Message-->");  // no-crlf-check
 
     // copy the message data into the transmit buffer
     memcpy(tx1->data, data, data_len);
@@ -120,12 +135,12 @@ int SocketCanHelper::send_frame(uint32_t can_id, uint8_t* data, uint8_t data_len
         exit(EXIT_FAILURE);
     }
 
-    DEBUG_PRINTF("Id: %02X\t", can_id);
+    DEBUG_PRINTF("Id: %02X\t", can_id);  // no-crlf-check
     for (uint8_t i = 0; i < data_len; i++)
     {
-        DEBUG_PRINTF("%02X ", data[i]);
+        DEBUG_PRINTF("%02X ", data[i]);  // no-crlf-check
     }
-    DEBUG_PRINTF("\n");
+    DEBUG_PRINTF("\r\n");
 }
 
 // wait for next can frame with the specified id (and mask)
@@ -153,7 +168,7 @@ CO_CANrxMsg_t* SocketCanHelper::get_frame(uint32_t can_id,
         exit(EXIT_FAILURE);
     }
 
-    DEBUG_PRINTF("Getting Message-->");
+    DEBUG_PRINTF("Getting Message-->");  // no-crlf-check
 
     // initialize the rx message object
     err = CO_CANrxBufferInit(can_module, 0, can_id, can_id_mask, 0, obj, call_back);
@@ -169,16 +184,16 @@ CO_CANrxMsg_t* SocketCanHelper::get_frame(uint32_t can_id,
 
     if (err < 0)
     {
-        DEBUG_PRINTF("TIME OUT\n");
+        DEBUG_PRINTF("TIME OUT\r\n");
     }
     else
     {
-        DEBUG_PRINTF("Id: %02X\t", can_msg->ident);
+        DEBUG_PRINTF("Id: %02X\t", can_msg->ident);  // no-crlf-check
         for (uint8_t i = 0; i < can_msg->DLC; i++)
         {
-            DEBUG_PRINTF("%02X ", can_msg->data[i]);
+            DEBUG_PRINTF("%02X ", can_msg->data[i]);  // no-crlf-check
         }
-        DEBUG_PRINTF("\n");
+        DEBUG_PRINTF("\r\n");
     }
 
     return can_msg;

@@ -8,7 +8,6 @@
 // information of which can be found at:
 // https://info.braincorp.com/open-source-attributions
 
-
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
@@ -106,7 +105,7 @@ namespace KU
         IN_IAP_MODE = 2,
         ENTER_IAP_MODE_SELECTIVE_RESPONSE,
         FW_VERSION_RESPONSE,
-        SEND_BYTES_RESPONSE,
+        START_DOWNLOAD_RESPONSE,
         START_ADDRESS_RESPONSE,
         TOTAL_CHECKSUM_RESPONSE,
         HEX_DATA_SIZE_RESPONSE,
@@ -148,7 +147,7 @@ namespace KU
 
         // ID = 0x008/0x048
         static uint8_t force_enter_iap_mode_data[8];
-        static uint8_t send_bytes_data[8];
+        static uint8_t start_download_data[8];
         static uint8_t start_address_data[8];
         static uint8_t total_checksum_data[8];
         static uint8_t hex_data_size_data[8];
@@ -165,7 +164,7 @@ namespace KU
         static uint8_t fw_version_response_data[8];
 
         // ID = 0x069/0x089
-        static uint8_t send_bytes_response_data[8];
+        static uint8_t start_download_response_data[8];
         static uint8_t start_address_response_data[8];
         static uint8_t total_checksum_response_data[8];
         static uint8_t data_size_response_data[8];
@@ -212,7 +211,7 @@ namespace KU
         IAP_MODE_FAIL = -100,
         IAP_MODE_SUCCESS,
         FW_VERSION_REQUEST_FAIL,
-        SEND_BYTES_FAIL,
+        START_DOWNLOAD_FAIL,
         SEND_START_ADDRESS_FAIL,
         SEND_CHECKSUM_FAIL,
         SEND_DATA_SIZE_FAIL,

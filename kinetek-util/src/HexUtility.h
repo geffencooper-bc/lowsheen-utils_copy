@@ -8,7 +8,6 @@
 // information of which can be found at:
 // https://info.braincorp.com/open-source-attributions
 
-
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
@@ -21,7 +20,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //==================================================================
-
 
 // a utility class with helper functions to help extract data from a hex file
 // Note: this class assumes that the hex file data records are 16 bytes long
@@ -49,7 +47,7 @@
 
     some functions will require an array to be passed in to store these bytes. The according section of the data
     array can be passed in as the buffer --> ex: to get the 4 address bytes from above, you might pass in
-    position two of a data array and a size of 4 so that the final array is: {0x01, 0x08, 0x00, 0x80, 0x00, 0x06, 0x07,
+    index one of a data array and a size of 4 so that the final array is: {0x01, 0x08, 0x00, 0x80, 0x00, 0x06, 0x07,
    0x08}
 */
 
@@ -128,8 +126,8 @@ class HexUtility
     int load_hex_file_data(const string& hex_file_path);
 
    private:
-    ifstream hex_file;  // file is open for object lifetime
-    string curr_line;   // file will be read line by line
+    ifstream hex_file;
+    string curr_line;
     string hex_file_path;
 
     bool is_first_8;  // reading 1st 8 data bytes or next 8 data bytes in hex record

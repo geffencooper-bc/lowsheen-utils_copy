@@ -8,7 +8,6 @@
 // information of which can be found at:
 // https://info.braincorp.com/open-source-attributions
 
-
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
@@ -21,7 +20,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //==================================================================
-
 
 // This is the top level class that facilitates the Kinetek Utility
 // by parsing command line arguments and running the according tool.
@@ -76,7 +74,6 @@ class KinetekUtility
 
     // set interface when don't want default "can0"
     void set_can_interface(const string& interface) { can_interface = interface; }
-    
     // holds the latest status of Kinetek Utility after executing a tool
     // in command line mode, see parse_opt() in KinetekUtility.cpp
     KU::StatusCode CL_status;

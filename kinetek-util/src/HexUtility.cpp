@@ -8,7 +8,6 @@
 // information of which can be found at:
 // https://info.braincorp.com/open-source-attributions
 
-
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
@@ -21,7 +20,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //==================================================================
-
 
 #include "HexUtility.h"
 
@@ -54,7 +52,7 @@ int HexUtility::get_file_data_size(uint8_t* byte_array, uint8_t arr_size)
 {
     if (arr_size < 4)
     {
-        DEBUG_PRINTF("ERROR: Array size is not big enough\n");
+        DEBUG_PRINTF("ERROR: Array size is not big enough\r\n");
         exit(EXIT_FAILURE);
     }
     // store file data size as array of 4 bytes--> Kinetek format
@@ -67,7 +65,7 @@ int HexUtility::get_total_cs(uint8_t* byte_array, uint8_t arr_size, bool rev)
 {
     if (arr_size < 4)
     {
-        DEBUG_PRINTF("ERROR: Array size is not big enough\n");
+        DEBUG_PRINTF("ERROR: Array size is not big enough\r\n");
         exit(EXIT_FAILURE);
     }
     // kinetek expects total checksum in reverse (little endian) after sending hex file
@@ -89,7 +87,7 @@ int HexUtility::get_start_address(uint8_t* byte_array, uint8_t arr_size)
 {
     if (arr_size < 4)
     {
-        DEBUG_PRINTF("ERROR: Array size is not big enough\n");
+        DEBUG_PRINTF("ERROR: Array size is not big enough\r\n");
         exit(EXIT_FAILURE);
     }
     // store the start address as an array 4 of bytes--> Kinetek format
@@ -106,7 +104,7 @@ int HexUtility::get_next_8_bytes(uint8_t* byte_array, uint8_t arr_size)
     }
     if (arr_size < 8)
     {
-        DEBUG_PRINTF("ERROR: Array size is not big enough\n");
+        DEBUG_PRINTF("ERROR: Array size is not big enough\r\n");
         exit(EXIT_FAILURE);
     }
     // get next line because start of new record
@@ -164,7 +162,7 @@ int HexUtility::get_next_8_bytes(uint8_t* byte_array, uint8_t arr_size)
         }
     }
 
-    // grab the first 8 data bytes in a hex record
+    // grab the second 8 data bytes in a hex record
     else
     {
         is_first_8 = true;
@@ -228,7 +226,7 @@ int HexUtility::data_string_to_byte_list(const string& hex_data, uint8_t* byte_a
     // the number of bytes should be at least half the number of chars in the string, 2 chars "AA" --> 1 byte
     if (arr_size < hex_data.size() / 2)
     {
-        DEBUG_PRINTF("ERROR: Array size is not big enough\n");
+        DEBUG_PRINTF("ERROR: Array size is not big enough\r\n");
         exit(EXIT_FAILURE);
     }
     // iterate through the string only filling in data bytes every two chars, return the sum of the bytes for checksum
@@ -252,7 +250,7 @@ int HexUtility::get_record_data_bytes(const string& hex_record,
     // otherwise it needs to be at least the size of the record length
     if ((arr_size < num_bytes) || ((num_bytes == -1) && arr_size < get_record_data_length(hex_record)))
     {
-        DEBUG_PRINTF("ERROR: Array size is not big enough\n");
+        DEBUG_PRINTF("ERROR: Array size is not big enough\r\n");
         exit(EXIT_FAILURE);
     }
 
@@ -289,13 +287,13 @@ int HexUtility::load_hex_file_data(const string& hex_file_path)
     // try to open the hex file and load the data
     if (hex_file.is_open())
     {
-        DEBUG_PRINTF("ERROR: trying to reopen hex file\n");
+        DEBUG_PRINTF("ERROR: trying to reopen hex file\r\n");
         exit(EXIT_FAILURE);
     }
     hex_file.open(hex_file_path);
     if (hex_file.fail())
     {
-        DEBUG_PRINTF("ERROR: Invalid File Path%s\n", hex_file_path.c_str());
+        DEBUG_PRINTF("ERROR: Invalid File Path%s\r\n", hex_file_path.c_str());
         exit(EXIT_FAILURE);
     }
 
@@ -313,7 +311,7 @@ int HexUtility::load_hex_file_data(const string& hex_file_path)
         // check to make sure all record checksums are valid (is hex file corrupt)
         if (calc_hex_checksum(curr_line) != get_record_checksum(curr_line))
         {
-            DEBUG_PRINTF("ERROR: bad hex checksum line: %i", line_index);
+            DEBUG_PRINTF("ERROR: bad hex checksum line: %i\r\n", line_index);
             exit(EXIT_FAILURE);
         }
         // get the start address, if using extended linear then need to combine ms and ls 16 bits
@@ -425,14 +423,14 @@ void getline_test(string file_path)
     file.open(file_path);
     if (file.fail())
     {
-        DEBUG_PRINTF("ERROR: Invalid File Path%s\n", file_path.c_str());
+        DEBUG_PRINTF("ERROR: Invalid File Path%s\r\n", file_path.c_str());
         exit(EXIT_FAILURE);
     }
 
     string line = "";
     while (hu_getline(file, line))
     {
-        DEBUG_PRINTF("%s", line.c_str());
+        DEBUG_PRINTF("%s\r\n", line.c_str());
     }
     if (file.is_open())
     {

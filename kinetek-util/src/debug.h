@@ -8,7 +8,6 @@
 // information of which can be found at:
 // https://info.braincorp.com/open-source-attributions
 
-
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
@@ -33,24 +32,28 @@
 // normal printf, used for error messages
 #define DEBUG_DEFAULT 1
 
-// normal printf, used for status messages
-#define LOG_PRINT 1
-
 // define this to see messages sent/received over socketcan (can trace)
 #define DEBUG_SOCKET_CAN 1
 
 #if DEBUG_VERBOSE
-#define DEBUG_PRINTF(fmt, ...) \
-        do { fprintf(stderr, "FILE: %s FUNCTION: %s() LINE: %d: " fmt, __FILE__, \
-                                __func__, __LINE__, __VA_ARGS__); } while (0)
+#define DEBUG_PRINTF(fmt, ...)                                                                                \
+    do                                                                                                        \
+    {                                                                                                         \
+        fprintf(stderr, "FILE: %s FUNCTION: %s() LINE: %d: " fmt, __FILE__, __func__, __LINE__, __VA_ARGS__); \
+    } while (0)
 
 #elif DEBUG_DEFAULT
-#define DEBUG_PRINTF(...) \
-        do { fprintf(stderr, __VA_ARGS__); } while (0)
+#define DEBUG_PRINTF(...)             \
+    do                                \
+    {                                 \
+        fprintf(stderr, __VA_ARGS__); \
+    } while (0)
 
 #else
 #define DEBUG_PRINTF(fmt, ...) \
-        do {} while (0)
+    do                         \
+    {                          \
+    } while (0)
 #endif
 
 #endif
