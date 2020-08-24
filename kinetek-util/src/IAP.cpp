@@ -29,15 +29,6 @@
 #define PRINT_LOG
 //#define PROGRESS_BAR
 
-#ifdef PRINT_LOG
-#define LOG_PRINT(x) printf x
-#else
-#define LOG_PRINT(x) \
-    do               \
-    {                \
-    } while (0)
-#endif
-
 // these are timeout values used for waiting for response frames
 #define LONG_WAIT_TIME 3000   // ms --> 3 sec
 #define MEDIUM_WAIT_TIME 100  // ms
@@ -48,14 +39,14 @@ IAP::IAP(SocketCanHelper* sc, KU::CanDataList* ku_data)
 {
     if (sc == nullptr)
     {
-        LOG_PRINT(("Socket Can Helper is not initialized\n"));
+        DEBUG_PRINTF("ERROR: Socket Can Helper is not initialized\n");
         exit(EXIT_FAILURE);
     }
     this->sc = sc;
 
     if (ku_data == nullptr)
     {
-        LOG_PRINT(("Kinetek Utility CanDataList is not initialized\n"));
+        DEBUG_PRINTF("ERROR: Kinetek Utility CanDataList is not initialized\n");
         exit(EXIT_FAILURE);
     }
     this->ku_data = ku_data;
@@ -109,13 +100,13 @@ void IAP::load_hex_file(string file_path)
 // sanity check to make sure reading file correctly
 void IAP::print()
 {
-    LOG_PRINT(("\n"));
-    LOG_PRINT(("\n================= IAP DETAILS ==============="));
-    LOG_PRINT(("\nHEX FILE DATA SIZE:             %i bytes", hex_data_size));
-    LOG_PRINT(("\nHEX FILE DATA TOTAL CHECKSUM:   %08X", total_checksum));
-    LOG_PRINT(("\nSTART ADDRESS:                  %08X", start_address));
-    LOG_PRINT(("\nLAST PACKET SIZE:               %i", last_packet_size));
-    LOG_PRINT(("\n=============================================\n"));
+    DEBUG_PRINTF("\n");
+    DEBUG_PRINTF("\n================= IAP DETAILS ===============");
+    DEBUG_PRINTF("\nHEX FILE DATA SIZE:             %i bytes", hex_data_size);
+    DEBUG_PRINTF("\nHEX FILE DATA TOTAL CHECKSUM:   %08X", total_checksum);
+    DEBUG_PRINTF("\nSTART ADDRESS:                  %08X", start_address);
+    DEBUG_PRINTF("\nLAST PACKET SIZE:               %i", last_packet_size);
+    DEBUG_PRINTF("\n=============================================\n");
 }
 
 // displays upload progress as a growing arrow
@@ -165,7 +156,7 @@ KU::StatusCode IAP::check_iap_state(int wait_time)
     CO_CANrxMsg_t* resp = sc->get_frame(KINETEK_STATUS_1_ID, this, IAP_resp_call_back, wait_time);
     if (ku_data->get_response_type(resp->ident, resp->data, resp->DLC) == KU::IN_IAP_MODE)
     {
-        LOG_PRINT(("\nSTATE ID: %02X\n", resp->ident));
+        DEBUG_PRINTF("\nSTATE ID: %02X\n", resp->ident);
         set_7th = 0;
         iap_state = KINETEK_STATUS_1_ID;
     }
@@ -175,24 +166,24 @@ KU::StatusCode IAP::check_iap_state(int wait_time)
         resp = sc->get_frame(KINETEK_STATUS_2_ID, this, IAP_resp_call_back, wait_time);
         if (ku_data->get_response_type(resp->ident, resp->data, resp->DLC) == KU::IN_IAP_MODE)
         {
-            LOG_PRINT(("\nSTATE ID: %02X\n", resp->ident));
+            DEBUG_PRINTF("\nSTATE ID: %02X\n", resp->ident);
             set_7th = 0b01000000;
             iap_state = KINETEK_STATUS_2_ID;
         }
         else  // if neither states detected then return fail
         {
-            LOG_PRINT(("Check IAP state time out\n"));
+            DEBUG_PRINTF("Check IAP state time out\n");
             return KU::IAP_MODE_FAIL;
         }
     }
 
-    LOG_PRINT(("\n\n======IN IAP MODE=========\n\n"));
+    DEBUG_PRINTF("\n\n======IN IAP MODE=========\n\n");
     return KU::IAP_MODE_SUCCESS;
 }
 
 KU::StatusCode IAP::put_in_iap_mode(bool forced_mode)
 {
-    LOG_PRINT(("Putting in IAP mode\n"));
+    DEBUG_PRINTF("Putting in IAP mode\n");
 
     // selective mode
     if (!forced_mode)
@@ -202,7 +193,7 @@ KU::StatusCode IAP::put_in_iap_mode(bool forced_mode)
         {
             if (ku_data->get_response_type(resp->ident, resp->data, resp->DLC) != KU::HEART_BEAT)
             {
-                LOG_PRINT(("No Heart Beat detected, Selective Mode failed\n"));
+                DEBUG_PRINTF("No Heart Beat detected, Selective Mode failed\n");
                 return KU::IAP_MODE_FAIL;
             }
         }
@@ -218,7 +209,7 @@ KU::StatusCode IAP::put_in_iap_mode(bool forced_mode)
             resp = sc->get_frame(KU::KINETEK_RESPONSE_ID, this, IAP_resp_call_back, MEDIUM_WAIT_TIME);
             if (ku_data->get_response_type(resp->ident, resp->data, resp->DLC) != KU::ENTER_IAP_MODE_SELECTIVE_RESPONSE)
             {
-                LOG_PRINT(("Selective FW Request time out\n"));
+                DEBUG_PRINTF("Selective FW Request time out\n");
                 return KU::IAP_MODE_FAIL;
             }
         }
@@ -245,7 +236,7 @@ KU::StatusCode IAP::put_in_iap_mode(bool forced_mode)
         {
             if (count > 50)  // try 50 times
             {
-                LOG_PRINT(("Forced IAP mode time out\n"));
+                DEBUG_PRINTF("Forced IAP mode time out\n");
                 return KU::IAP_MODE_FAIL;
             }
             sc->send_frame(KU::FORCE_ENTER_IAP_MODE_ID, ku_data->force_enter_iap_mode_data,
@@ -268,10 +259,10 @@ KU::StatusCode IAP::send_init_frames()
 
     if (ku_data->get_response_type(resp->ident, resp->data, resp->DLC) != KU::FW_VERSION_RESPONSE)
     {
-        LOG_PRINT(("FW_VERSION_REQUEST TIMEOUT\n"));
+        DEBUG_PRINTF("FW_VERSION_REQUEST TIMEOUT\n");
         return KU::FW_VERSION_REQUEST_FAIL;
     }
-    LOG_PRINT(("GOT FW VERSION RESPONSE\n"));
+    DEBUG_PRINTF("GOT FW VERSION RESPONSE\n");
 
     printf("\nKinetek Bootloader Version: %i.%i\n", resp->data[0], resp->data[1]);
 
@@ -282,10 +273,10 @@ KU::StatusCode IAP::send_init_frames()
 
     if (ku_data->get_response_type(resp->ident, resp->data, resp->DLC) != KU::SEND_BYTES_RESPONSE)
     {
-        LOG_PRINT(("SEND_BYTES TIMEOUT\n"));
+        DEBUG_PRINTF("SEND_BYTES TIMEOUT\n");
         return KU::SEND_BYTES_FAIL;
     }
-    LOG_PRINT(("CAN START SENDING BYTES\n"));
+    DEBUG_PRINTF("CAN START SENDING BYTES\n");
 
     usleep(1000);
     // next send the start address
@@ -294,10 +285,10 @@ KU::StatusCode IAP::send_init_frames()
 
     if (ku_data->get_response_type(resp->ident, resp->data, resp->DLC) != KU::START_ADDRESS_RESPONSE)
     {
-        LOG_PRINT(("SEND_START_ADDRESS TIMEOUT\n"));
+        DEBUG_PRINTF("SEND_START_ADDRESS TIMEOUT\n");
         return KU::SEND_START_ADDRESS_FAIL;
     }
-    LOG_PRINT(("SENT START ADDRESS\n"));
+    DEBUG_PRINTF("SENT START ADDRESS\n");
 
     usleep(1000);
     // next send the total checksum
@@ -306,10 +297,10 @@ KU::StatusCode IAP::send_init_frames()
 
     if (ku_data->get_response_type(resp->ident, resp->data, resp->DLC) != KU::TOTAL_CHECKSUM_RESPONSE)
     {
-        LOG_PRINT(("SEND_CHECKSUM TIMEOUT\n"));
+        DEBUG_PRINTF("SEND_CHECKSUM TIMEOUT\n");
         return KU::SEND_CHECKSUM_FAIL;
     }
-    LOG_PRINT(("GOT CHECKSUM DATA RESPONSE\n"));
+    DEBUG_PRINTF("GOT CHECKSUM DATA RESPONSE\n");
 
     usleep(1000);
     // finally send the data size
@@ -318,17 +309,17 @@ KU::StatusCode IAP::send_init_frames()
 
     if (ku_data->get_response_type(resp->ident, resp->data, resp->DLC) != KU::HEX_DATA_SIZE_RESPONSE)
     {
-        LOG_PRINT(("SEND_DATA_SIZE TIMEOUT\n"));
+        DEBUG_PRINTF("SEND_DATA_SIZE TIMEOUT\n");
         return KU::SEND_DATA_SIZE_FAIL;
     }
 
-    LOG_PRINT(("SENT DATA SIZE\n====== DONE WITH INIT PACKETS ======\n"));
+    DEBUG_PRINTF("SENT DATA SIZE\n====== DONE WITH INIT PACKETS ======\n");
     return KU::INIT_PACKET_SUCCESS;
 }
 
 KU::StatusCode IAP::upload_hex_file()
 {
-    LOG_PRINT(("\n ======== Uploading hex file =======\n"));
+    DEBUG_PRINTF("\n ======== Uploading hex file =======\n");
 
     while (true)  // keep sending packets until reached end of file or fail and function returns
     {
@@ -340,7 +331,7 @@ KU::StatusCode IAP::upload_hex_file()
         // reached the end of a page
         if (packet_count > 0 && packet_count % PAGE_SIZE == 0)
         {
-            LOG_PRINT(("\n======END OF PAGE %i======\n", page_count + 1));
+            DEBUG_PRINTF("\n======END OF PAGE %i======\n", page_count + 1);
 
             // wait for Kinetek to send page checksum, try twice. If don't receive can still get confirmation by sending
             // page checksum
@@ -351,7 +342,7 @@ KU::StatusCode IAP::upload_hex_file()
                 resp = sc->get_frame(iap_state, this, IAP_resp_call_back, MEDIUM_WAIT_TIME);
                 if (ku_data->get_response_type(resp->ident, resp->data, resp->DLC) != KU::KT_CALCULATED_PAGE_CHECKSUM)
                 {
-                    LOG_PRINT(("KT CALCULATED PAGE_CHECKSUM TIMEOUT\n"));
+                    DEBUG_PRINTF("KT CALCULATED PAGE_CHECKSUM TIMEOUT\n");
                 }
                 memcpy(ku_data->kt_calculated_page_checksum_data, resp->data, KT_CS_LEN);
             }
@@ -373,20 +364,13 @@ KU::StatusCode IAP::upload_hex_file()
                 if (ku_data->get_response_type(resp->ident, resp->data, resp->DLC) !=
                     KU::CALCULATE_PAGE_CHECKSUM_RESPONSE)
                 {
-                    LOG_PRINT(("last effort compare\n"));
+                    DEBUG_PRINTF("last effort compare\n");
                     // if don't receive cs frame, may have missed it, as a last effort compare the KT calculated CS and
                     // your calculated CS
                     if (ku_data->array_compare(ku_data->page_checksum_data + 1, KT_CS_LEN, resp->data + 1, KT_CS_LEN) ==
                         false)
                     {
-                        printf("host\t%02X %02X %02X %02X\n", ku_data->page_checksum_data[1],
-                               ku_data->page_checksum_data[2], ku_data->page_checksum_data[3],
-                               ku_data->page_checksum_data[4]);
-                        printf("kt  \t%02X %02X %02X %02X\n", ku_data->kt_calculated_page_checksum_data[1],
-                               ku_data->kt_calculated_page_checksum_data[2],
-                               ku_data->kt_calculated_page_checksum_data[3],
-                               ku_data->kt_calculated_page_checksum_data[4]);
-                        LOG_PRINT(("PAGE_CHECKSUM TIMEOUT\n"));
+                        DEBUG_PRINTF("PAGE_CHECKSUM TIMEOUT\n");
                         return KU::PAGE_CHECKSUM_FAIL;
                     }
                 }
@@ -409,11 +393,11 @@ KU::StatusCode IAP::upload_hex_file()
             status = send_hex_packet(true);
             if (status != KU::PACKET_SENT_SUCCESS)
             {
-                LOG_PRINT(("PACKET_RESEND TIMEOUT\n"));
+                DEBUG_PRINTF("PACKET_RESEND TIMEOUT\n");
                 return KU::PACKET_RESENT_FAIL;
             }
             num_bytes_uploaded += PACKET_SIZE;
-            LOG_PRINT(("BYTES UPLOADED: %i\n", num_bytes_uploaded));
+            DEBUG_PRINTF("BYTES UPLOADED: %i\n", num_bytes_uploaded);
             packet_count += 1;
             continue;
         }
@@ -440,7 +424,7 @@ KU::StatusCode IAP::upload_hex_file()
                 resp = sc->get_frame(KU::IAP_RESPONSE_ID, this, IAP_resp_call_back, MEDIUM_WAIT_TIME, iap_can_id_mask);
                 if (ku_data->get_response_type(resp->ident, resp->data, resp->DLC) != KU::END_OF_HEX_FILE_RESPONSE)
                 {
-                    LOG_PRINT(("END_OF_FILE TIMEOUT\n"));
+                    DEBUG_PRINTF("END_OF_FILE TIMEOUT\n");
                     return KU::END_OF_FILE_FAIL;
                 }
             }
@@ -449,7 +433,7 @@ KU::StatusCode IAP::upload_hex_file()
             resp = sc->get_frame(iap_state, this, IAP_resp_call_back, MEDIUM_WAIT_TIME);
             if (ku_data->get_response_type(resp->ident, resp->data, resp->DLC) != KU::KT_CALCULATED_PAGE_CHECKSUM)
             {
-                LOG_PRINT(("KT_CALCULATED_PAGE_CHECKSUM TIMEOUT\n"));
+                DEBUG_PRINTF("KT_CALCULATED_PAGE_CHECKSUM TIMEOUT\n");
             }
 
             // make last page checksum data
@@ -468,7 +452,7 @@ KU::StatusCode IAP::upload_hex_file()
                 if (ku_data->get_response_type(resp->ident, resp->data, resp->DLC) !=
                     KU::CALCULATE_PAGE_CHECKSUM_RESPONSE)
                 {
-                    LOG_PRINT(("PAGE_CHECKSUM TIMEOUT\n"));
+                    DEBUG_PRINTF("PAGE_CHECKSUM TIMEOUT\n");
                     return KU::PAGE_CHECKSUM_FAIL;
                 }
             }
@@ -479,7 +463,7 @@ KU::StatusCode IAP::upload_hex_file()
 
             if (ku_data->get_response_type(resp->ident, resp->data, resp->DLC) != KU::CALCULATE_TOTAL_CHECKSUM_RESPONSE)
             {
-                LOG_PRINT(("TOTAL_CHECKSUM TIMEOUT\n"));
+                DEBUG_PRINTF("TOTAL_CHECKSUM TIMEOUT\n");
                 return KU::TOTAL_CHECKSUM_FAIL;
             }
 
@@ -487,7 +471,7 @@ KU::StatusCode IAP::upload_hex_file()
             resp = sc->get_frame(KU::HEART_BEAT_ID, this, IAP_resp_call_back, LONG_WAIT_TIME);
             if (ku_data->get_response_type(resp->ident, resp->data, resp->DLC) != KU::HEART_BEAT)
             {
-                LOG_PRINT(("HEART_BEAT TIMEOUT\n"));
+                DEBUG_PRINTF("HEART_BEAT TIMEOUT\n");
                 return KU::NO_HEART_BEAT;
             }
 
@@ -497,7 +481,7 @@ KU::StatusCode IAP::upload_hex_file()
             resp = sc->get_frame(KU::HEART_BEAT_ID, this, IAP_resp_call_back, LONG_WAIT_TIME);
             if (ku_data->get_response_type(resp->ident, resp->data, resp->DLC) != KU::HEART_BEAT)
             {
-                LOG_PRINT(("HEART_BEAT TIMEOUT\n"));
+                DEBUG_PRINTF("HEART_BEAT TIMEOUT\n");
                 return KU::NO_HEART_BEAT;
             }
             return KU::UPLOAD_COMPLETE;
@@ -564,25 +548,25 @@ KU::StatusCode IAP::send_hex_packet(bool is_retry)
                     num_bytes_uploaded -= PACKET_SIZE;
                     num_bytes_uploaded += hex_data_size % PACKET_SIZE;
                 }
-                LOG_PRINT(("BYTES UPLOADED: %i\n", num_bytes_uploaded));
+                DEBUG_PRINTF("BYTES UPLOADED: %i\n", num_bytes_uploaded);
 
                 // if the frame id is 1, that means that last packet was completed, so no filler frames
                 if (curr_frame_id == KU::SEND_FRAME_1_ID)
                 {
-                    LOG_PRINT(("\n\n\n====NO FILLER====\n\n\n"));
+                    DEBUG_PRINTF("\n\n\n====NO FILLER====\n\n\n");
                     return KU::END_OF_FILE_CODE;
                 }
 
                 // otherwise need to add filler frames
-                LOG_PRINT(("\n\n\n====FILLER====\n\n\n"));
+                DEBUG_PRINTF("\n\n\n====FILLER====\n\n\n");
 
                 memset(current_packet + CAN_DATA_LEN * frame_count, 0xFF,
                        sizeof(current_packet) - CAN_DATA_LEN * frame_count);
                 for (int i = 0; i < PACKET_SIZE; i++)
                 {
-                    LOG_PRINT(("%02X", current_packet[i]));
+                    DEBUG_PRINTF("%02X", current_packet[i]);
                 }
-                LOG_PRINT(("\n"));
+                DEBUG_PRINTF("\n");
 
                 // send the filler frames, need a switch statement because don't know which frame to start at
                 // pause for 1ms before sending the next frame, avoid overflow
@@ -630,7 +614,7 @@ KU::StatusCode IAP::send_hex_packet(bool is_retry)
                                     return KU::PACKET_SENT_FAIL;
                                 }
                             }
-                            LOG_PRINT(("BYTES UPLOADED: %i\n", num_bytes_uploaded));
+                            DEBUG_PRINTF("BYTES UPLOADED: %i\n", num_bytes_uploaded);
                             return KU::END_OF_FILE_CODE;
                         }
                     }
@@ -683,7 +667,7 @@ KU::StatusCode IAP::send_hex_packet(bool is_retry)
                     num_bytes_uploaded += 32;
                     if (num_bytes_uploaded < hex_data_size)
                     {
-                        LOG_PRINT(("BYTES UPLOADED: %i\n", num_bytes_uploaded));
+                        DEBUG_PRINTF("BYTES UPLOADED: %i\n", num_bytes_uploaded);
                     }
                     return KU::PACKET_SENT_SUCCESS;
                 }

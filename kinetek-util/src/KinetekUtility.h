@@ -71,10 +71,16 @@ class KinetekUtility
     // reset xt_can
     KU::StatusCode reset_xt_can();
 
+    // toggle the estop line, 1 = enable 2 = disable
+    void toggle_estop(int mode);
+
+    // set interface when don't want default "can0"
     void set_can_interface(const string& interface) { can_interface = interface; }
-    void toggle_estop();
-    // the status of each utility running gets written here
+    
+    // holds the latest status of Kinetek Utility after executing a tool
+    // in command line mode, see parse_opt() in KinetekUtility.cpp
     KU::StatusCode CL_status;
+
    private:
     SocketCanHelper* sc;
     KU::CanDataList* ku_data;  // holds all can data used by the utilities

@@ -59,6 +59,7 @@
 #include <string>
 #include <fstream>
 #include <stdint.h>
+#include "debug.h"
 
 using std::string;
 using std::ifstream;

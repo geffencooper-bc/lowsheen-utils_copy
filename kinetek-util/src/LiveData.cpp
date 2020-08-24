@@ -24,18 +24,6 @@
 
 #include "LiveData.h"
 
-// debug print macro to see error messages
-#define PRINT_LOG
-
-#ifdef PRINT_LOG
-#define LOG_PRINT(x) printf x
-#else
-#define LOG_PRINT(x) \
-    do               \
-    {                \
-    } while (0)
-#endif
-
 // escape sequences to adjust cursor location and text format
 #define TLC "\033[0;0f"
 #define SAVE "\033[s"
@@ -60,14 +48,14 @@ LiveData::LiveData(SocketCanHelper* sc, KU::CanDataList* ku_data)
 {
     if (sc == nullptr)
     {
-        LOG_PRINT(("Socket Can Helper is not initialized\n"));
+        DEBUG_PRINTF("Socket Can Helper is not initialized\n");
         exit(EXIT_FAILURE);
     }
     this->sc = sc;
 
     if (ku_data == nullptr)
     {
-        LOG_PRINT(("Kinetek Utility CanDataList is not initialized\n"));
+        DEBUG_PRINTF("Kinetek Utility CanDataList is not initialized\n");
         exit(EXIT_FAILURE);
     }
     this->ku_data = ku_data;
@@ -78,16 +66,16 @@ LiveData::LiveData(SocketCanHelper* sc, KU::CanDataList* ku_data)
     sections.push_back(new DataSection("SCRUBBER_STATE", SCRUBBER_STATE, 1, -1, -1, -1, -1, 0, -1));
     sections.push_back(new DataSection("RECOVERY_STATE", RECOVERY_STATE, 1, -1, -1, -1, -1, 0, -1));
     sections.push_back(new DataSection("BATTERY_STATE", BATTERY_STATE, 1, -1, -1, -1, -1, 0, -1));
-    //sections.push_back(new DataSection("METADATA", META_STATE, 1, -1, -1, -1, -1, 0, -1));
-     sections.push_back(new DataSection("ERROR_STATE", ERROR_STATE, 1, -1, -1, -1, -1, 0, -1)); // comment this and it works?
-    // sections.push_back(new DataSection("MISC_STATE", MISC_STATE, 1, -1, -1, -1, -1, 0, -1));
-    // sections.push_back(new DataSection("UNKNOWN", UNKNOWN_STATE, 1, -1, -1, -1, -1, 0, -1));
-    // sections.push_back(new DataSection("TRACTION_ANALOG", TRACTION_ANALOG, 0, -1, -1, -1, -1, 0, -1));
-    // sections.push_back(new DataSection("SCRUBBER_ANALOG", SCRUBBER_ANALOG, 0, -1, -1, -1, -1, 0, -1));
-    // sections.push_back(new DataSection("RECOVERY_ANALOG", RECOVERY_ANALOG, 0, -1, -1, -1, -1, 0, -1));
-    // sections.push_back(new DataSection("MISC_ANALOG", MISC_ANALOG, 0, -1, -1, -1, -1, 0, -1));
-    // sections.push_back(new DataSection("BATTERY_ANALOG", BATTERY_ANALOG, 0, -1, -1, -1, -1, 0, -1));
-    // changes = new DataSection("LATEST_CHANGES", LATEST_CHANGES, 0, -1, -1, -1, -1, 0, -1);
+    sections.push_back(new DataSection("METADATA", META_STATE, 1, -1, -1, -1, -1, 0, -1));
+    sections.push_back(new DataSection("ERROR_STATE", ERROR_STATE, 1, -1, -1, -1, -1, 0, -1));
+    sections.push_back(new DataSection("MISC_STATE", MISC_STATE, 1, -1, -1, -1, -1, 0, -1));
+    sections.push_back(new DataSection("UNKNOWN", UNKNOWN_STATE, 1, -1, -1, -1, -1, 0, -1));
+    sections.push_back(new DataSection("TRACTION_ANALOG", TRACTION_ANALOG, 0, -1, -1, -1, -1, 0, -1));
+    sections.push_back(new DataSection("SCRUBBER_ANALOG", SCRUBBER_ANALOG, 0, -1, -1, -1, -1, 0, -1));
+    sections.push_back(new DataSection("RECOVERY_ANALOG", RECOVERY_ANALOG, 0, -1, -1, -1, -1, 0, -1));
+    sections.push_back(new DataSection("MISC_ANALOG", MISC_ANALOG, 0, -1, -1, -1, -1, 0, -1));
+    sections.push_back(new DataSection("BATTERY_ANALOG", BATTERY_ANALOG, 0, -1, -1, -1, -1, 0, -1));
+    changes = new DataSection("LATEST_CHANGES", LATEST_CHANGES, 0, -1, -1, -1, -1, 0, -1);
 }
 
 // deallocate memory
@@ -167,7 +155,7 @@ KU::StatusCode LiveData::update_heartbeat()
         resp = sc->get_frame(KU::HEART_BEAT_ID, this, LiveData_resp_call_back, 500);
         if (ku_data->get_response_type(resp->ident, resp->data, resp->DLC) != KU::HEART_BEAT)
         {
-            LOG_PRINT(("No Heart Beat\n"));
+            printf("No Heart Beat\n");
             return KU::NO_HEART_BEAT;
         }
 
@@ -802,25 +790,25 @@ void LiveData::update_changes(DataSection* section, std::stringstream& latest_ch
     string pos = "\033[" + std::to_string(window_size.ws_row - changes->num_params) + ";0f";
 
     end = std::chrono::steady_clock::now();
-    LOG_PRINT(("%s%s%sLAST 10 CHANGES%s", pos.c_str(), UP, RED_TITLE, ATTRIB_OFF));
+    printf("%s%s%sLAST 10 CHANGES%s", pos.c_str(), UP, RED_TITLE, ATTRIB_OFF);
 
     // configure the section parameters
     changes->width = latest_change.str().size();
     changes->x_pos = 0;
     changes->y_pos = window_size.ws_row - changes->num_params;
-    // LOG_PRINT(("\033[60;60f %i", changes->width));
+    // printf(("\033[60;60f %i", changes->width));
 
     // if the value hasn't changed but the window size has, reprint the section
     if (just_refresh)
     {
         for (int i = 0; i < top_10.size() / changes->width; i++)
         {
-            LOG_PRINT(("%s", pos.c_str()));
+            printf("%s", pos.c_str());
             for (int j = 0; j < i; j++)
             {
-                LOG_PRINT(("%s", DOWN));
+                printf("%s", DOWN);
             }
-            LOG_PRINT(("%i. %s", i, top_10.substr(changes->width * (i), changes->width).c_str()));
+            printf("%i. %s", i, top_10.substr(changes->width * (i), changes->width).c_str());
         }
         refresh = false;
     }
@@ -845,12 +833,12 @@ void LiveData::update_changes(DataSection* section, std::stringstream& latest_ch
         // print out the changes
         for (int i = 0; i < top_10.size() / changes->width; i++)
         {
-            LOG_PRINT(("%s", pos.c_str()));
+            printf("%s", pos.c_str());
             for (int j = 0; j < i; j++)
             {
-                LOG_PRINT(("%s", DOWN));
+                printf("%s", DOWN);
             }
-            LOG_PRINT(("%i. %s", i, top_10.substr(changes->width * (i), changes->width).c_str()));
+            printf("%i. %s", i, top_10.substr(changes->width * (i), changes->width).c_str());
         }
     }
 }
@@ -985,14 +973,14 @@ bool LiveData::update_param_a(float new_value, float old_value, const string& lo
             section->param_index = 0;
         }
         string section_position = "\033[" + std::to_string(section->y_pos) + ';' + std::to_string(section->x_pos) + "f";
-        LOG_PRINT(("%s%s%s%s%s%s", section_position.c_str(), YELLOW_TITLE, section->name.c_str(), ATTRIB_OFF,
-                   section_position.c_str(), DOWN));
+        printf("%s%s%s%s%s%s", section_position.c_str(), YELLOW_TITLE, section->name.c_str(), ATTRIB_OFF,
+                   section_position.c_str(), DOWN);
         for (int i = 0; i < section->param_index; i++)
         {
-            LOG_PRINT(("%s", DOWN));
+            printf(("%s", DOWN));
         }
         // pad the section params based on the width
-        LOG_PRINT(("%-*s:%0.1f", section->width, section->params[section->param_index].c_str(), new_value));
+        printf("%-*s:%0.1f", section->width, section->params[section->param_index].c_str(), new_value);
 
         section->param_index++;
     }
@@ -1033,14 +1021,14 @@ bool LiveData::update_param_s(uint8_t new_value, uint8_t old_value, const string
             section->param_index = 0;
         }
         string section_position = "\033[" + std::to_string(section->y_pos) + ';' + std::to_string(section->x_pos) + "f";
-        LOG_PRINT(("%s%s%s%s%s%s", section_position.c_str(), YELLOW_TITLE, section->name.c_str(), ATTRIB_OFF,
-                   section_position.c_str(), DOWN));
+        printf("%s%s%s%s%s%s", section_position.c_str(), YELLOW_TITLE, section->name.c_str(), ATTRIB_OFF,
+                   section_position.c_str(), DOWN);
         for (int i = 0; i < section->param_index; i++)
         {
-            LOG_PRINT(("%s", DOWN));
+            printf(("%s", DOWN));
         }
         // pad the section params based on the width
-        LOG_PRINT(("%-*s:%i", section->width, section->params[section->param_index].c_str(), new_value));
+        printf("%-*s:%i", section->width, section->params[section->param_index].c_str(), new_value);
 
         section->param_index++;
     }
