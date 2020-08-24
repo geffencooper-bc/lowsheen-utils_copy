@@ -31,14 +31,14 @@ STUparam::STUparam(SocketCanHelper* sc, KU::CanDataList* ku_data)
 {
     if (sc == nullptr)
     {
-        DEBUG_PRINTF("Socket Can Helper is not initialized\r\n");
+        DEBUG_PRINTF("ERROR: Socket Can Helper is not initialized\r\n");
         exit(EXIT_FAILURE);
     }
     this->sc = sc;
 
     if (ku_data == nullptr)
     {
-        DEBUG_PRINTF("Kinetek Utility CanDataList is not initialized\r\n");
+        DEBUG_PRINTF("ERROR: Kinetek Utility CanDataList is not initialized\r\n");
         exit(EXIT_FAILURE);
     }
     this->ku_data = ku_data;
@@ -86,7 +86,7 @@ KU::StatusCode STUparam::read_stu_params(const string& output_file)
         resp = sc->get_frame(KU::HEART_BEAT_ID, this, STU_resp_call_back, 20000);
         if (ku_data->get_response_type(resp->ident, resp->data, resp->DLC) != KU::HEART_BEAT)
         {
-            DEBUG_PRINTF("NO HEART BEAT\r\n");
+            DEBUG_PRINTF("ERROR: no heartbeat detected\r\n");
             return KU::NO_HEART_BEAT;
         }
     }
@@ -116,7 +116,7 @@ KU::StatusCode STUparam::read_stu_params(const string& output_file)
         // validate response A, first 8 bytes
         if (ku_data->get_response_type(respA.ident, respA.data, respA.DLC) != KU::EEPROM_ACCESS_READ_RESPONSE)
         {
-            DEBUG_PRINTF("DID NOT RECEIVE A\r\n");
+            DEBUG_PRINTF("ERROR: did not receive stu line part A\r\n");
             return KU::STU_READ_LINE_A_FAIL;
         }
 
@@ -145,7 +145,7 @@ KU::StatusCode STUparam::read_stu_params(const string& output_file)
         // validate response B, second 8 bytes
         if (ku_data->get_response_type(respB.ident, respB.data, respB.DLC) != KU::EEPROM_ACCESS_READ_RESPONSE)
         {
-            DEBUG_PRINTF("DID NOT RECEIVE B\r\n");
+            DEBUG_PRINTF("ERROR: did not receive stu line part B\r\n");
             return KU::STU_READ_LINE_B_FAIL;
         }
 
@@ -199,7 +199,7 @@ KU::StatusCode STUparam::write_stu_params(const string& input_file)
     KU::StatusCode status = validate_stu_file(input_file);
     if (status == KU::INVALID_STU_FILE)
     {
-        DEBUG_PRINTF("BAD STU FILE\r\n");
+        DEBUG_PRINTF("ERROR: Invalid stu file\r\n");
         return status;
     }
 
@@ -209,7 +209,7 @@ KU::StatusCode STUparam::write_stu_params(const string& input_file)
     stu_file.open(input_file);
     if (stu_file.fail())
     {
-        DEBUG_PRINTF("CAN'T OPEN STU FILE\r\n");
+        DEBUG_PRINTF("ERROR: Invalid file path: %s\r\n", input_file);
         return KU::INVALID_STU_FILE;
     }
 
@@ -234,7 +234,7 @@ KU::StatusCode STUparam::write_stu_params(const string& input_file)
         CO_CANrxMsg_t* resp = sc->get_frame(KU::EEPROM_LINE_WRITE_RESPONSE_ID, this, STU_resp_call_back, 1000);
         if (ku_data->get_response_type(resp->ident, resp->data, resp->DLC) != KU::EEPROM_ACCESS_WRITE_RESPONSE)
         {
-            DEBUG_PRINTF("NO WRITE RESPONSE\r\n");
+            DEBUG_PRINTF("ERROR: no stu write response\r\n");
             return KU::STU_FILE_WRITE_FAIL;
         }
         curr_line_i++;
@@ -251,11 +251,11 @@ KU::StatusCode STUparam::write_stu_params(const string& input_file)
         resp = sc->get_frame(KU::HEART_BEAT_ID, this, STU_resp_call_back, 20000);
         if (ku_data->get_response_type(resp->ident, resp->data, resp->DLC) != KU::HEART_BEAT)
         {
-            DEBUG_PRINTF("NO HEART BEAT\r\n");
+            DEBUG_PRINTF("ERROR: no heartbeat detected\r\n");
             return KU::NO_HEART_BEAT;
         }
     }
-    // error value is on page 1, byte 2
+    // error value is on page 1, byte 4
     if (resp->data[3] == 0)
     {
         return KU::STU_FILE_WRITE_SUCCESS;
@@ -269,7 +269,7 @@ KU::StatusCode STUparam::validate_stu_file(const string& input_file)
     stu_file.open(input_file, std::ios::out | std::ios::in);  // read/write
     if (stu_file.fail())
     {
-        DEBUG_PRINTF("CANT OPEN\r\n");
+        DEBUG_PRINTF("ERROR: Invalid file path: %s\r\n", input_file);
         return KU::INVALID_STU_FILE;
     }
 
@@ -311,7 +311,8 @@ KU::StatusCode STUparam::validate_stu_file(const string& input_file)
     // compare the calculated checksum to the expected checksum
     if (header_checksum != std::stoi(value))
     {
-        DEBUG_PRINTF("BAD HEADER CHECKSUM\r\n");
+        DEBUG_PRINTF("ERROR: invalid header checksum\r\n");
+        DEBUG_PRINTF("Expected: %i Actual %i\r\n", header_checksum, std::stoi(value));
         return KU::INVALID_STU_FILE;
     }
 
@@ -322,13 +323,14 @@ KU::StatusCode STUparam::validate_stu_file(const string& input_file)
         resp = sc->get_frame(KU::HEART_BEAT_ID, this, STU_resp_call_back, 20000);
         if (ku_data->get_response_type(resp->ident, resp->data, resp->DLC) != KU::HEART_BEAT)
         {
-            DEBUG_PRINTF("NO HEART BEAT\r\n");
+            DEBUG_PRINTF("ERROR: no heartbeat detected\r\n");
             return KU::NO_HEART_BEAT;
         }
     }
     if ((resp->data[3] != fw_minor) || (resp->data[4] != fw_major))
     {
-        DEBUG_PRINTF("FW VERSION DOES NOT MATCH\r\n");
+        DEBUG_PRINTF("ERROR: fw version does not match\r\n");
+        DEBUG_PRINTF("Expected %i.%i Actual: %i.%i\r\n", resp->data[4], resp->data[3], fw_major, fw_minor);
         return KU::INVALID_STU_FILE;
     }
 
@@ -399,7 +401,7 @@ KU::StatusCode STUparam::validate_stu_file(const string& input_file)
         }
         if (line_checksum != expected_checksum)
         {
-            DEBUG_PRINTF("BAD CHECKSUM. LINE: %04X\r\n", curr_line_i);
+            DEBUG_PRINTF("ERROR: invalid checksum. Line: %04X\r\n", curr_line_i);
             DEBUG_PRINTF("Expected: %i Actual: %i\r\n", expected_checksum, line_checksum);
             return KU::INVALID_STU_FILE;
         }
@@ -409,7 +411,7 @@ KU::StatusCode STUparam::validate_stu_file(const string& input_file)
     total_stu_checksum -= (std::stoi(first_byte, 0, 16) + std::stoi(second_byte, 0, 16));
     if (std::stoi(last_4_bytes, 0, 16) != __builtin_bswap16(total_stu_checksum))
     {
-        DEBUG_PRINTF("BAD TOTAL STU CHECKSUM\r\n");
+        DEBUG_PRINTF("ERROR: bad total stu checksum\r\n");
         DEBUG_PRINTF("Expected: %04X Actual: %04X\r\n", std::stoi(last_4_bytes, 0, 16), total_stu_checksum);
         return KU::INVALID_STU_FILE;
     }
@@ -424,7 +426,7 @@ int STUparam::stu_line_to_byte_array(const string& stu_line, uint8_t* byte_array
     int sum = 0;
     if (arr_size < ROW_SIZE)
     {
-        DEBUG_PRINTF("ARRAY SIZE TOO SMALL\r\n");
+        DEBUG_PRINTF("ERROR: array size too small\r\n");
         exit(EXIT_FAILURE);
     }
     for (int i = 1; i < ROW_SIZE / 2 + 1; i++)
@@ -448,7 +450,7 @@ int STUparam::get_stu_param(uint8_t param_num)
 
     if (ku_data->get_response_type(respA.ident, respA.data, respA.DLC) != KU::SINGLE_STU_PARAM_READ_RESPONSE)
     {
-        DEBUG_PRINTF("DID NOT RECEIVE DATA A\r\n");
+        DEBUG_PRINTF("ERROR: did not receive stu param data part A\r\n");
         return KU::STU_PARAM_READ_A_FAIL;
     }
     uint8_t value = respA.data[4];
@@ -458,18 +460,18 @@ int STUparam::get_stu_param(uint8_t param_num)
 // changes a single stu param during runtime
 KU::StatusCode STUparam::set_stu_param(uint8_t param_num, uint8_t new_value)
 {
-    if (new_value > 255)
-    {
-        DEBUG_PRINTF("VALUE TOO LARGE\r\n");
-        exit(EXIT_FAILURE);
-    }
     uint8_t write[3] = {param_num, 0x0, new_value};
     sc->send_frame(KU::SINGLE_STU_PARAM_WRITE_REQUEST_ID, write, sizeof(write));
     CO_CANrxMsg_t* resp = sc->get_frame(KU::SINGLE_STU_PARAM_WRITE_RESPONSE_ID, this, STU_resp_call_back, 500);
     if (ku_data->get_response_type(resp->ident, resp->data, resp->DLC) != KU::SINGLE_STU_PARAM_WRITE_RESPONSE)
     {
-        DEBUG_PRINTF("DID NOT RECEIVE WRITE CONFIRM\r\n");
+        DEBUG_PRINTF("ERROR: did not receive stu param write response\r\n");
         return KU::STU_PARAM_WRITE_FAIL;
+    }
+    if (resp->data[3] == 0)
+    {
+        DEBUG_PRINTF("WARNING: value will not change\r\n");
+        return KU::NO_ERROR;
     }
     return KU::STU_PARAM_WRITE_SUCCESS;
 }

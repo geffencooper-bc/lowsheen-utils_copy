@@ -96,12 +96,12 @@ void IAP::load_hex_file(string file_path)
 // sanity check to make sure reading file correctly
 void IAP::print()
 {
-    DEBUG_PRINTF("\n\n================= IAP DETAILS ===============\r\n");
+    DEBUG_PRINTF("\n================= IAP DETAILS ===============\r\n");
     DEBUG_PRINTF("HEX FILE DATA SIZE:             %i bytes\r\n", hex_data_size);
     DEBUG_PRINTF("HEX FILE DATA TOTAL CHECKSUM:   %08X\r\n", total_checksum);
     DEBUG_PRINTF("START ADDRESS:                  %08X\r\n", start_address);
     DEBUG_PRINTF("LAST PACKET SIZE:               %i\r\n", last_packet_size);
-    DEBUG_PRINTF("=============================================\r\n");
+    DEBUG_PRINTF("=============================================\n\r\n");
 }
 
 // displays upload progress as a growing arrow
@@ -167,12 +167,12 @@ KU::StatusCode IAP::check_iap_state(int wait_time)
         }
         else  // if neither states detected then return fail
         {
-            DEBUG_PRINTF("Check IAP state time out\r\n");
+            DEBUG_PRINTF("Check IAP state time out\r");  // no-crlf-check
             return KU::IAP_MODE_FAIL;
         }
     }
 
-    DEBUG_PRINTF("\n\n======IN IAP MODE=========\n\r\n");
+    DEBUG_PRINTF("\n======IN IAP MODE=========\n\r\n");
     return KU::IAP_MODE_SUCCESS;
 }
 
@@ -246,6 +246,7 @@ KU::StatusCode IAP::put_in_iap_mode(bool forced_mode)
 
 KU::StatusCode IAP::send_init_frames()
 {
+    DEBUG_PRINTF("\n====== SEND INIT PACKETS ======\r\n");
     // first send the fw version request
     sc->send_frame(KU::FW_VERSION_REQUEST_ID | set_7th, ku_data->fw_version_request_data,
                    sizeof(ku_data->fw_version_request_data));
@@ -258,7 +259,7 @@ KU::StatusCode IAP::send_init_frames()
         return KU::FW_VERSION_REQUEST_FAIL;
     }
 
-    DEBUG_PRINTF("\nKinetek Bootloader Version: %i.%i\r\n", resp->data[0], resp->data[1]);
+    DEBUG_PRINTF("Kinetek Bootloader Version: %i.%i\r\n", resp->data[0], resp->data[1]);
 
     usleep(1000);
     // next send  a request to sent bytes
@@ -303,11 +304,11 @@ KU::StatusCode IAP::send_init_frames()
 
     if (ku_data->get_response_type(resp->ident, resp->data, resp->DLC) != KU::HEX_DATA_SIZE_RESPONSE)
     {
-        DEBUG_PRINTF("ERROR: data size timeout\r\n");
+        DEBUG_PRINTF("ERROR: data size timeout\n\r\n");
         return KU::SEND_DATA_SIZE_FAIL;
     }
 
-    DEBUG_PRINTF("data size received\n====== DONE WITH INIT PACKETS ======\r\n");
+    DEBUG_PRINTF("data size received\r\n");
     return KU::INIT_PACKET_SUCCESS;
 }
 
@@ -458,24 +459,25 @@ KU::StatusCode IAP::upload_hex_file()
                 return KU::TOTAL_CHECKSUM_FAIL;
             }
 
-            // check for a heartbeat
+            // reset the kinetek, check for error message
+            sc->send_frame(KU::XT_CAN_REQUEST_ID, ku_data->disable_kinetek_data, sizeof(ku_data->disable_kinetek_data));
+            usleep(2500000);  // sleep for 2.5 seconds
+            sc->send_frame(KU::XT_CAN_REQUEST_ID, ku_data->enable_kinetek_data, sizeof(ku_data->enable_kinetek_data));
             resp = sc->get_frame(KU::HEART_BEAT_ID, this, IAP_resp_call_back, LONG_WAIT_TIME);
-            if (ku_data->get_response_type(resp->ident, resp->data, resp->DLC) != KU::HEART_BEAT)
+            while (resp->data[1] != 1)
             {
-                DEBUG_PRINTF("ERROR: heartbeat timeout\r\n");
-                return KU::NO_HEART_BEAT;
+                resp = sc->get_frame(KU::HEART_BEAT_ID, this, IAP_resp_call_back, LONG_WAIT_TIME);
+                if (ku_data->get_response_type(resp->ident, resp->data, resp->DLC) != KU::HEART_BEAT)
+                {
+                    DEBUG_PRINTF("ERROR: no heartbeat\r\n");
+                    return KU::NO_HEART_BEAT;
+                }
             }
-
-            usleep(3000);
-
-            // check for a heartbeat again
-            resp = sc->get_frame(KU::HEART_BEAT_ID, this, IAP_resp_call_back, LONG_WAIT_TIME);
-            if (ku_data->get_response_type(resp->ident, resp->data, resp->DLC) != KU::HEART_BEAT)
+            // error value is on page 1, byte 4
+            if (resp->data[3] == 0)
             {
-                DEBUG_PRINTF("ERROR: heartbeat timeout\r\n");
-                return KU::NO_HEART_BEAT;
+                return KU::UPLOAD_COMPLETE;
             }
-            return KU::UPLOAD_COMPLETE;
         }
     }
 }
@@ -544,12 +546,12 @@ KU::StatusCode IAP::send_hex_packet(bool is_retry)
                 // if the frame id is 1, that means that last packet was completed, so no filler frames
                 if (curr_frame_id == KU::SEND_FRAME_1_ID)
                 {
-                    DEBUG_PRINTF("\n\n\n====NO FILLER====\n\n\r\n");
+                    DEBUG_PRINTF("\n\n====NO FILLER====\n\r\n");
                     return KU::END_OF_FILE_CODE;
                 }
 
                 // otherwise need to add filler frames
-                DEBUG_PRINTF("\n\n\n====FILLER====\n\n\r\n");
+                DEBUG_PRINTF("\n\n====FILLER====\r\n");
 
                 memset(current_packet + CAN_DATA_LEN * frame_count, 0xFF,
                        sizeof(current_packet) - CAN_DATA_LEN * frame_count);
@@ -605,8 +607,6 @@ KU::StatusCode IAP::send_hex_packet(bool is_retry)
                                     return KU::PACKET_SENT_FAIL;
                                 }
                             }
-                            DEBUG_PRINTF("Bytes Uploaded: %i\t Page: %i\r", num_bytes_uploaded,
-                                         page_count);  // no-crlf-check
                             return KU::END_OF_FILE_CODE;
                         }
                     }

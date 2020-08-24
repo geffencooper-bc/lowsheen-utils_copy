@@ -280,7 +280,7 @@ int HexUtility::get_record_checksum(const string& hex_line)
 }
 
 // read through entire hex file and grab neccessary information
-int HexUtility::load_hex_file_data(const string& hex_file_path)
+void HexUtility::load_hex_file_data(const string& hex_file_path)
 {
     this->hex_file_path = hex_file_path;
 

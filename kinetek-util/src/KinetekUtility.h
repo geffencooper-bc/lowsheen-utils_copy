@@ -62,15 +62,13 @@ class KinetekUtility
     KU::StatusCode run_iap(const string& file_path, bool iap_mode);
     KU::StatusCode read_stu_to_file(const string& file_path);
     KU::StatusCode write_stu_from_file(const string& file_path);
-    KU::StatusCode get_stu_param(uint8_t param_num);
-    KU::StatusCode set_stu_param(uint8_t param_num, uint8_t new_value);
+    KU::StatusCode get_stu_param(int param_num);
+    KU::StatusCode set_stu_param(int param_num, int new_value);
     KU::StatusCode get_live_data();
 
-    // reset xt_can
+    // 1 = enable 2 = disable
+    KU::StatusCode toggle_estop(int mode);
     KU::StatusCode reset_xt_can();
-
-    // toggle the estop line, 1 = enable 2 = disable
-    void toggle_estop(int mode);
 
     // set interface when don't want default "can0"
     void set_can_interface(const string& interface) { can_interface = interface; }

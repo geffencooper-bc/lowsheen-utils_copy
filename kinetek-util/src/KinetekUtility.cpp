@@ -29,6 +29,7 @@ KinetekUtility::KinetekUtility()
     ku_data = new KU::CanDataList;
     sc = new SocketCanHelper;
 
+    // initialized when tool called
     iap = nullptr;
     stu = nullptr;
     ld = nullptr;
@@ -78,7 +79,7 @@ string KinetekUtility::translate_status_code(KU::StatusCode status)
         }
         case KU::IAP_MODE_FAIL:
         {
-            return "Could not enter IAP mode. Check print log";
+            return "Could not enter IAP mode. check can trace";
         }
         case KU::IAP_MODE_SUCCESS:
         {
@@ -86,23 +87,23 @@ string KinetekUtility::translate_status_code(KU::StatusCode status)
         }
         case KU::FW_VERSION_REQUEST_FAIL:
         {
-            return "Kinetek did not not receive FW revision request. Check print log";
+            return "Kinetek did not not receive FW revision request. check can trace";
         }
         case KU::START_DOWNLOAD_FAIL:
         {
-            return "Kinetek did not receive the request to start download. Check print log";
+            return "Kinetek did not receive the request to start download. check can trace";
         }
         case KU::SEND_START_ADDRESS_FAIL:
         {
-            return "Kinetek did not receive the start address. Check print log";
+            return "Kinetek did not receive the start address. check can trace";
         }
         case KU::SEND_CHECKSUM_FAIL:
         {
-            return "Kinetek did not receive the hex file checksum. Check print log";
+            return "Kinetek did not receive the hex file checksum. check can trace";
         }
         case KU::SEND_DATA_SIZE_FAIL:
         {
-            return "Kinetek did not receive the hex file data size. Check print log";
+            return "Kinetek did not receive the hex file data size. check can trace";
         }
         case KU::INIT_PACKET_SUCCESS:
         {
@@ -114,11 +115,11 @@ string KinetekUtility::translate_status_code(KU::StatusCode status)
         }
         case KU::PACKET_SENT_FAIL:
         {
-            return "The hex packet was not receive by the Kinetek. Check print log";
+            return "The hex packet was not receive by the Kinetek. check can trace";
         }
         case KU::PAGE_CHECKSUM_FAIL:
         {
-            return "The page checksum was not received or does not match the Kinetek. Check print log";
+            return "The page checksum was not received or does not match the Kinetek. check can trace";
         }
         case KU::END_OF_FILE_CODE:
         {
@@ -126,19 +127,19 @@ string KinetekUtility::translate_status_code(KU::StatusCode status)
         }
         case KU::PACKET_RESENT_FAIL:
         {
-            return "The Kinetek did not receive the hex packet after resending. Check print log";
+            return "The Kinetek did not receive the hex packet after resending. check can trace";
         }
         case KU::TOTAL_CHECKSUM_FAIL:
         {
-            return "The total checksum was not received or does not match the Kinetek. Check print log";
+            return "The total checksum was not received or does not match the Kinetek. check can trace";
         }
         case KU::NO_HEART_BEAT:
         {
-            return "No heart beat was detected. Check print log";
+            return "No heart beat was detected. check can trace";
         }
         case KU::END_OF_FILE_FAIL:
         {
-            return "The Kinetek did not receive the end of file confirmation. Check print log";
+            return "The Kinetek did not receive the end of file confirmation. check can trace";
         }
         case KU::UPLOAD_COMPLETE:
         {
@@ -150,15 +151,15 @@ string KinetekUtility::translate_status_code(KU::StatusCode status)
         }
         case KU::STU_READ_LINE_A_FAIL:
         {
-            return "The first half of a stu line was not received. Check print log";
+            return "The first half of a stu line was not received. check can trace";
         }
         case KU::STU_READ_LINE_B_FAIL:
         {
-            return "The second half of a stu line was not received. Check print log";
+            return "The second half of a stu line was not received. check can trace";
         }
         case KU::INVALID_STU_FILE:
         {
-            return "This stu file is not valid. Check print log for more detail";
+            return "This stu file is not valid. check can trace for more detail";
         }
         case KU::VALID_STU_FILE:
         {
@@ -166,7 +167,7 @@ string KinetekUtility::translate_status_code(KU::StatusCode status)
         }
         case KU::STU_FILE_WRITE_FAIL:
         {
-            return "The stu file was not written to the Kinetek successfully. Check print log";
+            return "The stu file was not written to the Kinetek successfully. check can trace";
         }
         case KU::STU_FILE_READ_SUCCESS:
         {
@@ -308,7 +309,7 @@ KU::StatusCode KinetekUtility::write_stu_from_file(const string& file_path)
 }
 
 // read stu param
-KU::StatusCode KinetekUtility::get_stu_param(uint8_t param_num)
+KU::StatusCode KinetekUtility::get_stu_param(int param_num)
 {
     if (stu == nullptr)
     {
@@ -322,18 +323,30 @@ KU::StatusCode KinetekUtility::get_stu_param(uint8_t param_num)
         return KU::INIT_CAN_FAIL;
     }
     // step 2: read stu param
+    if (param_num > 254 || param_num < 0)
+    {
+        DEBUG_PRINTF("Error: value invalid. Must be 0-255\r\n");
+        exit(EXIT_FAILURE);
+    }
     int param_value = stu->get_stu_param(param_num);
     if (param_value < 0)
     {
         DEBUG_PRINTF("Error: %s\r\n", translate_status_code((KU::StatusCode)param_value).c_str());
         return KU::STU_PARAM_READ_FAIL;
     }
-    printf("STU PARAM #%i: %i\r\n", param_num, param_value);
+    if (param_value == 255)
+    {
+        printf("Parameter not used\r\n");
+    }
+    else
+    {
+        printf("STU PARAM #%i: %i\r\n", param_num, param_value);
+    }
     return KU::STU_PARAM_READ_SUCCESS;
 }
 
 // write stu param
-KU::StatusCode KinetekUtility::set_stu_param(uint8_t param_num, uint8_t new_value)
+KU::StatusCode KinetekUtility::set_stu_param(int param_num, int new_value)
 {
     if (stu == nullptr)
     {
@@ -347,6 +360,16 @@ KU::StatusCode KinetekUtility::set_stu_param(uint8_t param_num, uint8_t new_valu
         return KU::INIT_CAN_FAIL;
     }
     // step 2: write stu param
+    if (param_num > 254 || param_num < 0)
+    {
+        DEBUG_PRINTF("Error: value invalid. Must be 0-254\r\n");
+        exit(EXIT_FAILURE);
+    }
+    if (new_value > 254 || new_value < 0)
+    {
+        DEBUG_PRINTF("Error: value invalid. Must be 0-254\r\n");
+        exit(EXIT_FAILURE);
+    }
     KU::StatusCode status = stu->set_stu_param(param_num, new_value);
     if (status != KU::STU_PARAM_WRITE_SUCCESS)
     {
@@ -369,6 +392,25 @@ KU::StatusCode KinetekUtility::reset_xt_can()
     }
 
     sc->send_frame(KU::XT_CAN_REQUEST_ID, ku_data->reset_xt_can_data, sizeof(ku_data->reset_xt_can_data));
+    return KU::NO_ERROR;
+}
+
+KU::StatusCode KinetekUtility::toggle_estop(int mode)
+{
+    // step 1: check if interface accessible
+    if (!can_initialized)
+    {
+        DEBUG_PRINTF("Can not initialized. Call init_can\r\n");
+        return KU::INIT_CAN_FAIL;
+    }
+    if (mode == 1)
+    {
+        sc->send_frame(KU::XT_CAN_REQUEST_ID, ku_data->disable_kinetek_data, sizeof(ku_data->disable_kinetek_data));
+    }
+    else if (mode == 2)
+    {
+        sc->send_frame(KU::XT_CAN_REQUEST_ID, ku_data->enable_kinetek_data, sizeof(ku_data->enable_kinetek_data));
+    }
     return KU::NO_ERROR;
 }
 
@@ -430,15 +472,14 @@ static int parse_opt(int key, char* arg, struct argp_state* state)
 
     // if this is the first call and no can interface specified, use default;
     static bool first_call = true;
-    if (key != 'i' && first_call)
+    if (arg != NULL && key != 'i' && first_call)
     {
         ku->CL_status = ku->init_can();
+        first_call = false;
         if (ku->CL_status != KU::INIT_CAN_SUCCESS)
         {
-            first_call = false;
             return -1;
         }
-        first_call = false;
     }
 
     switch (key)
@@ -475,6 +516,11 @@ static int parse_opt(int key, char* arg, struct argp_state* state)
                 {
                     ku->CL_status = ku->write_stu_from_file(string(arg));
                 }
+                else
+                {
+                    DEBUG_PRINTF("Invalid file. Must be .stu or .hex\r\n");
+                    return -1;
+                }
             }
             break;
         }
@@ -490,7 +536,11 @@ static int parse_opt(int key, char* arg, struct argp_state* state)
         }
         case 'c':
         {
-            ku->reset_xt_can();
+            ku->CL_status = ku->reset_xt_can();
+            if (ku->CL_status != KU::NO_ERROR)
+            {
+                return -1;
+            }
             break;
         }
         case 'i':
@@ -498,35 +548,32 @@ static int parse_opt(int key, char* arg, struct argp_state* state)
             ku->set_can_interface(string(arg));
             ku->CL_status = ku->init_can();
             first_call = false;
-            if (first_call)
+            if (ku->CL_status != KU::INIT_CAN_SUCCESS)
             {
-                first_call = false;
+                return -1;
             }
             break;
         }
         case 'h':
         {
             ku->CL_status = ku->get_live_data();
+            if (ku->CL_status != KU::NO_ERROR)
+            {
+                return -1;
+            }
             break;
         }
         case 'e':
         {
-            ku->toggle_estop(atoi(arg));
+            ku->CL_status = ku->toggle_estop(atoi(arg));
+            if (ku->CL_status != KU::NO_ERROR)
+            {
+                return -1;
+            }
+            break;
         }
     }
     return 0;
-}
-
-void KinetekUtility::toggle_estop(int mode)
-{
-    if (mode == 1)
-    {
-        sc->send_frame(KU::XT_CAN_REQUEST_ID, ku_data->disable_kinetek_data, sizeof(ku_data->disable_kinetek_data));
-    }
-    else if (mode == 2)
-    {
-        sc->send_frame(KU::XT_CAN_REQUEST_ID, ku_data->enable_kinetek_data, sizeof(ku_data->enable_kinetek_data));
-    }
 }
 
 int KinetekUtility::parse_args(int argc, char** argv)

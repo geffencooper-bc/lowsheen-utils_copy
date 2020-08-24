@@ -24,10 +24,9 @@
 #include "SocketCanHelper.h"
 #include "debug.h"
 
-// the can trace is written to a log file to avoid saturation
-static FILE* can_trace;
-
+// the can trace is written to a log file
 #if DEBUG_SOCKET_CAN
+static FILE* can_trace;
 #define DEBUG_PRINTF(...)                \
     do                                   \
     {                                    \
@@ -43,12 +42,14 @@ static FILE* can_trace;
 // create timer used for receive message timeouts
 SocketCanHelper::SocketCanHelper()
 {
+#if DEBUG_SOCKET_CAN
     can_trace = fopen("/home/brain/SocketCanHelper_trace.txt", "w");
     if (can_trace == NULL)
     {
         printf("Cannot open file\n");
         exit(EXIT_FAILURE);
     }
+#endif
     time_out = new itimerspec;
     timer_fd = timerfd_create(CLOCK_REALTIME, 0);
 }
@@ -62,7 +63,10 @@ SocketCanHelper::~SocketCanHelper()
     delete can_msg;
     delete can_module;
     delete time_out;
+
+#if DEBUG_SOCKET_CAN
     fclose(can_trace);
+#endif
 }
 
 // initialize CO_driver objects and connects to can interface, ex: "can0"

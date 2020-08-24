@@ -123,7 +123,7 @@ class HexUtility
     void num_to_byte_list(int num, uint8_t* byte_array, uint8_t arr_size);
 
     // reads through hex file and initializes iap parameters
-    int load_hex_file_data(const string& hex_file_path);
+    void load_hex_file_data(const string& hex_file_path);
 
    private:
     ifstream hex_file;

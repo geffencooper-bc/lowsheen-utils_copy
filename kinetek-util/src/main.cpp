@@ -24,19 +24,19 @@
 #include "KinetekUtility.h"
 
 // #define LIB_EXAMPLE
-#define CL_EXAMPLE
+//#define CL_EXAMPLE
 
 int main(int argc, char** argv)
 {
-// the command line example shows how to use the kinetek utility through the shell
-#ifdef CL_EXAMPLE
+    // the command line example shows how to use the kinetek utility through the shell
+    //#ifdef CL_EXAMPLE
     KinetekUtility ku;
     ku.parse_args(argc, argv);
 
     // check the status
     printf("STATUS: %s\n", ku.translate_status_code(ku.CL_status).c_str());
 
-#endif
+//#endif
 
 // this example shows how to use the kinetek utility through direct functions calls (as a library)
 #ifdef LIB_EXAMPLE
