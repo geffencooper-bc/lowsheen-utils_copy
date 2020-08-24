@@ -25,15 +25,10 @@
 #include "KinetekUtility.h"
 
 // #define LIB_EXAMPLE
-// #define CL_EXAMPLE
+ #define CL_EXAMPLE
 
 int main(int argc, char** argv)
 {
-    KinetekUtility ku;
-    ku.set_can_interface("can0");
-    ku.init_can();
-    ku.run_iap("2.28.hex", 0);
-
     // the command line example shows how to use the kinetek utility through the shell
     #ifdef CL_EXAMPLE
         KinetekUtility ku;

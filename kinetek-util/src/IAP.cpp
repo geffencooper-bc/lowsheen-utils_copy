@@ -277,6 +277,7 @@ KU::StatusCode IAP::send_init_frames()
         return KU::SEND_BYTES_FAIL;
     }
     DEBUG_PRINTF("CAN START SENDING BYTES\n");
+    exit(EXIT_FAILURE);
 
     usleep(1000);
     // next send the start address
@@ -543,7 +544,7 @@ KU::StatusCode IAP::send_hex_packet(bool is_retry)
                 {
                     num_bytes_uploaded += hex_data_size % PACKET_SIZE;
                 }
-                else  // reached the end of the frame,, need to correct number of bytes uploaded
+                else  // reached the end of the frame, need to correct number of bytes uploaded
                 {
                     num_bytes_uploaded -= PACKET_SIZE;
                     num_bytes_uploaded += hex_data_size % PACKET_SIZE;

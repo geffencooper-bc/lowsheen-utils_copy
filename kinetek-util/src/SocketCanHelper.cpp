@@ -25,8 +25,8 @@
 #include "SocketCanHelper.h"
 
 // if defined then will print out can trace
-#ifdef DEBUG_SOCKET_CAN
 #include "debug.h"
+#if DEBUG_SOCKET_CAN
 #else
 #define DEBUG_PRINTF(...) \
         do {} while (0)

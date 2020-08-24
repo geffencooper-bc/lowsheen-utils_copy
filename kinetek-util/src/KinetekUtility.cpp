@@ -245,7 +245,6 @@ KU::StatusCode KinetekUtility::run_iap(const string& file_path, bool iap_mode)
     KU::StatusCode status = iap->put_in_iap_mode(iap_mode);
     if (status == KU::IAP_MODE_SUCCESS)
     {
-        exit(EXIT_FAILURE);
         // step 3: send initialization frames (hex file size, checksum, start address, etc)
         status = iap->send_init_frames();
         if (status == KU::INIT_PACKET_SUCCESS)
@@ -448,6 +447,7 @@ static int parse_opt(int key, char* arg, struct argp_state* state)
         ku->CL_status = ku->init_can();
         if(ku->CL_status != KU::INIT_CAN_SUCCESS)
         {
+            first_call = false;
             return 0;
         }
         first_call = false;
