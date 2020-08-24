@@ -38,9 +38,10 @@ execute_process(
 )
 
 if (NOT TAG_NAME)
-    set(TAG_NAME ${TAG_COMMIT_HASH})
+    set(TAG_NAME "1.0.0")
+    message(STATUS "There is no TAG setup, defaulting version to 1.0.0")
 else()
-    message(STATUS "tag has a name")
+    
 endif()
 
 message(STATUS "TAG_NAME: " ${TAG_NAME})
