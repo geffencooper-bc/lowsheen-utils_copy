@@ -38,9 +38,7 @@ execute_process(
 
 if (NOT TAG_NAME)
     set(TAG_NAME "1.0.0")
-    message(STATUS "There is no TAG setup, defaulting version to 1.0.0")
-else()
-    
+    message(STATUS "There is no TAG setup, defaulting version to 1.0.0")   
 endif()
 
 message(STATUS "TAG_NAME: " ${TAG_NAME})
@@ -52,6 +50,7 @@ configure_file(${PROJECT_SOURCE_DIR}/version.h.cmake ${BUILD_OUTPUT_PATH}/versio
  
 # Project Applications
 add_subdirectory(vcis-util)
+add_subdirectory(machine-util)
 
 # Debian Package Definition (using CPack)
 SET(CPACK_GENERATOR "DEB")
