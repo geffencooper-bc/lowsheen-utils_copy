@@ -70,3 +70,4 @@ install_manifest.txt
 *.deb
 vcis-util
 version.h
+machine-util
