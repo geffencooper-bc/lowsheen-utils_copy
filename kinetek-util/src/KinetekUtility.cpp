@@ -50,7 +50,7 @@ KinetekUtility::~KinetekUtility()
 // sets up socket can helper object and connects to can interface, channel name defaults to "can0"
 KU::StatusCode KinetekUtility::init_can()
 {
-    DEBUG_PRINTF("init can\r\n");
+    // DEBUG_PRINTF("init can\r\n");
     if (can_initialized)
     {
         return KU::INIT_CAN_SUCCESS;
@@ -444,7 +444,7 @@ static struct argp_option options[] = {
     {"read", 'r', "ARG", 0, "Read a parameter or file"},
     {"write", 'w', "ARG", 0, "Write a parameter or file\nParameter requires value argument"},
     {"interface", 'i', "NAME", 0, "Specify interface name, can0 by default"},
-    {"cycle", 'c', 0, 0, "Reset xt can"},
+    //{"cycle", 'c', 0, 0, "Reset xt can"},
     {"estop", 'e', "STATE", 0, "Toggle estop, 1 = trigger estop 2 = disable estop"},
     {"value", 'v', "VAL", 0, "Value arg for write parameter"},
     {"heartbeat", 'h', 0, 0, "Launch the live data output"},
@@ -472,7 +472,7 @@ static int parse_opt(int key, char* arg, struct argp_state* state)
 
     // if this is the first call and no can interface specified, use default;
     static bool first_call = true;
-    if (arg != NULL && key != 'i' && first_call)
+    if (key != 'i' && first_call)
     {
         ku->CL_status = ku->init_can();
         first_call = false;
@@ -534,15 +534,15 @@ static int parse_opt(int key, char* arg, struct argp_state* state)
             ku->CL_status = ku->set_stu_param(param_num, atoi(arg));
             break;
         }
-        case 'c':
-        {
-            ku->CL_status = ku->reset_xt_can();
-            if (ku->CL_status != KU::NO_ERROR)
-            {
-                return -1;
-            }
-            break;
-        }
+        // case 'c':
+        // {
+        //     ku->CL_status = ku->reset_xt_can();
+        //     if (ku->CL_status != KU::NO_ERROR)
+        //     {
+        //         return -1;
+        //     }
+        //     break;
+        // }
         case 'i':
         {
             ku->set_can_interface(string(arg));

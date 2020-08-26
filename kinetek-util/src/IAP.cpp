@@ -389,7 +389,7 @@ KU::StatusCode IAP::upload_hex_file()
                 return KU::PACKET_RESENT_FAIL;
             }
             num_bytes_uploaded += PACKET_SIZE;
-            DEBUG_PRINTF("Bytes Uploaded: %i\t Page: %i\r", num_bytes_uploaded, page_count);  // no-crlf-check
+            DEBUG_PRINTF("Bytes Uploaded: %i\r", num_bytes_uploaded);  // no-crlf-check
             packet_count += 1;
             continue;
         }
@@ -541,24 +541,24 @@ KU::StatusCode IAP::send_hex_packet(bool is_retry)
                     num_bytes_uploaded -= PACKET_SIZE;
                     num_bytes_uploaded += hex_data_size % PACKET_SIZE;
                 }
-                DEBUG_PRINTF("Bytes Uploaded: %i\t Page: %i\r", num_bytes_uploaded, page_count);  // no-crlf-check
+                DEBUG_PRINTF("Bytes Uploaded: %i\r", num_bytes_uploaded);  // no-crlf-check
 
                 // if the frame id is 1, that means that last packet was completed, so no filler frames
                 if (curr_frame_id == KU::SEND_FRAME_1_ID)
                 {
-                    DEBUG_PRINTF("\n\n====NO FILLER====\n\r\n");
+                   // DEBUG_PRINTF("\n\n====NO FILLER====\n\r\n");
                     return KU::END_OF_FILE_CODE;
                 }
 
                 // otherwise need to add filler frames
-                DEBUG_PRINTF("\n\n====FILLER====\r\n");
+                //DEBUG_PRINTF("\n\n====FILLER====\r\n");
 
                 memset(current_packet + CAN_DATA_LEN * frame_count, 0xFF,
                        sizeof(current_packet) - CAN_DATA_LEN * frame_count);
-                for (int i = 0; i < PACKET_SIZE; i++)
-                {
-                    DEBUG_PRINTF("%02X", current_packet[i]);  // no-crlf-check
-                }
+                // for (int i = 0; i < PACKET_SIZE; i++)
+                // {
+                //     DEBUG_PRINTF("%02X", current_packet[i]);  // no-crlf-check
+                // }
                 DEBUG_PRINTF("\r\n");
 
                 // send the filler frames, need a switch statement because don't know which frame to start at
@@ -659,8 +659,7 @@ KU::StatusCode IAP::send_hex_packet(bool is_retry)
                     num_bytes_uploaded += 32;
                     if (num_bytes_uploaded < hex_data_size)
                     {
-                        DEBUG_PRINTF("Bytes Uploaded: %i\t Page: %i\r", num_bytes_uploaded,
-                                     page_count);  // no-crlf-check
+                        DEBUG_PRINTF("Bytes Uploaded: %i\r", num_bytes_uploaded);  // no-crlf-check
                     }
                     return KU::PACKET_SENT_SUCCESS;
                 }

@@ -28,7 +28,7 @@
 
 int main(int argc, char** argv)
 {
-    // the command line example shows how to use the kinetek utility through the shell
+// the command line example shows how to use the kinetek utility through the shell
 #ifdef CL_EXAMPLE
     KinetekUtility ku;
     ku.parse_args(argc, argv);
