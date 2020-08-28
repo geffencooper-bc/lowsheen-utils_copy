@@ -86,7 +86,7 @@ int SocketCanHelper::init_socketcan(const char* interface_name)
     unsigned int if_index = if_nametoindex(interface_name);
     if (if_index == 0)
     {
-        DEBUG_PRINTF("If Index Error\r\n");
+        printf("If Index Error\r\n");
         return -1;
     }
 
@@ -96,7 +96,8 @@ int SocketCanHelper::init_socketcan(const char* interface_name)
     int err = CO_CANmodule_init(can_module, (void*)if_index, rx_arr, 1, tx_arr, 1, 250);
     if (err != 0)
     {
-        DEBUG_PRINTF("Init CO_CANmodule. Error: %i\tInterface Count: %i\r\n", err, can_module->CANinterfaceCount);
+        printf("Init CO_CANmodule. Error: %i\tInterface Count: %i\r\n", err, can_module->CANinterfaceCount);
+        exit(EXIT_FAILURE);
     }
 
     // sets up Rx filters
@@ -115,7 +116,6 @@ int SocketCanHelper::send_frame(uint32_t can_id, uint8_t* data, uint8_t data_len
         tx1 = &can_module->txArray[0];
         tx1->ident = can_id;
         tx1->DLC = data_len;
-        tx1->ident = can_id;
 
         tx1->bufferFull = false;
         tx1->syncFlag = false;
@@ -188,7 +188,7 @@ CO_CANrxMsg_t* SocketCanHelper::get_frame(uint32_t can_id,
 
     if (err < 0)
     {
-        DEBUG_PRINTF("TIME OUT\r\n");
+       DEBUG_PRINTF("TIME OUT\r\n");
     }
     else
     {

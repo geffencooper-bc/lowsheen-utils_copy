@@ -444,10 +444,11 @@ static struct argp_option options[] = {
     {"read", 'r', "ARG", 0, "Read a parameter or file"},
     {"write", 'w', "ARG", 0, "Write a parameter or file\nParameter requires value argument"},
     {"interface", 'i', "NAME", 0, "Specify interface name, can0 by default"},
-    //{"cycle", 'c', 0, 0, "Reset xt can"},
+    {"cycle", 'c', 0, 0, "Reset xt can"},
     {"estop", 'e', "STATE", 0, "Toggle estop, 1 = trigger estop 2 = disable estop"},
     {"value", 'v', "VAL", 0, "Value arg for write parameter"},
     {"heartbeat", 'h', 0, 0, "Launch the live data output"},
+    {"selective", 's', "ARG", 0, "sel mode"},
     {0}};
 
 // callback function
@@ -484,6 +485,11 @@ static int parse_opt(int key, char* arg, struct argp_state* state)
 
     switch (key)
     {
+        case 's':
+        {
+            ku->CL_status = ku->run_iap((string)arg, 0);
+            break;
+        }
         case 'r':
         {
             // distinguish between individual parameter and file
@@ -534,15 +540,15 @@ static int parse_opt(int key, char* arg, struct argp_state* state)
             ku->CL_status = ku->set_stu_param(param_num, atoi(arg));
             break;
         }
-        // case 'c':
-        // {
-        //     ku->CL_status = ku->reset_xt_can();
-        //     if (ku->CL_status != KU::NO_ERROR)
-        //     {
-        //         return -1;
-        //     }
-        //     break;
-        // }
+        case 'c':
+        {
+            ku->CL_status = ku->reset_xt_can();
+            if (ku->CL_status != KU::NO_ERROR)
+            {
+                return -1;
+            }
+            break;
+        }
         case 'i':
         {
             ku->set_can_interface(string(arg));

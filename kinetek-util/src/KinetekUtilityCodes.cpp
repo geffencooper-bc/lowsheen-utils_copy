@@ -86,7 +86,7 @@ uint8_t CanDataList::eeprom_access_line_write_data[16] = {0xFF, 0xFF, 0xFF, 0xFF
 // ID = 0xAC1DCODE
 uint8_t CanDataList::enable_kinetek_data[2] = {0x02, 0x02};
 uint8_t CanDataList::disable_kinetek_data[2] = {0x02, 0x01};
-uint8_t CanDataList::reset_xt_can_data[2] = {0x02, 0x00};
+uint8_t CanDataList::reset_xt_can_data[2] = {0x00, 0x01};
 
 // ID = 0x80
 uint8_t CanDataList::heart_beat_data[8] = {0x1D, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};

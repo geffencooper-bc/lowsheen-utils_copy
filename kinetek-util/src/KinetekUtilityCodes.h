@@ -209,6 +209,7 @@ namespace KU
     {
         // IAP status codes
         IAP_MODE_FAIL = -100,
+        IAP_MODE_TIME_OUT,
         IAP_MODE_SUCCESS,
         FW_VERSION_REQUEST_FAIL,
         START_DOWNLOAD_FAIL,

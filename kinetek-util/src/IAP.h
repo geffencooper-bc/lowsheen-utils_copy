@@ -93,7 +93,8 @@ class IAP
     KU::StatusCode check_iap_state(int wait_time);
 
     uint8_t set_7th;
-    uint8_t iap_can_id_mask;
+    uint8_t response_id_mask;
+    uint8_t iap_heartbeat_mask;
     uint32_t iap_state;
 };
 
