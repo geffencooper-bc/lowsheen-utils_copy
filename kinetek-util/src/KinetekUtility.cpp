@@ -596,3 +596,64 @@ KU::StatusCode KinetekUtility::get_live_data()
     }
     return ld->update_heartbeat();
 }
+
+// callback function for received messages, not used as of now
+void test_resp_call_back(void* obj, const CO_CANrxMsg_t* can_msg)
+{
+// nothing needed
+}
+
+void KinetekUtility::test_iap_window(int delay_time, int tries)
+{
+    std::chrono::steady_clock::time_point begin;
+    std::chrono::steady_clock::time_point end;
+    CO_CANrxMsg_t* resp;
+    int count = 0;
+
+    // first reset the Kinetek by toggling the estop line
+    sc->send_frame(KU::XT_CAN_REQUEST_ID, ku_data->disable_kinetek_data, sizeof(ku_data->disable_kinetek_data));
+    usleep(2500000); // sleep for 2.5 seconds
+    // turn on the kinetek and wait some time before trying to send the fored command
+    sc->send_frame(KU::XT_CAN_REQUEST_ID, ku_data->enable_kinetek_data, sizeof(ku_data->enable_kinetek_data));
+
+    // start the clock
+    begin = std::chrono::steady_clock::now();
+    end = std::chrono::steady_clock::now();
+
+    // wait for window time
+    while(std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count() / 1000.0 < delay_time)
+    {
+        end = std::chrono::steady_clock::now();
+    }
+    uint8_t mask = 0b00011111;
+    // after window finishes, attempt to enter iap mode
+    while(true)
+    {
+        if(count == tries)
+        {
+            printf("passed count");
+            exit(EXIT_FAILURE);
+        }
+        // start sending the forced command
+        sc->send_frame(KU::FORCE_ENTER_IAP_MODE_ID, ku_data->force_enter_iap_mode_data,
+        sizeof(ku_data->force_enter_iap_mode_data));
+
+        resp = sc->get_frame(KINETEK_STATUS_1_ID, this, test_resp_call_back, 1, mask);
+
+        if (ku_data->get_response_type(resp->ident, resp->data, resp->DLC) == KU::IN_IAP_MODE)
+        {
+            end = std::chrono::steady_clock::now();
+            DEBUG_PRINTF("\nSTATE ID: %02X\r\n", resp->ident);
+            break;
+        }
+        else if (ku_data->get_response_type(resp->ident, resp->data, resp->DLC) == KU::HEART_BEAT)
+        {
+            end = std::chrono::steady_clock::now();
+            printf("\nFAILED\n");
+            exit(EXIT_FAILURE);
+        }
+        count++;
+    }
+    printf("\n-----------------------\nIN IAP");
+    printf("\nCount: %i Time: %fms", count, std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count() / 1000.0);
+}

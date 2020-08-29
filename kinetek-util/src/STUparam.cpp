@@ -330,7 +330,7 @@ KU::StatusCode STUparam::validate_stu_file(const string& input_file)
     if ((resp->data[3] != fw_minor) || (resp->data[4] != fw_major))
     {
         DEBUG_PRINTF("ERROR: fw version does not match\r\n");
-        DEBUG_PRINTF("Expected %i.%i Actual: %i.%i\r\n", resp->data[4], resp->data[3], fw_major, fw_minor);
+        DEBUG_PRINTF("Expected %i.%i Actual: %i.%i\r\n", resp->data[3], resp->data[3], fw_minor, fw_major);
         return KU::INVALID_STU_FILE;
     }
 
