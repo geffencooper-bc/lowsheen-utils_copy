@@ -238,6 +238,7 @@ namespace KU
         INIT_CAN_SUCCESS,
         NO_HEART_BEAT,
         KU_INIT_ERROR,
+        KINETEK_ERROR,
         NO_ERROR
     };
 };

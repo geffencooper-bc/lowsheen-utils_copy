@@ -205,6 +205,10 @@ string KinetekUtility::translate_status_code(KU::StatusCode status)
         {
             return "The ini sections are invalid. Delete the file and run the tool again";
         }
+        case KU::KINETEK_ERROR:
+        {
+            return "The Kinetek has an error, make sure the correct stu parameters for this machine are uploaded";
+        }
         case KU::NO_ERROR:
         {
             return "No error";
