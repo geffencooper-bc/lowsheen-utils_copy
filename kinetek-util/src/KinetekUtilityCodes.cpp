@@ -37,10 +37,13 @@ using KU::KinetekResponse;
 // ID = 0x001
 uint8_t CanDataList::enter_iap_mode_selective_data[5] = {0x1D, 0x03, 0x27, 0x00, 0x00};
 
-// ID = 0x005/0x045
+ // ID = 0x040
+uint8_t CanDataList::use_hand_held_programmer_ids_data[8] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
+
+// ID =0x045
 uint8_t CanDataList::fw_version_request_data[8] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
 
-// ID = 0x008/0x048
+// ID = 0x048
 uint8_t CanDataList::force_enter_iap_mode_data[8] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
 uint8_t CanDataList::start_download_data[8] = {0x88, 0x88, 0x88, 0x88, 0x88, 0x88, 0x88, 0x88};
 uint8_t CanDataList::start_address_data[8] = {0x02, 0xFF, 0xFF, 0xFF, 0xFF, 0x9A, 0x00, 0x00};
@@ -55,10 +58,10 @@ uint8_t CanDataList::page_checksum_data[8] = {0x07, 0xFF, 0xFF, 0xFF, 0xFF, 0x9E
 uint8_t CanDataList::in_iap_mode_data[5] = {0x80, 0x00, 0x00, 0x00, 0x00};
 uint8_t CanDataList::kt_calculated_page_checksum_data[5] = {0x84, 0xFF, 0xFF, 0xFF, 0xFF};
 
-// ID = 0x067/0x087
+// ID = 0x067
 uint8_t CanDataList::fw_version_response_data[8] = {0xFF, 0xFF, 0x5E, 0xFF, 0xFF, 0x00, 0x00, 0x00};
 
-// ID = 0x069/0x089
+// ID = 0x069
 uint8_t CanDataList::start_download_response_data[8] = {0x99, 0x99, 0x99, 0x99, 0x99, 0x99, 0x99, 0x99};
 uint8_t CanDataList::start_address_response_data[8] = {0x02, 0x10, 0x10, 0x10, 0x10, 0x10, 0x10, 0x10};
 uint8_t CanDataList::total_checksum_response_data[8] = {0x03, 0x10, 0x10, 0x10, 0x10, 0x10, 0x10, 0x10};
@@ -117,7 +120,7 @@ bool CanDataList::array_compare(uint8_t* expected,
 KinetekResponse CanDataList::get_response_type(uint32_t can_id, uint8_t* data_array, uint8_t arr_size)
 {
     // IAP RESPONSE
-    if (can_id == 0x069 || can_id == 0x089)  // can be in State 1 or State 2
+    if (can_id == KU::IAP_RESPONSE_ID) // 0x069
     {
         if (array_compare(ACK_32_bytes_data, sizeof(ACK_32_bytes_data), data_array, arr_size))
         {
@@ -156,7 +159,7 @@ KinetekResponse CanDataList::get_response_type(uint32_t can_id, uint8_t* data_ar
         }
     }
     // IAP STATUS RESPONSE
-    else if (can_id == KINETEK_STATUS_1_ID || can_id == KINETEK_STATUS_2_ID)  // 0x60, 0x080
+    else if (can_id == KU::IAP_HEARTBEAT_ID) // 0x060
     {
         if (array_compare(in_iap_mode_data, sizeof(in_iap_mode_data), data_array, arr_size))
         {
@@ -167,16 +170,24 @@ KinetekResponse CanDataList::get_response_type(uint32_t can_id, uint8_t* data_ar
             return KT_CALCULATED_PAGE_CHECKSUM;
         }
     }
-    // FW VERSION RESPONSE
-    else if (can_id == 0x067 || can_id == 0x087)  // 0x067, 0x087
+    // first IAP heart beat
+    else if (can_id == LCD_IAP_HEARTBEAT_ID)
     {
-        if (data_array[2] == 0x5E)
-            return FW_VERSION_RESPONSE;
+        if (array_compare(in_iap_mode_data, sizeof(in_iap_mode_data), data_array, arr_size))
+        {
+            return IN_IAP_MODE;
+        }
     }
     // HEART BEAT
     if (can_id == HEART_BEAT_ID && data_array[0] == heart_beat_data[0])  // 0x080
     {
         return HEART_BEAT;
+    }
+    // FW VERSION RESPONSE
+    else if (can_id == KU::FW_VERSION_RESPONSE_ID) // 0x067
+    {
+        if (data_array[2] == 0x5E)
+            return FW_VERSION_RESPONSE;
     }
     // STANDARD RESPONSE
     else if (can_id == KINETEK_RESPONSE_ID)  // 0x081

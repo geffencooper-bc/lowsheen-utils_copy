@@ -82,20 +82,17 @@ class IAP
     HexUtility* ut;       // helps with reading hex file
     KU::CanDataList* ku_data;
 
+    // IAP heartbeat id will be 0x060 or 0x080, need to catch both
+    uint8_t iap_heartbeat_mask = 0b00011111;
+
     // the call back may need access to private member variables
     friend void IAP_resp_call_back(void* msg, const CO_CANrxMsg_t* can_msg);
 
     // sends the next 32 bytes of hex data, called by upload_hex_file
     KU::StatusCode send_hex_packet(bool is_retry = false);
 
-    // determines which IAP state have entered into and if need to adjust can ids
-    // wait_time specifies timeout value, Note: iap state is independent of iap mode (forced vs selective)
+    // determines if in IAP mode, if not then determines if IAP_TIME_OUT or IAP_FAIL
     KU::StatusCode check_iap_state(int wait_time);
-
-    uint8_t set_7th;
-    uint8_t response_id_mask;
-    uint8_t iap_heartbeat_mask;
-    uint32_t iap_state;
 };
 
 #endif

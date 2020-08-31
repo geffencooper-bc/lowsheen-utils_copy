@@ -37,42 +37,27 @@ namespace KU
 {
 // =============================================== CAN ID SECTION ==========================================
 
-/*
-   NOTE about IAP (firmware download mode):
-   The IAP state (STATUS_ID) is determined upon entering IAP mode and is independent
-   of the mode (forced vs selective). There are two IAP states which each use a
-   different but related set of CAN IDs (have the same function). State 1 uses the CAN
-   IDs defined in the IAP section of KU_can_id. State 2 uses the same CAN IDs with
-   a slight modification for REQUESTS and RESPONSES as shown below.
-
-   REQUESTS: (State 1 can id) | 01000000 (set the 7th bit high).
-   RESPONSES: Since the 4 least significant bits are the same for RESPONSES for both states,
-   the can id will have a bit mask of 00001111 --> (can id) & 00001111.
-*/
-
-#define KINETEK_STATUS_1_ID 0x080  // if in IAP state 1 then REQUESTS same, RESPONSES &= 00001111
-#define KINETEK_STATUS_2_ID 0x060  // if in IAP state 2 then REQUESTS |= 01000000, RESPONSES &= 00001111
-
     // All the CAN IDs used by kinetek-utility app, divided into sections
     enum CanId
     {
         // ----------------- IAP Section ----------------
-        // State 1 IDs                     // State 2 IDs
-        //                  REQUEST IDs
-        FW_VERSION_REQUEST_ID = 0x005,    // 0x045
-        IAP_REQUEST_ID = 0x008,           // 0x048
-        SEND_FRAME_1_ID = 0x00F,          // 0x04F
-        SEND_FRAME_2_ID = 0x010,          // 0x050
-        SEND_FRAME_3_ID = 0x011,          // 0x051
-        SEND_FRAME_4_ID = 0x012,          // 0x052
-        RESEND_FRAME_1_ID = 0x013,        // 0x053
-        RESEND_FRAME_2_ID = 0x014,        // 0x054
-        RESEND_FRAME_3_ID = 0x015,        // 0x055
-        RESEND_FRAME_4_ID = 0x016,        // 0x056
-        FORCE_ENTER_IAP_MODE_ID = 0x048,  // 0x048
-        //                RESPONSE IDs
-        FW_VERSION_RESPONSE_ID = 0x087,  // 0x067
-        IAP_RESPONSE_ID = 0x089,         // 0x069
+        //                   REQUEST IDs
+        FW_VERSION_REQUEST_ID = 0x045,
+        IAP_REQUEST_ID = 0x048,
+        SEND_FRAME_1_ID = 0x04F,
+        SEND_FRAME_2_ID = 0x050,
+        SEND_FRAME_3_ID = 0x051,
+        SEND_FRAME_4_ID = 0x052,
+        RESEND_FRAME_1_ID = 0x053,
+        RESEND_FRAME_2_ID = 0x054,
+        RESEND_FRAME_3_ID = 0x055,
+        RESEND_FRAME_4_ID = 0x056,
+        HAND_HELD_PROGRAMMER_ID = 0x040,
+        //                  RESPONSE IDs
+        IAP_HEARTBEAT_ID = 0x060,
+        LCD_IAP_HEARTBEAT_ID = 0x080,
+        FW_VERSION_RESPONSE_ID = 0x067,
+        IAP_RESPONSE_ID = 0x069,
 
         // ---------------- STU Section -----------------
         EEPROM_ACCESS_MESSAGE_ID = 0x00A,
@@ -142,10 +127,13 @@ namespace KU
         // ID = 0x001
         static uint8_t enter_iap_mode_selective_data[5];
 
-        // ID = 0x005/0x045
+        // ID = 0x040
+        static uint8_t use_hand_held_programmer_ids_data[8];
+
+        // ID = 0x045
         static uint8_t fw_version_request_data[8];
 
-        // ID = 0x008/0x048
+        // ID = 0x048
         static uint8_t force_enter_iap_mode_data[8];
         static uint8_t start_download_data[8];
         static uint8_t start_address_data[8];
@@ -160,10 +148,10 @@ namespace KU
         static uint8_t in_iap_mode_data[5];
         static uint8_t kt_calculated_page_checksum_data[5];
 
-        // ID = 0x067/0x087
+        // ID = 0x067
         static uint8_t fw_version_response_data[8];
 
-        // ID = 0x069/0x089
+        // ID = 0x069
         static uint8_t start_download_response_data[8];
         static uint8_t start_address_response_data[8];
         static uint8_t total_checksum_response_data[8];
