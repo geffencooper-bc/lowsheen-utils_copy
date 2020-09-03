@@ -25,26 +25,33 @@
 
 // #define LIB_EXAMPLE
 #define CL_EXAMPLE
-//#define OTHER
+// #define OTHER
 
 int main(int argc, char** argv)
 {
 #ifdef OTHER
-    if(argc != 4)
+    if(argc != 3)
     {
     printf("need an arg in ms\n");
     exit(EXIT_FAILURE);
     }
     KinetekUtility ku;
     ku.init_can();
-    ku.test_iap_window(atoi(argv[1]), atoi(argv[2]), atoi(argv[3]));
+    ku.test_iap_window(atoi(argv[1]), atoi(argv[2]));
 #endif
 
 // the command line example shows how to use the kinetek utility through the shell
 #ifdef CL_EXAMPLE
     KinetekUtility ku;
     ku.parse_args(argc, argv);
-
+    if(ku.CL_status == KU::UPLOAD_COMPLETE)
+    {
+        printf("SUCCESS\n");
+    }
+    else
+    {
+        printf("FAIL\n");
+    }
     // check the status
     printf("STATUS: %s\n", ku.translate_status_code(ku.CL_status).c_str());
 #endif

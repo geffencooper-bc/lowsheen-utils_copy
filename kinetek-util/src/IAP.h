@@ -29,6 +29,7 @@
 #include "SocketCanHelper.h"
 #include "HexUtility.h"
 #include "KinetekUtilityCodes.h"
+#include "chrono"
 
 #define PACKET_SIZE 32  // number of bytes in a packet (4 can frames)
 #define PAGE_SIZE 32    // number of packets in a page (128 can frames)

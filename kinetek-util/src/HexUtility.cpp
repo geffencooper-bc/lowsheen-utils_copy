@@ -198,6 +198,7 @@ void HexUtility::clear()
     hex_file_data_size = 0;
     total_checksum = 0;
     start_address = 0;
+    hex_file.close();
 }
 
 // -------------- helper funcs --------------------

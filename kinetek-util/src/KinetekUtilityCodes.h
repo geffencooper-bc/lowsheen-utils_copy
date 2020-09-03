@@ -41,6 +41,10 @@ namespace KU
     enum CanId
     {
         // ----------------- IAP Section ----------------
+        // IAP modes
+#define SELECTIVE_MODE 0
+#define FORCED_MODE 1
+
         //                   REQUEST IDs
         FW_VERSION_REQUEST_ID = 0x045,
         IAP_REQUEST_ID = 0x048,
@@ -196,8 +200,9 @@ namespace KU
     enum StatusCode
     {
         // IAP status codes
-        IAP_MODE_FAIL = -100,
-        IAP_MODE_TIME_OUT,
+        SELECTIVE_IAP_MODE_TIMEOUT = -100,
+        FORCED_IAP_MODE_TIMEOUT,
+        IAP_HEARTBEAT_TIMEOUT,
         IAP_MODE_SUCCESS,
         FW_VERSION_REQUEST_FAIL,
         START_DOWNLOAD_FAIL,
@@ -239,6 +244,7 @@ namespace KU
         NO_HEART_BEAT,
         KU_INIT_ERROR,
         KINETEK_ERROR,
+        HEART_BEAT_RECEIVED,
         NO_ERROR
     };
 };

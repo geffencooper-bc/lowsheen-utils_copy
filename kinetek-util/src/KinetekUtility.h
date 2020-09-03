@@ -71,8 +71,8 @@ class KinetekUtility
     KU::StatusCode reset_xt_can();
 
     // function to test how long iap window is, specify window using start
-    void test_iap_window(int window_time, int tries, int mode);
-
+    void test_iap_window(int window_time, int tries);
+    
     // set interface when don't want default "can0"
     void set_can_interface(const string& interface) { can_interface = interface; }
     // holds the latest status of Kinetek Utility after executing a tool
