@@ -157,7 +157,7 @@ CO_CANrxMsg_t* SocketCanHelper::get_frame(uint32_t can_id,
                                           uint32_t can_id_mask)
 {
     // zero out the last receive message
-    memset(can_msg, 0, sizeof(can_msg));
+    memset(can_msg, 0, sizeof(CO_CANrx_t));
 
     // setup desired time_out given ms input, 5ms by default
     time_out->it_value.tv_sec = wait_time / 1000;

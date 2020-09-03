@@ -165,6 +165,7 @@ KU::StatusCode IAP::put_in_iap_mode(bool forced_mode)
                 if (ku_data->get_response_type(resp->ident, resp->data, resp->DLC) != KU::HEART_BEAT)
                 {
                     DEBUG_PRINTF("ERROR: No Heart Beat detected, Selective Mode failed\r\n");
+                    printf("ID: %i RESPONSE: %i", resp->ident, ku_data->get_response_type(resp->ident, resp->data, resp->DLC));
                     return KU::NO_HEART_BEAT;
                 }
             }

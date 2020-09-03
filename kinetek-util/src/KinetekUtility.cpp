@@ -234,6 +234,13 @@ KU::StatusCode KinetekUtility::run_iap(const string& file_path, bool iap_mode)
     {
         iap = new IAP(sc, ku_data);
     }
+    else
+    {
+        iap->clear();
+        delete sc;
+        sc = new SocketCanHelper;
+        sc->init_socketcan("can0");
+    }
 
     // step 1: check if interface accessible
     if (!can_initialized)
