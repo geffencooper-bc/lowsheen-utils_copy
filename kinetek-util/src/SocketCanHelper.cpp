@@ -154,7 +154,7 @@ CO_CANrxMsg_t* SocketCanHelper::get_frame(uint32_t can_id,
                                           void* obj,
                                           void (*call_back)(void* obj, const CO_CANrxMsg_t* msg),
                                           int wait_time,
-                                          uint32_t can_id_mask)
+                                          uint16_t can_id_mask)
 {
     // zero out the last receive message
     memset(can_msg, 0, sizeof(CO_CANrx_t));
@@ -162,6 +162,8 @@ CO_CANrxMsg_t* SocketCanHelper::get_frame(uint32_t can_id,
     // setup desired time_out given ms input, 5ms by default
     time_out->it_value.tv_sec = wait_time / 1000;
     time_out->it_value.tv_nsec = (wait_time % 1000) * 1000000;
+    time_out->it_interval.tv_sec = 0;
+    time_out->it_interval.tv_nsec = 0;
 
     // reset the timer for the receive message
     int err = timerfd_settime(timer_fd, 0, time_out, NULL);
@@ -182,7 +184,6 @@ CO_CANrxMsg_t* SocketCanHelper::get_frame(uint32_t can_id,
         printf("Receive Error: %i\t", err);
         exit(EXIT_FAILURE);
     }
-
     // waits until receive specified can id or until timer ends (blocking function)
     err = CO_CANrxWait(can_module, timer_fd, can_msg);
 

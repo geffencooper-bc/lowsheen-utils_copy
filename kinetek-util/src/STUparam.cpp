@@ -80,14 +80,14 @@ KU::StatusCode STUparam::read_stu_params(const string& output_file)
     stu_header_checksum += 29;
 
     // get the firmware version from heart beat page 9
-    CO_CANrxMsg_t* resp = sc->get_frame(KU::HEART_BEAT_ID, this, STU_resp_call_back, 20000);
+    CO_CANrxMsg_t* resp = sc->get_frame(KU::HEARTBEAT_ID, this, STU_resp_call_back, 20000);
     while (resp->data[1] != 9)
     {
-        resp = sc->get_frame(KU::HEART_BEAT_ID, this, STU_resp_call_back, 20000);
-        if (ku_data->get_response_type(resp->ident, resp->data, resp->DLC) != KU::HEART_BEAT)
+        resp = sc->get_frame(KU::HEARTBEAT_ID, this, STU_resp_call_back, 20000);
+        if (ku_data->get_response_type(resp->ident, resp->data, resp->DLC) != KU::HEARTBEAT)
         {
             DEBUG_PRINTF("ERROR: no heartbeat detected\r\n");
-            return KU::NO_HEART_BEAT;
+            return KU::NO_HEARTBEAT_DETECTED;
         }
     }
     // write the rest of the header: firmware version major/minor, number of params
@@ -245,14 +245,14 @@ KU::StatusCode STUparam::write_stu_params(const string& input_file)
     sc->send_frame(KU::XT_CAN_REQUEST_ID, ku_data->disable_kinetek_data, sizeof(ku_data->disable_kinetek_data));
     usleep(2500000);  // sleep for 2.5 seconds
     sc->send_frame(KU::XT_CAN_REQUEST_ID, ku_data->enable_kinetek_data, sizeof(ku_data->enable_kinetek_data));
-    CO_CANrxMsg_t* resp = sc->get_frame(KU::HEART_BEAT_ID, this, STU_resp_call_back, 20000);
+    CO_CANrxMsg_t* resp = sc->get_frame(KU::HEARTBEAT_ID, this, STU_resp_call_back, 20000);
     while (resp->data[1] != 1)
     {
-        resp = sc->get_frame(KU::HEART_BEAT_ID, this, STU_resp_call_back, 20000);
-        if (ku_data->get_response_type(resp->ident, resp->data, resp->DLC) != KU::HEART_BEAT)
+        resp = sc->get_frame(KU::HEARTBEAT_ID, this, STU_resp_call_back, 20000);
+        if (ku_data->get_response_type(resp->ident, resp->data, resp->DLC) != KU::HEARTBEAT)
         {
             DEBUG_PRINTF("ERROR: no heartbeat detected\r\n");
-            return KU::NO_HEART_BEAT;
+            return KU::NO_HEARTBEAT_DETECTED;
         }
     }
     // error value is on page 1, byte 4
@@ -317,14 +317,14 @@ KU::StatusCode STUparam::validate_stu_file(const string& input_file)
     }
 
     // make sure the firmware version is correct, version is on page 9
-    CO_CANrxMsg_t* resp = sc->get_frame(KU::HEART_BEAT_ID, this, STU_resp_call_back, 20000);
+    CO_CANrxMsg_t* resp = sc->get_frame(KU::HEARTBEAT_ID, this, STU_resp_call_back, 20000);
     while (resp->data[1] != 9)
     {
-        resp = sc->get_frame(KU::HEART_BEAT_ID, this, STU_resp_call_back, 20000);
-        if (ku_data->get_response_type(resp->ident, resp->data, resp->DLC) != KU::HEART_BEAT)
+        resp = sc->get_frame(KU::HEARTBEAT_ID, this, STU_resp_call_back, 20000);
+        if (ku_data->get_response_type(resp->ident, resp->data, resp->DLC) != KU::HEARTBEAT)
         {
             DEBUG_PRINTF("ERROR: no heartbeat detected\r\n");
-            return KU::NO_HEART_BEAT;
+            return KU::NO_HEARTBEAT_DETECTED;
         }
     }
     if ((resp->data[3] != fw_minor) || (resp->data[4] != fw_major))

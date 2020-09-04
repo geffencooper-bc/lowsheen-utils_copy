@@ -151,11 +151,11 @@ KU::StatusCode LiveData::update_heartbeat()
         }
 
         // get the next page
-        resp = sc->get_frame(KU::HEART_BEAT_ID, this, LiveData_resp_call_back, 500);
-        if (ku_data->get_response_type(resp->ident, resp->data, resp->DLC) != KU::HEART_BEAT)
+        resp = sc->get_frame(KU::HEARTBEAT_ID, this, LiveData_resp_call_back, 500);
+        if (ku_data->get_response_type(resp->ident, resp->data, resp->DLC) != KU::HEARTBEAT)
         {
             printf("No Heart Beat\n");
-            return KU::NO_HEART_BEAT;
+            return KU::NO_HEARTBEAT_DETECTED;
         }
 
         last_page_num = page_num;
@@ -165,7 +165,7 @@ KU::StatusCode LiveData::update_heartbeat()
         {
             while (page_num != 1)
             {
-                resp = sc->get_frame(KU::HEART_BEAT_ID, this, LiveData_resp_call_back, 500);
+                resp = sc->get_frame(KU::HEARTBEAT_ID, this, LiveData_resp_call_back, 500);
                 page_num = resp->data[1];
             }
             get_first_page = false;
@@ -179,7 +179,7 @@ KU::StatusCode LiveData::update_heartbeat()
             // if a page was missed, wait until the missed page is received again
             while (page_num != last_page_num + 1)
             {
-                resp = sc->get_frame(KU::HEART_BEAT_ID, this, LiveData_resp_call_back, 500);
+                resp = sc->get_frame(KU::HEARTBEAT_ID, this, LiveData_resp_call_back, 500);
                 page_num = resp->data[1];
             }
         }

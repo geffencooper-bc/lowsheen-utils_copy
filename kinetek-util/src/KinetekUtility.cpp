@@ -77,17 +77,9 @@ string KinetekUtility::translate_status_code(KU::StatusCode status)
         {
             return "Can initialization successful";
         }
-        case KU::SELECTIVE_IAP_MODE_TIMEOUT:
-        {
-            return "Could not enter IAP mode using selective command. check can trace";
-        }
-        case KU::FORCED_IAP_MODE_TIMEOUT:
-        {
-            return "Could not enter IAP mode using forced command, try selective mode";
-        }
         case KU::IAP_HEARTBEAT_TIMEOUT:
         {
-            return "Did not detect IAP heartbeat, try again";
+            return "Did not receive IAP heartbeat";
         }
         case KU::IAP_MODE_SUCCESS:
         {
@@ -141,11 +133,11 @@ string KinetekUtility::translate_status_code(KU::StatusCode status)
         {
             return "The total checksum was not received or does not match the Kinetek. check can trace";
         }
-        case KU::NO_HEART_BEAT:
+        case KU::NO_HEARTBEAT_DETECTED:
         {
-            return "No heart beat was detected. check can trace";
+            return "No normal heart beat was detected. Try to reset the Kinetek";
         }
-        case KU::HEART_BEAT_RECEIVED:
+        case KU::HEARTBEAT_DETECTED:
         {
             return "A normal heartbeat was detected";
         }
@@ -156,6 +148,10 @@ string KinetekUtility::translate_status_code(KU::StatusCode status)
         case KU::UPLOAD_COMPLETE:
         {
             return "The hex file was uploaded successfully";
+        }
+        case KU::UPLOAD_ERROR:
+        {
+            return "There was an error while downloading the hex file";
         }
         case KU::KU_INIT_ERROR:
         {
@@ -237,9 +233,6 @@ KU::StatusCode KinetekUtility::run_iap(const string& file_path, bool iap_mode)
     else
     {
         iap->clear();
-        delete sc;
-        sc = new SocketCanHelper;
-        sc->init_socketcan("can0");
     }
 
     // step 1: check if interface accessible
@@ -255,6 +248,7 @@ KU::StatusCode KinetekUtility::run_iap(const string& file_path, bool iap_mode)
     KU::StatusCode status = iap->put_in_iap_mode(iap_mode);
     if (status == KU::IAP_MODE_SUCCESS)
     {
+        DEBUG_PRINTF("\n====== IN IAP MODE ======\n\r\n");
         iap->print();  // hex file information
 
         // step 3: send initialization frames (hex file size, checksum, start address, etc)
@@ -269,11 +263,17 @@ KU::StatusCode KinetekUtility::run_iap(const string& file_path, bool iap_mode)
             }
         }
     }
+    else
+    {
+        DEBUG_PRINTF("Error: Could not enter IAP mode.\nStatus: %s\r\n", translate_status_code(status).c_str());
+        return status;
+    }
     if (status != KU::UPLOAD_COMPLETE)
     {
         DEBUG_PRINTF("Error: %s\r\n", translate_status_code(status).c_str());
+        return KU::UPLOAD_ERROR;
     }
-    return status;
+    return KU::UPLOAD_COMPLETE;
 }
 
 KU::StatusCode KinetekUtility::read_stu_to_file(const string& file_path)
@@ -534,47 +534,30 @@ static int parse_opt(int key, char* arg, struct argp_state* state)
                 string file_type = string(arg).substr(strlen(arg) - 3, 3);
                 if (file_type == "hex")
                 {
-                    // try forced first because xt_can will trigger estop anyways
-                    ku->CL_status = ku->run_iap(string(arg), FORCED_MODE);
-
-                    // if forced times out, try selective
-                    if(ku->CL_status == KU::FORCED_IAP_MODE_TIMEOUT)
+                    int iap_mode_attempts = 0;
+                    while(iap_mode_attempts != 3)
                     {
-                        ku->CL_status = ku->run_iap(string(arg), SELECTIVE_MODE);
-                    }
-
-                    // Try forced again
-                    if(ku->CL_status != KU::UPLOAD_COMPLETE)
-                    {
-                        DEBUG_PRINTF("%s. Try forced mode again\n", ku->translate_status_code(ku->CL_status).c_str());
-                        exit(EXIT_FAILURE);
+                        // try forced first because xt_can will trigger estop anyways
                         ku->CL_status = ku->run_iap(string(arg), FORCED_MODE);
 
-                        // if second forced attempt times out, then try selective again
-                        if(ku->CL_status == KU::FORCED_IAP_MODE_TIMEOUT)
+                        // if forced times out, try selective
+                        if(ku->CL_status == KU::HEARTBEAT_DETECTED)
                         {
-                            DEBUG_PRINTF("Second forced attempt timed out, try selective again\n");
                             ku->CL_status = ku->run_iap(string(arg), SELECTIVE_MODE);
-
-                            if(ku->CL_status != KU::UPLOAD_COMPLETE)
-                            {
-                                DEBUG_PRINTF("%s. Second selective attempt failed\n==== IAP PROGRAM FAIL ====\n", ku->translate_status_code(ku->CL_status).c_str());
-                                break;
-                            }  
                         }
 
-                        // if second forced attempt failed then IAP program fails
-                        if(ku->CL_status != KU::UPLOAD_COMPLETE)
+                        // if any attempt succeeds then break
+                        if(ku->CL_status == KU::UPLOAD_COMPLETE)
                         {
-                            DEBUG_PRINTF("%s. Second forced attempt failed\n==== IAP PROGRAM FAIL ====\n",ku->translate_status_code(ku->CL_status).c_str());
                             break;
                         }
-                    }
 
-                    // if any attempt succeeds then break
-                    if(ku->CL_status == KU::UPLOAD_COMPLETE)
-                    {
-                        break;
+                        // if the error is an upload error then exit
+                        if(ku->CL_status == KU::UPLOAD_ERROR)
+                        {
+                            break;
+                        }
+                        iap_mode_attempts++;
                     }
                 }
                 else if (file_type == "stu")
@@ -675,9 +658,9 @@ void KinetekUtility::test_iap_window(int delay_time, int tries)
     if(delay_time == -1 && tries == -1)
     {
         // wait for a heart beat before trying soft reset
-        CO_CANrxMsg_t* resp = sc->get_frame(KU::HEART_BEAT_ID, this, test_resp_call_back, 500);
+        CO_CANrxMsg_t* resp = sc->get_frame(KU::HEARTBEAT_ID, this, test_resp_call_back, 500);
         {
-            if (ku_data->get_response_type(resp->ident, resp->data, resp->DLC) != KU::HEART_BEAT)
+            if (ku_data->get_response_type(resp->ident, resp->data, resp->DLC) != KU::HEARTBEAT)
             {
                 printf("FAIL -- no heartbeat. Response: %i\n", ku_data->get_response_type(resp->ident, resp->data, resp->DLC));
                 return;
@@ -720,7 +703,7 @@ void KinetekUtility::test_iap_window(int delay_time, int tries)
         }
 
         // if receive normal heartbeat then failed
-        else if (ku_data->get_response_type(resp->ident, resp->data, resp->DLC) == KU::HEART_BEAT)
+        else if (ku_data->get_response_type(resp->ident, resp->data, resp->DLC) == KU::HEARTBEAT)
         {
             printf("FAIL -- no iap mode message\n");
         }

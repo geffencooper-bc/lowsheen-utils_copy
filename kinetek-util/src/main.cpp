@@ -42,6 +42,9 @@ int main(int argc, char** argv)
 
 // the command line example shows how to use the kinetek utility through the shell
 #ifdef CL_EXAMPLE
+// SocketCanHelper sc;
+// sc.init_socketcan("can0");
+// sc.get_frame(0x080, nullptr, nullptr, 3000);
     KinetekUtility ku;
     ku.parse_args(argc, argv);
     if(ku.CL_status == KU::UPLOAD_COMPLETE)

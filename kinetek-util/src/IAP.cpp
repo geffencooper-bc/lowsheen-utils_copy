@@ -127,82 +127,51 @@ void IAP_resp_call_back(void* obj, const CO_CANrxMsg_t* can_msg)
     // nothing needed
 }
 
-KU::StatusCode IAP::check_iap_state(int wait_time)
-{
-    // check if received IAP heartbeat with mask so can catch 0x060 and 0x080
-    CO_CANrxMsg_t* resp = sc->get_frame(KU::LCD_IAP_HEARTBEAT_ID, this, IAP_resp_call_back, wait_time, iap_heartbeat_mask);
-    if (ku_data->get_response_type(resp->ident, resp->data, resp->DLC) == KU::IN_IAP_MODE)
-    {
-        DEBUG_PRINTF("\n====== IN IAP MODE ======\n\r\n");
-        return KU::IAP_MODE_SUCCESS;
-    }
-    // if get a normal heartbeat then failed and need to reset Kinetek
-    else if(ku_data->get_response_type(resp->ident, resp->data, resp->DLC) == KU::HEART_BEAT)
-    {
-        DEBUG_PRINTF("Detected normal heartbeat\r\n");
-        return KU::HEART_BEAT_RECEIVED;
-    }
-    else  // otherwise count this as a timeout
-    {
-        return KU::IAP_HEARTBEAT_TIMEOUT;
-    }
-}
-
 KU::StatusCode IAP::put_in_iap_mode(bool forced_mode)
 {
-    DEBUG_PRINTF("Putting in IAP mode\r\n");
+    if(forced_mode == true)
+    {
+        DEBUG_PRINTF("Putting in IAP mode using Forced command\r\n");
+    }
+    else
+    {
+        DEBUG_PRINTF("Putting in IAP mode using Selective command\r\n");
+    }
 
     // selective mode
     if (!forced_mode)
     {
-        // keep trying to enter IAP mode until success, fail, or 3 timeouts
-        int selective_attempts = 0;
-        while(selective_attempts < 3)
+        // first wait for a normal heart beat before trying to send selective command
+        CO_CANrxMsg_t* resp = sc->get_frame(KU::HEARTBEAT_ID, this, IAP_resp_call_back, LONG_WAIT_TIME);
+        if (ku_data->get_response_type(resp->ident, resp->data, resp->DLC) != KU::HEARTBEAT)
         {
-            // first wait for a normal heart beat before trying to send selective command
-            CO_CANrxMsg_t* resp = sc->get_frame(KU::HEART_BEAT_ID, this, IAP_resp_call_back, LONG_WAIT_TIME);
-            {
-                if (ku_data->get_response_type(resp->ident, resp->data, resp->DLC) != KU::HEART_BEAT)
-                {
-                    DEBUG_PRINTF("ERROR: No Heart Beat detected, Selective Mode failed\r\n");
-                    printf("ID: %i RESPONSE: %i", resp->ident, ku_data->get_response_type(resp->ident, resp->data, resp->DLC));
-                    return KU::NO_HEART_BEAT;
-                }
-            }
-
-            // do soft reset by sending selective download command
-            sc->send_frame(KU::KINETEK_REQUEST_ID, ku_data->enter_iap_mode_selective_data,
-                        sizeof(ku_data->enter_iap_mode_selective_data));
-            
-            // check if received a 0x081 selective response from the Kinetek
-            resp = sc->get_frame(KU::KINETEK_RESPONSE_ID, this, IAP_resp_call_back, MEDIUM_WAIT_TIME);
-            if (ku_data->get_response_type(resp->ident, resp->data, resp->DLC) != KU::ENTER_IAP_MODE_SELECTIVE_RESPONSE)
-            {
-                // may have missed respoonse, continue anyways in case entered IAP mode
-                DEBUG_PRINTF("WARNING: Kinetek did not confirm selective IAP request\r\n");
-            }
-
-            // check if entered IAP mode
-            KU::StatusCode iap_status = check_iap_state(MEDIUM_WAIT_TIME);
-            
-            // check several times, might receive colliding message with CAN ID under the "iap_heartbeat_mask"
-            int count = 0;
-            while(iap_status == KU::IAP_HEARTBEAT_TIMEOUT)
-            {
-                if(count == 10)
-                {
-                    break;
-                }
-                iap_status = check_iap_state(MEDIUM_WAIT_TIME);
-                count++;
-            }
-            if(iap_status == KU::IAP_MODE_SUCCESS)
-            {
-                return KU::IAP_MODE_SUCCESS;
-            }
-            selective_attempts++;
+            resp = sc->get_frame(KU::HEARTBEAT_ID, this, IAP_resp_call_back, LONG_WAIT_TIME);
+            DEBUG_PRINTF("ERROR: No Heartbeat detected, can't attempt selective command\r\n");
+            return KU::NO_HEARTBEAT_DETECTED;
         }
-        return KU::SELECTIVE_IAP_MODE_TIMEOUT;
+
+        // do soft reset by sending selective download command
+        sc->send_frame(KU::KINETEK_REQUEST_ID, ku_data->enter_iap_mode_selective_data,
+                    sizeof(ku_data->enter_iap_mode_selective_data));
+        
+        // check if received a 0x081 selective response from the Kinetek
+        resp = sc->get_frame(KU::KINETEK_RESPONSE_ID, this, IAP_resp_call_back, MEDIUM_WAIT_TIME);
+        if (ku_data->get_response_type(resp->ident, resp->data, resp->DLC) != KU::ENTER_IAP_MODE_SELECTIVE_RESPONSE)
+        {
+            // may have missed respoonse, continue anyways in case entered IAP mode
+            DEBUG_PRINTF("WARNING: Kinetek did not confirm selective IAP request\r\n");
+        }
+
+        // force the Kinetek to use hand held programmer Can Ids (0x060 Heartbeat)
+        sc->send_frame(KU::HAND_HELD_PROGRAMMER_ID, ku_data->use_hand_held_programmer_ids_data, sizeof(ku_data->use_hand_held_programmer_ids_data));
+
+        // check if entered IAP mode
+        resp = sc->get_frame(KU::IAP_HEARTBEAT_ID, this, IAP_resp_call_back, LONG_WAIT_TIME);
+        if (ku_data->get_response_type(resp->ident, resp->data, resp->DLC) == KU::IN_IAP_MODE)
+        {
+            return KU::IAP_MODE_SUCCESS;
+        }
+        return KU::IAP_HEARTBEAT_TIMEOUT;
     }
     // forced mode
     else
@@ -222,7 +191,7 @@ KU::StatusCode IAP::put_in_iap_mode(bool forced_mode)
         end = std::chrono::steady_clock::now();
     
         // wait until get close the 6ms forced window
-        while(std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count() / 1000.0 < 35)
+        while(std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count() / 1000.0 < 38)
         {
             end = std::chrono::steady_clock::now();
         }
@@ -231,46 +200,45 @@ KU::StatusCode IAP::put_in_iap_mode(bool forced_mode)
         sc->send_frame(KU::IAP_REQUEST_ID, ku_data->force_enter_iap_mode_data,
                     sizeof(ku_data->force_enter_iap_mode_data));
 
-        // send the request 15 times at a 1ms interval
-        while (forced_tries < 15)
+        // send the request 10 times at a 1ms interval
+        while (forced_tries < 10)
         {
             sc->send_frame(KU::IAP_REQUEST_ID, ku_data->force_enter_iap_mode_data, sizeof(ku_data->force_enter_iap_mode_data));
-            check_iap_state(1);
+            usleep(1000);
             forced_tries++;
         }
 
         // wait until get close to first possible IAP heartbeat
-        while(std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count() / 1000.0 < 75)
+        while(std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count() / 1000.0 < 80)
         {
             end = std::chrono::steady_clock::now();
         }
 
-        int messages_received = 0;
-        iap_status = check_iap_state(30); // shows up every 30 ms
-        while(iap_status == KU::IAP_HEARTBEAT_TIMEOUT)
+        // force the Kinetek to use hand held programmer Can Ids (0x060 Heartbeat)
+        sc->send_frame(KU::HAND_HELD_PROGRAMMER_ID, ku_data->use_hand_held_programmer_ids_data, sizeof(ku_data->use_hand_held_programmer_ids_data));
+
+        // check if entered IAP mode
+        CO_CANrxMsg_t* resp = sc->get_frame(KU::IAP_HEARTBEAT_ID, this, IAP_resp_call_back, MEDIUM_WAIT_TIME);
+        if (ku_data->get_response_type(resp->ident, resp->data, resp->DLC) == KU::IN_IAP_MODE)
         {
-            // check multiple times because may get colliding messages with iap_heartbeat_mask
-            if(messages_received == 5)
+            return KU::IAP_MODE_SUCCESS;
+        }
+
+        // if did not enter IAP mode, check for a normal heartbeat
+        else
+        {
+            resp = sc->get_frame(KU::HEARTBEAT_ID, this, IAP_resp_call_back, MEDIUM_WAIT_TIME);
+            if(ku_data->get_response_type(resp->ident, resp->data, resp->DLC) == KU::HEARTBEAT)
             {
-                break;
+                return KU::HEARTBEAT_DETECTED;
             }
-            iap_status = check_iap_state(30); // shows up every 30 ms
-            messages_received++;
         }
-        if(iap_status == KU::HEART_BEAT_RECEIVED)
-        {
-            return KU::FORCED_IAP_MODE_TIMEOUT;
-        }
-        return iap_status;
+        return KU::NO_HEARTBEAT_DETECTED;
     }
 }
 
 KU::StatusCode IAP::send_init_frames()
 {
-    // force the Kinetek to use hand held programmer Can Ids (0x060 Heartbeat)
-    sc->send_frame(KU::HAND_HELD_PROGRAMMER_ID, ku_data->use_hand_held_programmer_ids_data, sizeof(ku_data->use_hand_held_programmer_ids_data));
-    usleep(1000);
-
     DEBUG_PRINTF("\n====== SEND INIT PACKETS ======\r\n");
     // first send the fw version request
     sc->send_frame(KU::FW_VERSION_REQUEST_ID, ku_data->fw_version_request_data,
@@ -485,15 +453,15 @@ KU::StatusCode IAP::upload_hex_file()
             sc->send_frame(KU::XT_CAN_REQUEST_ID, ku_data->disable_kinetek_data, sizeof(ku_data->disable_kinetek_data));
             usleep(2500000);  // sleep for 2.5 seconds
             sc->send_frame(KU::XT_CAN_REQUEST_ID, ku_data->enable_kinetek_data, sizeof(ku_data->enable_kinetek_data));
-            resp = sc->get_frame(KU::HEART_BEAT_ID, this, IAP_resp_call_back, LONG_WAIT_TIME);
-            resp = sc->get_frame(KU::HEART_BEAT_ID, this, IAP_resp_call_back, LONG_WAIT_TIME);
+            resp = sc->get_frame(KU::HEARTBEAT_ID, this, IAP_resp_call_back, LONG_WAIT_TIME);
+            resp = sc->get_frame(KU::HEARTBEAT_ID, this, IAP_resp_call_back, LONG_WAIT_TIME);
             while (resp->data[1] != 1)
             {
-                resp = sc->get_frame(KU::HEART_BEAT_ID, this, IAP_resp_call_back, LONG_WAIT_TIME);
-                if (ku_data->get_response_type(resp->ident, resp->data, resp->DLC) != KU::HEART_BEAT)
+                resp = sc->get_frame(KU::HEARTBEAT_ID, this, IAP_resp_call_back, LONG_WAIT_TIME);
+                if (ku_data->get_response_type(resp->ident, resp->data, resp->DLC) != KU::HEARTBEAT)
                 {
                     DEBUG_PRINTF("ERROR: no heartbeat\r\n");
-                    return KU::NO_HEART_BEAT;
+                    return KU::NO_HEARTBEAT_DETECTED;
                 }
             }
             // error value is on page 1, byte 4

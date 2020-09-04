@@ -92,7 +92,7 @@ uint8_t CanDataList::disable_kinetek_data[2] = {0x02, 0x01};
 uint8_t CanDataList::reset_xt_can_data[2] = {0x00, 0x01};
 
 // ID = 0x80
-uint8_t CanDataList::heart_beat_data[8] = {0x1D, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
+uint8_t CanDataList::heartbeat_data[8] = {0x1D, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
 
 // ========================================== Helper Functions ==========================================
 
@@ -179,9 +179,9 @@ KinetekResponse CanDataList::get_response_type(uint32_t can_id, uint8_t* data_ar
         }
     }
     // HEART BEAT
-    if (can_id == HEART_BEAT_ID && data_array[0] == heart_beat_data[0])  // 0x080
+    if (can_id == HEARTBEAT_ID && data_array[0] == heartbeat_data[0])  // 0x080
     {
-        return HEART_BEAT;
+        return HEARTBEAT;
     }
     // FW VERSION RESPONSE
     else if (can_id == KU::FW_VERSION_RESPONSE_ID) // 0x067

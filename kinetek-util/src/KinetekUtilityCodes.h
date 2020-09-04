@@ -80,7 +80,7 @@ namespace KU
 
         // --------- Standard Message Section ----------
         KINETEK_REQUEST_ID = 0x001,
-        HEART_BEAT_ID = 0x080,
+        HEARTBEAT_ID = 0x080,
         KINETEK_RESPONSE_ID = 0x081,
         XT_CAN_REQUEST_ID = 0xAC1DC0DE
     };
@@ -111,7 +111,7 @@ namespace KU
         SINGLE_STU_PARAM_WRITE_RESPONSE,
 
         // Standard Responses
-        HEART_BEAT
+        HEARTBEAT
     };
 
     // ========================================== DATA SECTION ==========================================
@@ -183,7 +183,7 @@ namespace KU
         static uint8_t reset_xt_can_data[2];
 
         // ID = 0x080
-        static uint8_t heart_beat_data[8];
+        static uint8_t heartbeat_data[8];
 
         // ========================================== HELPER FUNCTION SECTION ==========================================
 
@@ -200,10 +200,8 @@ namespace KU
     enum StatusCode
     {
         // IAP status codes
-        SELECTIVE_IAP_MODE_TIMEOUT = -100,
-        FORCED_IAP_MODE_TIMEOUT,
+        IAP_MODE_SUCCESS = -100,
         IAP_HEARTBEAT_TIMEOUT,
-        IAP_MODE_SUCCESS,
         FW_VERSION_REQUEST_FAIL,
         START_DOWNLOAD_FAIL,
         SEND_START_ADDRESS_FAIL,
@@ -218,6 +216,7 @@ namespace KU
         TOTAL_CHECKSUM_FAIL,
         END_OF_FILE_FAIL,
         UPLOAD_COMPLETE,
+        UPLOAD_ERROR,
 
         // STU status codes
         STU_READ_LINE_A_FAIL,
@@ -241,10 +240,10 @@ namespace KU
         // Standard status codes
         INIT_CAN_FAIL,
         INIT_CAN_SUCCESS,
-        NO_HEART_BEAT,
+        NO_HEARTBEAT_DETECTED,
         KU_INIT_ERROR,
         KINETEK_ERROR,
-        HEART_BEAT_RECEIVED,
+        HEARTBEAT_DETECTED,
         NO_ERROR
     };
 };

@@ -91,9 +91,6 @@ class IAP
 
     // sends the next 32 bytes of hex data, called by upload_hex_file
     KU::StatusCode send_hex_packet(bool is_retry = false);
-
-    // determines if in IAP mode, if not then determines if IAP_TIME_OUT or IAP_FAIL
-    KU::StatusCode check_iap_state(int wait_time);
 };
 
 #endif

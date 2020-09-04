@@ -58,7 +58,7 @@ class SocketCanHelper
                              void* obj,
                              void (*call_back)(void* obj, const CO_CANrxMsg_t* msg),
                              int wait_time,
-                             uint32_t can_id_mask = 0x7FFU);
+                             uint16_t can_id_mask = 0x7FFU);
 
    private:
     // objects rerquired to use CO_driver
