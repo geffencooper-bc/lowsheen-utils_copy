@@ -535,27 +535,25 @@ static int parse_opt(int key, char* arg, struct argp_state* state)
                 if (file_type == "hex")
                 {
                     int iap_mode_attempts = 0;
-                    ku->CL_status = ku->run_iap(string(arg), SELECTIVE_MODE);
-                    break;
-                    while(iap_mode_attempts != 3)
+                    while (iap_mode_attempts != 3)
                     {
                         // try forced first because xt_can will trigger estop anyways
                         ku->CL_status = ku->run_iap(string(arg), FORCED_MODE);
 
                         // if forced times out, try selective
-                        if(ku->CL_status == KU::HEARTBEAT_DETECTED)
+                        if (ku->CL_status == KU::HEARTBEAT_DETECTED)
                         {
                             ku->CL_status = ku->run_iap(string(arg), SELECTIVE_MODE);
                         }
 
                         // if any attempt succeeds then break
-                        if(ku->CL_status == KU::UPLOAD_COMPLETE)
+                        if (ku->CL_status == KU::UPLOAD_COMPLETE)
                         {
                             break;
                         }
 
-                        // if the error is an upload error then exit
-                        if(ku->CL_status == KU::UPLOAD_ERROR)
+                        // if the error is an upload error then exit, external app will determine a retry
+                        if (ku->CL_status == KU::UPLOAD_ERROR)
                         {
                             break;
                         }
@@ -644,7 +642,7 @@ KU::StatusCode KinetekUtility::get_live_data()
 // callback function for received messages, not used as of now
 void test_resp_call_back(void* obj, const CO_CANrxMsg_t* can_msg)
 {
-// nothing needed
+    // nothing needed
 }
 
 void KinetekUtility::test_iap(int delay_time, int tries, bool mode)
@@ -652,14 +650,15 @@ void KinetekUtility::test_iap(int delay_time, int tries, bool mode)
     string iap_data_point = "";
 
     // test reliability of entering IAP mode using selective command
-    if(mode == SELECTIVE_MODE)
+    if (mode == SELECTIVE_MODE)
     {
         // wait for a heart beat before trying soft reset
         CO_CANrxMsg_t* resp = sc->get_frame(KU::HEARTBEAT_ID, this, test_resp_call_back, 500);
         {
             if (ku_data->get_response_type(resp->ident, resp->data, resp->DLC) != KU::HEARTBEAT)
             {
-                printf("FAIL -- no heartbeat. Response: %i\n", ku_data->get_response_type(resp->ident, resp->data, resp->DLC));
+                printf("FAIL -- no heartbeat. Response: %i\n",
+                       ku_data->get_response_type(resp->ident, resp->data, resp->DLC));
                 return;
             }
         }
@@ -678,7 +677,7 @@ void KinetekUtility::test_iap(int delay_time, int tries, bool mode)
         // wait for iap mode, selective defaults to 0x080 which according to Laurence is the id the LCD uses for IAP
         int count = 0;
         resp = sc->get_frame(KU::LCD_IAP_HEARTBEAT_ID, this, test_resp_call_back, 500);
-        
+
         // received the IAP heartbeat response
         if (ku_data->get_response_type(resp->ident, resp->data, resp->DLC) == KU::IN_IAP_MODE)
         {
@@ -693,42 +692,43 @@ void KinetekUtility::test_iap(int delay_time, int tries, bool mode)
     }
 
     // test the iap window for forced
-    else if(mode == FORCED_MODE)
+    else if (mode == FORCED_MODE)
     {
-       std::chrono::steady_clock::time_point begin;
+        std::chrono::steady_clock::time_point begin;
         std::chrono::steady_clock::time_point end;
         CO_CANrxMsg_t* resp;
 
         // first reset the Kinetek by toggling the estop line
         sc->send_frame(KU::XT_CAN_REQUEST_ID, ku_data->disable_kinetek_data, sizeof(ku_data->disable_kinetek_data));
-        usleep(2500000); // sleep for 2.5 seconds
+        usleep(2500000);  // sleep for 2.5 seconds
         // turn on the kinetek and wait some time before trying to send the fored command
         sc->send_frame(KU::XT_CAN_REQUEST_ID, ku_data->enable_kinetek_data, sizeof(ku_data->enable_kinetek_data));
-        sc->send_frame(KU::HAND_HELD_PROGRAMMER_ID, ku_data->force_enter_iap_mode_data, sizeof(ku_data->force_enter_iap_mode_data));
+        sc->send_frame(KU::HAND_HELD_PROGRAMMER_ID, ku_data->force_enter_iap_mode_data,
+                       sizeof(ku_data->force_enter_iap_mode_data));
 
         // start the clock
         begin = std::chrono::steady_clock::now();
         end = std::chrono::steady_clock::now();
 
         // wait for window time
-        while(std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count() / 1000.0 < delay_time)
+        while (std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count() / 1000.0 < delay_time)
         {
             end = std::chrono::steady_clock::now();
         }
 
         uint8_t mask = 0b00011111;
         // after window finishes, attempt to enter iap mode
-        int count = 0; 
-        while(true)
+        int count = 0;
+        while (true)
         {
             // send forced command
-            if(count < tries)
+            if (count < tries)
             {
                 sc->send_frame(KU::IAP_REQUEST_ID, ku_data->force_enter_iap_mode_data,
-                    sizeof(ku_data->force_enter_iap_mode_data));
+                               sizeof(ku_data->force_enter_iap_mode_data));
                 count++;
             }
-            
+
             // check for a 0x060 or 0x080 response, 1ms timeout
             resp = sc->get_frame(KU::IAP_HEARTBEAT_ID, this, test_resp_call_back, 1, mask);
 
@@ -748,7 +748,9 @@ void KinetekUtility::test_iap(int delay_time, int tries, bool mode)
                 break;
             }
         }
-        iap_data_point += "," + std::to_string(count) + "," + std::to_string(std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count() / 1000.0);
+        iap_data_point +=
+            "," + std::to_string(count) + "," +
+            std::to_string(std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count() / 1000.0);
         printf("%s\n", iap_data_point.c_str());
     }
 }

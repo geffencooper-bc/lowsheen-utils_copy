@@ -46,7 +46,7 @@ SocketCanHelper::SocketCanHelper()
     can_trace = fopen("/home/brain/SocketCanHelper_trace.txt", "w");
     if (can_trace == NULL)
     {
-        printf("Cannot open file\n");
+        printf("Can't open file for CAN trace: /home/brain/SocketCanHelper_trace.txt\n", );
         exit(EXIT_FAILURE);
     }
 #endif
@@ -189,7 +189,7 @@ CO_CANrxMsg_t* SocketCanHelper::get_frame(uint32_t can_id,
 
     if (err < 0)
     {
-       DEBUG_PRINTF("TIME OUT\r\n");
+        DEBUG_PRINTF("TIME OUT\r\n");
     }
     else
     {

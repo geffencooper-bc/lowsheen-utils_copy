@@ -37,7 +37,7 @@ using KU::KinetekResponse;
 // ID = 0x001
 uint8_t CanDataList::enter_iap_mode_selective_data[5] = {0x1D, 0x03, 0x27, 0x00, 0x00};
 
- // ID = 0x040
+// ID = 0x040
 uint8_t CanDataList::use_hand_held_programmer_ids_data[8] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
 
 // ID =0x045
@@ -120,7 +120,7 @@ bool CanDataList::array_compare(uint8_t* expected,
 KinetekResponse CanDataList::get_response_type(uint32_t can_id, uint8_t* data_array, uint8_t arr_size)
 {
     // IAP RESPONSE
-    if (can_id == KU::IAP_RESPONSE_ID) // 0x069
+    if (can_id == KU::IAP_RESPONSE_ID)  // 0x069
     {
         if (array_compare(ACK_32_bytes_data, sizeof(ACK_32_bytes_data), data_array, arr_size))
         {
@@ -159,7 +159,7 @@ KinetekResponse CanDataList::get_response_type(uint32_t can_id, uint8_t* data_ar
         }
     }
     // Determine if in IAP mode
-    else if (can_id == KU::IAP_HEARTBEAT_ID) // 0x060
+    else if (can_id == KU::IAP_HEARTBEAT_ID)  // 0x060
     {
         if (array_compare(in_iap_mode_data, sizeof(in_iap_mode_data), data_array, arr_size))
         {
@@ -184,7 +184,7 @@ KinetekResponse CanDataList::get_response_type(uint32_t can_id, uint8_t* data_ar
         return HEARTBEAT;
     }
     // FW VERSION RESPONSE
-    else if (can_id == KU::FW_VERSION_RESPONSE_ID) // 0x067
+    else if (can_id == KU::FW_VERSION_RESPONSE_ID)  // 0x067
     {
         if (data_array[2] == 0x5E)
             return FW_VERSION_RESPONSE;

@@ -199,7 +199,7 @@ void HexUtility::clear()
     total_checksum = 0;
     start_address = 0;
 
-    if(hex_file.is_open())
+    if (hex_file.is_open())
     {
         hex_file.close();
     }

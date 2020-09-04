@@ -35,13 +35,13 @@
 // Kinetek Utility Namespace
 namespace KU
 {
-// =============================================== CAN ID SECTION ==========================================
+    // =============================================== CAN ID SECTION ==========================================
 
     // All the CAN IDs used by kinetek-utility app, divided into sections
     enum CanId
     {
-        // ----------------- IAP Section ----------------
-        // IAP modes
+// ----------------- IAP Section ----------------
+// IAP modes
 #define SELECTIVE_MODE 0
 #define FORCED_MODE 1
 

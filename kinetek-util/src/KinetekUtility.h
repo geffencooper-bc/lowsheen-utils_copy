@@ -76,7 +76,6 @@ class KinetekUtility
 
     // set interface when don't want default "can0"
     void set_can_interface(const string& interface) { can_interface = interface; }
-
     // holds the latest status of Kinetek Utility after executing a tool
     // in command line mode, see parse_opt() in KinetekUtility.cpp
     KU::StatusCode CL_status;

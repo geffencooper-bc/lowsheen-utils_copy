@@ -23,25 +23,25 @@
 
 #include "KinetekUtility.h"
 
-#define TEST_IAP
-// #define COMMAND_LINE_MODE
+// #define TEST_IAP
+#define COMMAND_LINE_MODE
 
 int main(int argc, char** argv)
 {
     // make the KinetekUtility object
     KinetekUtility ku;
 
-    // test reliability and timing of entering iap mode
+// test reliability and timing of entering iap mode
 #ifdef TEST_IAP
-    if(argc != 4)
-        {
-            printf("ARG1: window delay ARG2: number of requests ARG3: IAP mode\n");
-            exit(EXIT_FAILURE);
-        }
-        
-        ku.init_can();
-        ku.test_iap(atoi(argv[1]), atoi(argv[2]), atoi(argv[3]));
-        return 0;
+    if (argc != 4)
+    {
+        printf("ARG1: window delay ARG2: number of requests ARG3: IAP mode\n");
+        exit(EXIT_FAILURE);
+    }
+
+    ku.init_can();
+    ku.test_iap(atoi(argv[1]), atoi(argv[2]), atoi(argv[3]));
+    return 0;
 #endif
 
 #ifdef COMMAND_LINE_MODE
