@@ -23,66 +23,33 @@
 
 #include "KinetekUtility.h"
 
-// #define LIB_EXAMPLE
-#define CL_EXAMPLE
-// #define OTHER
+#define TEST_IAP
+// #define COMMAND_LINE_MODE
 
 int main(int argc, char** argv)
 {
-#ifdef OTHER
-    if(argc != 3)
-    {
-    printf("need an arg in ms\n");
-    exit(EXIT_FAILURE);
-    }
+    // make the KinetekUtility object
     KinetekUtility ku;
-    ku.init_can();
-    ku.test_iap_window(atoi(argv[1]), atoi(argv[2]));
-#endif
 
-// the command line example shows how to use the kinetek utility through the shell
-#ifdef CL_EXAMPLE
-// SocketCanHelper sc;
-// sc.init_socketcan("can0");
-// sc.get_frame(0x080, nullptr, nullptr, 3000);
-    KinetekUtility ku;
-    ku.parse_args(argc, argv);
-    if(ku.CL_status == KU::UPLOAD_COMPLETE)
-    {
-        printf("SUCCESS\n");
-    }
-    else
-    {
-        printf("FAIL\n");
-    }
-    // check the status
-    printf("STATUS: %s\n", ku.translate_status_code(ku.CL_status).c_str());
-#endif
-
-// this example shows how to use the kinetek utility through direct functions calls (as a library)
-#ifdef LIB_EXAMPLE
-    // first create the kinetek utility object and initialize can
-    KinetekUtility ku;
-    ku.set_can_interface("can0");
-    KU::StatusCode status = ku.init_can();
-    if (status == KU::INIT_CAN_SUCCESS)
-    {
-        // IAP Utility: update the kinetek fw using forced mode, retry three times
-        int num_tries = 0;
-        status = ku.run_iap("/home/brain/2.28.hex", 1);
-        while (status != KU::UPLOAD_COMPLETE)
+    // test reliability and timing of entering iap mode
+#ifdef TEST_IAP
+    if(argc != 4)
         {
-            if (num_tries == 3)
-            {
-                break;
-            }
-            // retry if failed
-            status = ku.run_iap("/home/brain/2.28.hex", 1);
-            num_tries++;
+            printf("ARG1: window delay ARG2: number of requests ARG3: IAP mode\n");
+            exit(EXIT_FAILURE);
         }
-    }
-    // check the status so far
-    printf("STATUS: %s\n", ku.translate_status_code(status).c_str());
+        
+        ku.init_can();
+        ku.test_iap(atoi(argv[1]), atoi(argv[2]), atoi(argv[3]));
+        return 0;
+#endif
 
+#ifdef COMMAND_LINE_MODE
+    // execute according to the command line options
+    ku.parse_args(argc, argv);
+
+    // show the status of what was executed (success or error)
+    printf("STATUS: %s\n", ku.translate_status_code(ku.CL_status).c_str());
+    return 0;
 #endif
 }

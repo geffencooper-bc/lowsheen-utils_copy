@@ -158,7 +158,7 @@ KinetekResponse CanDataList::get_response_type(uint32_t can_id, uint8_t* data_ar
             return CALCULATE_TOTAL_CHECKSUM_RESPONSE;
         }
     }
-    // IAP STATUS RESPONSE
+    // Determine if in IAP mode
     else if (can_id == KU::IAP_HEARTBEAT_ID) // 0x060
     {
         if (array_compare(in_iap_mode_data, sizeof(in_iap_mode_data), data_array, arr_size))
@@ -170,7 +170,7 @@ KinetekResponse CanDataList::get_response_type(uint32_t can_id, uint8_t* data_ar
             return KT_CALCULATED_PAGE_CHECKSUM;
         }
     }
-    // first IAP heart beat
+    // Determine if in IAP mode, selective defaults to 0x080 which according to Laurence is the id the LCD uses for IAP
     else if (can_id == LCD_IAP_HEARTBEAT_ID)
     {
         if (array_compare(in_iap_mode_data, sizeof(in_iap_mode_data), data_array, arr_size))
@@ -178,7 +178,7 @@ KinetekResponse CanDataList::get_response_type(uint32_t can_id, uint8_t* data_ar
             return IN_IAP_MODE;
         }
     }
-    // HEART BEAT
+    // Check for a normal heartbeat
     if (can_id == HEARTBEAT_ID && data_array[0] == heartbeat_data[0])  // 0x080
     {
         return HEARTBEAT;

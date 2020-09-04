@@ -70,11 +70,13 @@ class KinetekUtility
     KU::StatusCode toggle_estop(int mode);
     KU::StatusCode reset_xt_can();
 
-    // function to test how long iap window is, specify window using start
-    void test_iap_window(int window_time, int tries);
-    
+    // function to analyze IAP mode timing and reliability, forced and selective
+    // for forced specify the amount of time to delay after power up, and the number of requests to send
+    void test_iap(int window_time, int tries, bool mode);
+
     // set interface when don't want default "can0"
     void set_can_interface(const string& interface) { can_interface = interface; }
+
     // holds the latest status of Kinetek Utility after executing a tool
     // in command line mode, see parse_opt() in KinetekUtility.cpp
     KU::StatusCode CL_status;
