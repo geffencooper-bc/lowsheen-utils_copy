@@ -223,7 +223,7 @@ string KinetekUtility::translate_status_code(KU::StatusCode status)
         }
     }
 }
-#define IAP_MODE_TEST
+//#define IAP_MODE_TEST
 KU::StatusCode KinetekUtility::run_iap(const string& file_path, bool iap_mode)
 {
     if (iap == nullptr)

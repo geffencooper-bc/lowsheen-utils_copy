@@ -23,8 +23,8 @@
 
 #include "KinetekUtility.h"
 
-#define TEST_IAP
-// #define COMMAND_LINE_MODE
+// #define TEST_IAP
+#define COMMAND_LINE_MODE
 
 int main(int argc, char** argv)
 {

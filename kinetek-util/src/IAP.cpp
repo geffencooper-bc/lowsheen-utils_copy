@@ -25,7 +25,7 @@
 
 //#define PROGRESS_BAR
 
-#define IAP_SELECTIVE_MODE_TEST
+//#define IAP_SELECTIVE_MODE_TEST
 //#define IAP_FORCED_MODE_TEST
 
 // these are timeout values used for waiting for response frames

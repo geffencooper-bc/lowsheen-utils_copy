@@ -43,7 +43,8 @@ static FILE* can_trace;
 SocketCanHelper::SocketCanHelper()
 {
 #if DEBUG_SOCKET_CAN
-    can_trace = fopen("/home/brain/SocketCanHelper_trace.txt", "w");
+    can_trace = fopen("/home/brain/SocketCanHelper_trace.txt", "a");
+    DEBUG_PRINTF("\r\n-------------------------------------------------------\r\n", can_trace);
     if (can_trace == NULL)
     {
         printf("Can't open file for CAN trace: /home/brain/SocketCanHelper_trace.txt\n");
