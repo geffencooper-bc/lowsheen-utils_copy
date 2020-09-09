@@ -146,11 +146,11 @@ KU::StatusCode IAP::put_in_iap_mode(bool forced_mode)
     // selective mode
     if (!forced_mode)
     {
-        #ifdef IAP_FORCED_MODE_TEST
+#ifdef IAP_FORCED_MODE_TEST
         // if testing forced mode then simulate a selective failure by returning a "NO_HEARTBEAT_DETECTED" status
         // this will trigger forced mode again
         return KU::NO_HEARTBEAT_DETECTED;
-        #endif
+#endif
 
         // first wait for a normal heart beat before trying to send selective command
         CO_CANrxMsg_t* resp = sc->get_frame(KU::HEARTBEAT_ID, this, IAP_resp_call_back, LONG_WAIT_TIME);
@@ -214,15 +214,16 @@ KU::StatusCode IAP::put_in_iap_mode(bool forced_mode)
             end = std::chrono::steady_clock::now();
         }
 
-        #ifdef IAP_SELECTIVE_MODE_TEST
-        // if want to test selective mode, simulate a forced mode failure by delaying for 10ms instead 
+#ifdef IAP_SELECTIVE_MODE_TEST
+        // if want to test selective mode, simulate a forced mode failure by delaying for 10ms instead
         // of sending the request for 10 ms
-        while (std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count() / 1000.0 < IAP_WINDOW_START + 10)
+        while (std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count() / 1000.0 <
+               IAP_WINDOW_START + 10)
         {
             end = std::chrono::steady_clock::now();
         }
 
-        #else
+#else
         // send IAP request to force the Kinetek to enter IAP mode
         sc->send_frame(KU::IAP_REQUEST_ID, ku_data->force_enter_iap_mode_data,
                        sizeof(ku_data->force_enter_iap_mode_data));
@@ -235,7 +236,7 @@ KU::StatusCode IAP::put_in_iap_mode(bool forced_mode)
             usleep(1000);
             forced_tries++;
         }
-        #endif
+#endif
 
         // wait until after first possible IAP heartbeat
         while (std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count() / 1000.0 < 85)

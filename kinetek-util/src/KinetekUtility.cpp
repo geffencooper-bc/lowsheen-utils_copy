@@ -248,10 +248,10 @@ KU::StatusCode KinetekUtility::run_iap(const string& file_path, bool iap_mode)
     KU::StatusCode status = iap->put_in_iap_mode(iap_mode);
     if (status == KU::IAP_MODE_SUCCESS)
     {
-        // if testing IAP mode do not continue
-        #ifdef IAP_MODE_TEST
+// if testing IAP mode do not continue
+#ifdef IAP_MODE_TEST
         return KU::UPLOAD_COMPLETE;
-        #endif
+#endif
         DEBUG_PRINTF("\n====== IN IAP MODE ======\n\r\n");
         iap->print();  // hex file information
 
@@ -566,14 +566,15 @@ static int parse_opt(int key, char* arg, struct argp_state* state)
                         }
 
                         // if selective mode times out, then increment the iap mode attempts
-                        if(ku->CL_status == KU::IAP_HEARTBEAT_TIMEOUT)
+                        if (ku->CL_status == KU::IAP_HEARTBEAT_TIMEOUT)
                         {
                             iap_mode_attempts++;
                         }
                     }
-                    #ifdef IAP_MODE_TEST
-                    ku->IAP_test_string += std::to_string(iap_mode_attempts) + "," + std::to_string(forced_mode_attempts);
-                    #endif
+#ifdef IAP_MODE_TEST
+                    ku->IAP_test_string +=
+                        std::to_string(iap_mode_attempts) + "," + std::to_string(forced_mode_attempts);
+#endif
                 }
                 else if (file_type == "stu")
                 {

@@ -39,7 +39,7 @@ int main(int argc, char** argv)
     // execute according to the command line options
     ku.parse_args(argc, argv);
 
-    if(ku.CL_status == KU::UPLOAD_COMPLETE)
+    if (ku.CL_status == KU::UPLOAD_COMPLETE)
     {
         printf("S,%s\n", ku.IAP_test_string.c_str());
     }
