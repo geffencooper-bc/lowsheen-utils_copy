@@ -223,7 +223,7 @@ string KinetekUtility::translate_status_code(KU::StatusCode status)
         }
     }
 }
-
+#define IAP_MODE_TEST
 KU::StatusCode KinetekUtility::run_iap(const string& file_path, bool iap_mode)
 {
     if (iap == nullptr)
@@ -248,6 +248,10 @@ KU::StatusCode KinetekUtility::run_iap(const string& file_path, bool iap_mode)
     KU::StatusCode status = iap->put_in_iap_mode(iap_mode);
     if (status == KU::IAP_MODE_SUCCESS)
     {
+        // if testing IAP mode do not continue
+        #ifdef IAP_MODE_TEST
+        return KU::UPLOAD_COMPLETE;
+        #endif
         DEBUG_PRINTF("\n====== IN IAP MODE ======\n\r\n");
         iap->print();  // hex file information
 
@@ -534,8 +538,10 @@ static int parse_opt(int key, char* arg, struct argp_state* state)
                 string file_type = string(arg).substr(strlen(arg) - 3, 3);
                 if (file_type == "hex")
                 {
+                    // IAP mode state machine
                     int iap_mode_attempts = 0;
-                    while (iap_mode_attempts != 3)
+                    int forced_mode_attempts = 0;
+                    while (iap_mode_attempts != 3 || forced_mode_attempts != 10)
                     {
                         // try forced first because xt_can will trigger estop anyways
                         ku->CL_status = ku->run_iap(string(arg), FORCED_MODE);
@@ -543,6 +549,7 @@ static int parse_opt(int key, char* arg, struct argp_state* state)
                         // if forced times out, try selective
                         if (ku->CL_status == KU::HEARTBEAT_DETECTED)
                         {
+                            forced_mode_attempts++;
                             ku->CL_status = ku->run_iap(string(arg), SELECTIVE_MODE);
                         }
 
@@ -557,8 +564,16 @@ static int parse_opt(int key, char* arg, struct argp_state* state)
                         {
                             break;
                         }
-                        iap_mode_attempts++;
+
+                        // if selective mode times out, then increment the iap mode attempts
+                        if(ku->CL_status == KU::IAP_HEARTBEAT_TIMEOUT)
+                        {
+                            iap_mode_attempts++;
+                        }
                     }
+                    #ifdef IAP_MODE_TEST
+                    ku->IAP_test_string += std::to_string(iap_mode_attempts) + "," + std::to_string(forced_mode_attempts);
+                    #endif
                 }
                 else if (file_type == "stu")
                 {

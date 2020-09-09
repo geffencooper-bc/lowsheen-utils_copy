@@ -25,10 +25,15 @@
 
 //#define PROGRESS_BAR
 
+#define IAP_SELECTIVE_MODE_TEST
+//#define IAP_FORCED_MODE_TEST
+
 // these are timeout values used for waiting for response frames
 #define LONG_WAIT_TIME 3000   // ms --> 3 sec
 #define MEDIUM_WAIT_TIME 100  // ms
 #define SHORT_WAIT_TIME 10    // ms
+
+#define IAP_WINDOW_START 38
 
 // init member variables, IAP needs access to the Kinetek Utility can data and socket can helper
 IAP::IAP(SocketCanHelper* sc, KU::CanDataList* ku_data)
@@ -141,6 +146,12 @@ KU::StatusCode IAP::put_in_iap_mode(bool forced_mode)
     // selective mode
     if (!forced_mode)
     {
+        #ifdef IAP_FORCED_MODE_TEST
+        // if testing forced mode then simulate a selective failure by returning a "NO_HEARTBEAT_DETECTED" status
+        // this will trigger forced mode again
+        return KU::NO_HEARTBEAT_DETECTED;
+        #endif
+
         // first wait for a normal heart beat before trying to send selective command
         CO_CANrxMsg_t* resp = sc->get_frame(KU::HEARTBEAT_ID, this, IAP_resp_call_back, LONG_WAIT_TIME);
         if (ku_data->get_response_type(resp->ident, resp->data, resp->DLC) != KU::HEARTBEAT)
@@ -198,11 +209,20 @@ KU::StatusCode IAP::put_in_iap_mode(bool forced_mode)
         end = std::chrono::steady_clock::now();
 
         // wait until get close the 6ms forced window
-        while (std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count() / 1000.0 < 38)
+        while (std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count() / 1000.0 < IAP_WINDOW_START)
         {
             end = std::chrono::steady_clock::now();
         }
 
+        #ifdef IAP_SELECTIVE_MODE_TEST
+        // if want to test selective mode, simulate a forced mode failure by delaying for 10ms instead 
+        // of sending the request for 10 ms
+        while (std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count() / 1000.0 < IAP_WINDOW_START + 10)
+        {
+            end = std::chrono::steady_clock::now();
+        }
+
+        #else
         // send IAP request to force the Kinetek to enter IAP mode
         sc->send_frame(KU::IAP_REQUEST_ID, ku_data->force_enter_iap_mode_data,
                        sizeof(ku_data->force_enter_iap_mode_data));
@@ -212,22 +232,23 @@ KU::StatusCode IAP::put_in_iap_mode(bool forced_mode)
         {
             sc->send_frame(KU::IAP_REQUEST_ID, ku_data->force_enter_iap_mode_data,
                            sizeof(ku_data->force_enter_iap_mode_data));
-            usleep(1500);
+            usleep(1000);
             forced_tries++;
         }
+        #endif
 
-        // wait until get close to first possible IAP heartbeat
-        while (std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count() / 1000.0 < 80)
+        // wait until after first possible IAP heartbeat
+        while (std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count() / 1000.0 < 85)
         {
             end = std::chrono::steady_clock::now();
         }
 
-        // force the Kinetek to use hand held programmer Can Ids (0x060 Heartbeat)
+        // after the first IAP heartbeat, force the Kinetek to use hand held programmer Can Ids (0x060 Heartbeat)
         sc->send_frame(KU::HAND_HELD_PROGRAMMER_ID, ku_data->use_hand_held_programmer_ids_data,
                        sizeof(ku_data->use_hand_held_programmer_ids_data));
 
         // check if entered IAP mode
-        CO_CANrxMsg_t* resp = sc->get_frame(KU::IAP_HEARTBEAT_ID, this, IAP_resp_call_back, MEDIUM_WAIT_TIME);
+        CO_CANrxMsg_t* resp = sc->get_frame(KU::IAP_HEARTBEAT_ID, this, IAP_resp_call_back, LONG_WAIT_TIME);
         if (ku_data->get_response_type(resp->ident, resp->data, resp->DLC) == KU::IN_IAP_MODE)
         {
             return KU::IAP_MODE_SUCCESS;
@@ -236,7 +257,7 @@ KU::StatusCode IAP::put_in_iap_mode(bool forced_mode)
         // if did not enter IAP mode, check for a normal heartbeat
         else
         {
-            resp = sc->get_frame(KU::HEARTBEAT_ID, this, IAP_resp_call_back, MEDIUM_WAIT_TIME);
+            resp = sc->get_frame(KU::HEARTBEAT_ID, this, IAP_resp_call_back, LONG_WAIT_TIME);
             if (ku_data->get_response_type(resp->ident, resp->data, resp->DLC) == KU::HEARTBEAT)
             {
                 return KU::HEARTBEAT_DETECTED;
@@ -248,6 +269,7 @@ KU::StatusCode IAP::put_in_iap_mode(bool forced_mode)
 
 KU::StatusCode IAP::send_init_frames()
 {
+    usleep(3000);
     DEBUG_PRINTF("\n====== SEND INIT PACKETS ======\r\n");
     // first send the fw version request
     sc->send_frame(KU::FW_VERSION_REQUEST_ID, ku_data->fw_version_request_data,
@@ -491,11 +513,11 @@ KU::StatusCode IAP::send_hex_packet(bool is_retry)
         KU::CanId curr_frame_id = KU::RESEND_FRAME_1_ID;
         uint8_t data[CAN_DATA_LEN];
         sc->send_frame(KU::RESEND_FRAME_1_ID, current_packet, sizeof(data));
-        usleep(1500);  // delay to prevent TX overflow
+        usleep(3000);  // delay to prevent TX overflow
         sc->send_frame(KU::RESEND_FRAME_2_ID, current_packet + 8, sizeof(data));
-        usleep(1500);  // delay to prevent TX overflow
+        usleep(3000);  // delay to prevent TX overflow
         sc->send_frame(KU::RESEND_FRAME_3_ID, current_packet + 16, sizeof(data));
-        usleep(1500);  // delay to prevent TX overflow
+        usleep(3000);  // delay to prevent TX overflow
         sc->send_frame(KU::RESEND_FRAME_4_ID, current_packet + 24, sizeof(data));
         CO_CANrxMsg_t* resp = sc->get_frame(KU::IAP_RESPONSE_ID, this, IAP_resp_call_back, SHORT_WAIT_TIME);
         if (ku_data->get_response_type(resp->ident, resp->data, resp->DLC) != KU::ACK_32_BYTES)
@@ -561,14 +583,14 @@ KU::StatusCode IAP::send_hex_packet(bool is_retry)
                     {
                         case KU::SEND_FRAME_1_ID:
                         {
-                            usleep(1500);  // delay to prevent TX overflow
+                            usleep(3000);  // delay to prevent TX overflow
                             sc->send_frame(KU::SEND_FRAME_1_ID, current_packet, CAN_DATA_LEN);
                             curr_frame_id = KU::SEND_FRAME_2_ID;
                             frame_count += 1;
                         }
                         case KU::SEND_FRAME_2_ID:
                         {
-                            usleep(1500);  // delay to prevent TX overflow
+                            usleep(3000);  // delay to prevent TX overflow
                             sc->send_frame(KU::SEND_FRAME_2_ID, current_packet + CAN_DATA_LEN * frame_count,
                                            CAN_DATA_LEN);
                             curr_frame_id = KU::SEND_FRAME_3_ID;
@@ -576,7 +598,7 @@ KU::StatusCode IAP::send_hex_packet(bool is_retry)
                         }
                         case KU::SEND_FRAME_3_ID:
                         {
-                            usleep(1500);  // delay to prevent TX overflow
+                            usleep(3000);  // delay to prevent TX overflow
                             sc->send_frame(KU::SEND_FRAME_3_ID, current_packet + CAN_DATA_LEN * frame_count,
                                            CAN_DATA_LEN);
                             curr_frame_id = KU::SEND_FRAME_4_ID;
@@ -584,7 +606,7 @@ KU::StatusCode IAP::send_hex_packet(bool is_retry)
                         }
                         case KU::SEND_FRAME_4_ID:
                         {
-                            usleep(1500);  // delay to prevent TX overflow
+                            usleep(3000);  // delay to prevent TX overflow
                             sc->send_frame(KU::SEND_FRAME_4_ID, current_packet + CAN_DATA_LEN * frame_count,
                                            CAN_DATA_LEN);
                             CO_CANrxMsg_t* resp =
@@ -609,7 +631,7 @@ KU::StatusCode IAP::send_hex_packet(bool is_retry)
             {
                 case KU::SEND_FRAME_1_ID:
                 {
-                    usleep(1500);  // delay to prevent TX overflow
+                    usleep(3000);  // delay to prevent TX overflow
                     sc->send_frame(KU::SEND_FRAME_1_ID, data, sizeof(data));
                     curr_frame_id = KU::SEND_FRAME_2_ID;
                     frame_count += 1;
@@ -617,7 +639,7 @@ KU::StatusCode IAP::send_hex_packet(bool is_retry)
                 }
                 case KU::SEND_FRAME_2_ID:
                 {
-                    usleep(1500);  // delay to prevent TX overflow
+                    usleep(3000);  // delay to prevent TX overflow
                     sc->send_frame(KU::SEND_FRAME_2_ID, data, sizeof(data));
                     curr_frame_id = KU::SEND_FRAME_3_ID;
                     frame_count += 1;
@@ -625,7 +647,7 @@ KU::StatusCode IAP::send_hex_packet(bool is_retry)
                 }
                 case KU::SEND_FRAME_3_ID:
                 {
-                    usleep(1500);  // delay to prevent TX overflow
+                    usleep(3000);  // delay to prevent TX overflow
                     sc->send_frame(KU::SEND_FRAME_3_ID, data, sizeof(data));
                     curr_frame_id = KU::SEND_FRAME_4_ID;
                     frame_count += 1;
@@ -633,7 +655,7 @@ KU::StatusCode IAP::send_hex_packet(bool is_retry)
                 }
                 case KU::SEND_FRAME_4_ID:
                 {
-                    usleep(1500);  // delay to prevent TX overflow
+                    usleep(3000);  // delay to prevent TX overflow
                     sc->send_frame(KU::SEND_FRAME_4_ID, data, sizeof(data));
                     CO_CANrxMsg_t* resp =
                         sc->get_frame(KU::IAP_RESPONSE_ID, this, IAP_resp_call_back, MEDIUM_WAIT_TIME);

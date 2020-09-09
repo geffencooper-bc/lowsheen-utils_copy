@@ -46,7 +46,7 @@ SocketCanHelper::SocketCanHelper()
     can_trace = fopen("/home/brain/SocketCanHelper_trace.txt", "w");
     if (can_trace == NULL)
     {
-        printf("Can't open file for CAN trace: /home/brain/SocketCanHelper_trace.txt\n", );
+        printf("Can't open file for CAN trace: /home/brain/SocketCanHelper_trace.txt\n");
         exit(EXIT_FAILURE);
     }
 #endif

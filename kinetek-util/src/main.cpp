@@ -23,8 +23,8 @@
 
 #include "KinetekUtility.h"
 
-// #define TEST_IAP
-#define COMMAND_LINE_MODE
+#define TEST_IAP
+// #define COMMAND_LINE_MODE
 
 int main(int argc, char** argv)
 {
@@ -33,14 +33,29 @@ int main(int argc, char** argv)
 
 // test reliability and timing of entering iap mode
 #ifdef TEST_IAP
-    if (argc != 4)
-    {
-        printf("ARG1: window delay ARG2: number of requests ARG3: IAP mode\n");
-        exit(EXIT_FAILURE);
-    }
 
     ku.init_can();
-    ku.test_iap(atoi(argv[1]), atoi(argv[2]), atoi(argv[3]));
+
+    // execute according to the command line options
+    ku.parse_args(argc, argv);
+
+    if(ku.CL_status == KU::UPLOAD_COMPLETE)
+    {
+        printf("S,%s\n", ku.IAP_test_string.c_str());
+    }
+    else
+    {
+        printf("F,%s\n", ku.IAP_test_string.c_str());
+    }
+
+    // test IAP modes as stand alone functions, not in terms of state machine
+    // if (argc != 4)
+    // {
+    //     printf("ARG1: window delay ARG2: number of requests ARG3: IAP mode\n");
+    //     exit(EXIT_FAILURE);
+    // }
+
+    // ku.test_iap(atoi(argv[1]), atoi(argv[2]), atoi(argv[3]));
     return 0;
 #endif
 

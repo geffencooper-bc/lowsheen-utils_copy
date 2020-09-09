@@ -80,6 +80,8 @@ class KinetekUtility
     // in command line mode, see parse_opt() in KinetekUtility.cpp
     KU::StatusCode CL_status;
 
+    string IAP_test_string = "";
+
    private:
     SocketCanHelper* sc;
     KU::CanDataList* ku_data;  // holds all can data used by the utilities
