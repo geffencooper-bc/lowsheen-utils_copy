@@ -8,9 +8,11 @@ project(lowsheen-utils)
 set(LOWSHEEN_UTILS_PATH /usr/local/bin)
 
 set(CMAKE_C_FLAGS ${CMAKE_C_FLAGS} "-Wall -Werror")
+set(CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS} "-std=c++11 -g")
 
 set(BUILD_OUTPUT_PATH ${PROJECT_SOURCE_DIR})
 set(CMAKE_BINARY_DIR ${BUILD_OUTPUT_PATH})
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/bin)
 
 # Extract GIT information
 
@@ -51,6 +53,7 @@ configure_file(${PROJECT_SOURCE_DIR}/version.h.cmake ${BUILD_OUTPUT_PATH}/versio
 # Project Applications
 add_subdirectory(vcis-util)
 add_subdirectory(machine-util)
+add_subdirectory(manifest-util)
 
 # Debian Package Definition (using CPack)
 SET(CPACK_GENERATOR "DEB")

@@ -1,15 +1,6 @@
 #include <libusb.h>
 #include <stdio.h>
-
-#pragma pack(push, 1)
-#define MAGIC_NUMBER 1296387957
-typedef struct
-{
-    uint32_t      magic_number; //1296387957
-    uint8_t       mode;         //# 2 = xt_can mode, 1 = dfu mode, 0 to restart the STM
-    uint16_t      checksum;     //# set but not validated
-} config_packet_t;
-#pragma pack(pop)
+#include "lowsheen_headers.h"
 
 void printdev(libusb_device *dev); //prototype of the function
 
@@ -18,7 +9,7 @@ int attempt_xt_can(libusb_context *ctx)
     struct libusb_device_handle *dev_handle;
     int r;
     int actual;
-    config_packet_t config_packet = { MAGIC_NUMBER, 0x02, 0x00};
+    lowsheen::config_packet_t config_packet = { MAGIC_NUMBER, 0x02, 0x00};
 
 	dev_handle = libusb_open_device_with_vid_pid(ctx, 0x0483, 0x0002); //these are vendorID and productID I found for my usb device
 
