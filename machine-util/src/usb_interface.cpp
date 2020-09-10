@@ -33,6 +33,12 @@ bool USBInterface::claim(uint16_t vid, uint16_t pid)
 
     dev_handle = libusb_open_device_with_vid_pid(ctx, vid, pid); //these are vendorID and productID I found for my usb device
 
+    if(dev_handle == nullptr)
+    {
+        printf("Cannot Obtain Interface. VID:%04X PID:%04X\r\n", vid, pid);
+        return false;
+    }
+
     if(libusb_kernel_driver_active(dev_handle, 0) == 1)  //find out if kernel driver is attached
     {
         printf("Kernel Driver Active\r\n");
