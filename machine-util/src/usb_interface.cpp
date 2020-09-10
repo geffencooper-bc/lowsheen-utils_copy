@@ -116,7 +116,7 @@ int32_t USBInterface::read(uint8_t endpoint, uint8_t *data, int32_t data_size)
         return -1;
     }
 
-    printf("Writing Data...\r\n");
+    printf("Reading Data...\r\n");
     r = libusb_bulk_transfer(dev_handle, (unsigned char )endpoint, (unsigned char *)data, data_size, &actual, 0); //my device's out endpoint was 2, found with trial- the device had 2 endpoints: 2 and 129
     if(r == 0) 
         printf("Read Successful!\r\n");

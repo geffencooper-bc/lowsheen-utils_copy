@@ -92,11 +92,18 @@ int main(int argc, char *argv[])
 
     lowsheen::MuleInterface interface(argv[1]);
 
-    lowsheen::header_t header = interface.get_header();
+    lowsheen::header_t header;
+    
+    if(interface.get_header(&header))
+    {
+        std::cout << "Found header: " << header.header_protocol_version << std::endl;
 
-    std::cout << "Found header: " << header.header_protocol_version << std::endl;
-
-    interface.enter_xt_can_mode();
+        interface.enter_xt_can_mode();
+    }
+    else
+    {
+        std::cout << "failed to communicate with lowsheen device" << std::endl;
+    }
 
 	return 0;
 }

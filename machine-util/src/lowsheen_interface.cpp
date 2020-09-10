@@ -28,34 +28,41 @@ bool MuleInterface::enter_normal_mode()
     return usb_interface.claim(USB_MULE_VID, USB_MULE_PID);
 }
 
-header_t MuleInterface::get_header()
+bool MuleInterface::get_header(header_t *header)
 {
     uint8_t interface_data[1024];
     request_packet_t request;
-    header_t header;
     int len;
 
     USBInterface usb_interface;
 
-    if(enter_normal_mode())
+    if(enter_normal_mode() == false)
     {
-        usb_interface.claim(USB_MULE_VID, USB_MULE_PID);
+        return false;
+    }
 
-        generate_request_packet(&request);
+    usb_interface.claim(USB_MULE_VID, USB_MULE_PID);
 
-        usb_interface.write(0x03, (uint8_t *)&request, (int32_t)sizeof(request_packet_t));
+    generate_request_packet(&request);
 
-        len = usb_interface.read(0x81, interface_data, (int32_t)sizeof(interface_data));
+    usb_interface.write(0x03, (uint8_t *)&request, (int32_t)sizeof(request_packet_t));
 
-        interface_decode(&header, interface_data, len);
+    len = usb_interface.read(0x81, interface_data, (int32_t)sizeof(interface_data));
 
-        return header;
+    if(interface_decode(header, interface_data, len) == false)
+    {
+        return false;
     }
 }
 
 bool MuleInterface::enter_xt_can_mode()
 {    
-    header_t header = get_header();
+    header_t header;
+    
+    if(get_header(&header) == false)
+    {
+        return false;
+    }
     config_packet_t config_packet;
     USBInterface usb_interface;
 

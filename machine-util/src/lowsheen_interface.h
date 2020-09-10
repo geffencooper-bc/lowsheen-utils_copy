@@ -15,7 +15,7 @@ namespace lowsheen
         public:
             MuleInterface(const char *filename);
             bool enter_normal_mode();
-            header_t get_header();
+            bool get_header(header_t *header);
             bool enter_xt_can_mode();
     };
 }
