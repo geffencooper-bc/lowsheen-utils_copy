@@ -106,6 +106,29 @@ int32_t interface_request_size()
     return PROTOCOL_MAX_SIZE;
 }
 
+static uint32_t generate_crc32b(const uint8_t* data, uint32_t length)
+{
+    // takes about 1second for 100KB
+    uint32_t crc = 0xFFFFFFFF;
+    const uint8_t* data_end = &data[length];
+
+    for (; data < data_end; data++)
+    {
+        crc ^= *data;
+
+        crc = (crc & 1) ? (crc >> 1) ^ 0xEDB88320 : crc >> 1;
+        crc = (crc & 1) ? (crc >> 1) ^ 0xEDB88320 : crc >> 1;
+        crc = (crc & 1) ? (crc >> 1) ^ 0xEDB88320 : crc >> 1;
+        crc = (crc & 1) ? (crc >> 1) ^ 0xEDB88320 : crc >> 1;
+        crc = (crc & 1) ? (crc >> 1) ^ 0xEDB88320 : crc >> 1;
+        crc = (crc & 1) ? (crc >> 1) ^ 0xEDB88320 : crc >> 1;
+        crc = (crc & 1) ? (crc >> 1) ^ 0xEDB88320 : crc >> 1;
+        crc = (crc & 1) ? (crc >> 1) ^ 0xEDB88320 : crc >> 1;
+    }
+
+    return ~crc;
+}
+
 void generate_request_packet(request_packet_t *packet)
 {
     std::chrono::milliseconds ms = std::chrono::duration_cast< std::chrono::milliseconds >(
@@ -126,7 +149,7 @@ void generate_request_packet(request_packet_t *packet)
     packet->time = get_bcd_time(datetime);
     packet->log = 0;
     packet->generate_coverage = 0;
-    packet->checksum = (uint16_t)crc32(crc, (uint8_t *)packet, sizeof(request_packet_t) - 2);
+    packet->checksum = (uint16_t)generate_crc32b((uint8_t *)packet, sizeof(request_packet_t) - sizeof(packet->checksum));
 }
 
 }

@@ -4,6 +4,8 @@
 #include "manifest.h"
 #include "lowsheen_headers.h"
 
+#pragma once
+
 namespace lowsheen
 {
     class MuleInterface

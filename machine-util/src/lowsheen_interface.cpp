@@ -6,7 +6,8 @@
 
 
 static const uint16_t USB_MULE_VID = 0x0483;
-static const uint16_t USB_MULE_PID = 0x5710;
+//static const uint16_t USB_MULE_PID = 0x5710;
+static const uint16_t USB_MULE_PID = 0x0002;
 
 class usb
 {
@@ -144,11 +145,6 @@ bool MuleInterface::enter_normal_mode()
 
 header_t MuleInterface::get_header()
 {
-    // detect if mule usb connection available
-    // if not true, detect xt_can mode then switch back to mule usb
-    // detect mule usb
-    // read header
-
     uint8_t interface_data[1024];
     request_packet_t request;
     header_t header;
@@ -160,7 +156,7 @@ header_t MuleInterface::get_header()
 
         generate_request_packet(&request);
 
-        mule_usb.write(0x02, (uint8_t *)&request, (int32_t)sizeof(request_packet_t));
+        mule_usb.write(0x03, (uint8_t *)&request, (int32_t)sizeof(request_packet_t));
 
         len = mule_usb.read(0x81, interface_data, (int32_t)sizeof(interface_data));
 
@@ -171,10 +167,23 @@ header_t MuleInterface::get_header()
 }
 
 bool MuleInterface::enter_xt_can_mode()
-{
+{    
     header_t header = get_header();
+    config_packet_t config_packet;
 
+    if(header.safe_to_flash == 1 && header.estop_code == 0)
+    {
+        usb mule_usb(USB_MULE_VID, USB_MULE_PID);
 
+        config_packet.magic_number = MAGIC_NUMBER;
+        config_packet.mode = 2;
+        config_packet.checksum = 0; // not used
+
+        mule_usb.write(0x02, (uint8_t *)&config_packet, (int32_t)sizeof(config_packet));
+        return true;
+    }
+
+    return false;
 }
 
 }
