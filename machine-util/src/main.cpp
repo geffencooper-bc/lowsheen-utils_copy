@@ -94,7 +94,9 @@ int main(int argc, char *argv[])
 
     lowsheen::header_t header = interface.get_header();
 
-    std::cout << "Found header" << header.header_protocol_version << std::endl;
+    std::cout << "Found header: " << header.header_protocol_version << std::endl;
+
+    interface.enter_xt_can_mode();
 
 	return 0;
 }

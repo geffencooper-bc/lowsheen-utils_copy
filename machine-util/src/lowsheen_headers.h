@@ -19,14 +19,14 @@ typedef struct
 
 typedef struct
 {
-    uint64_t timestamp;
-    uint32_t packet_id;
-    uint32_t packet_reset;
-    uint32_t date;
-    uint32_t time;
-    uint8_t log;
-    uint8_t generate_coverage;
-    uint16_t checksum;
+	uint64_t  	timestamp;	/* timestamp in ms*/
+	uint32_t  	packet_id;	/* unique packet number, can not be 0*/
+	uint8_t   	packet_reset;	/* boolean: 1 - reset packet counter on firmware side, otherwise verify sequence*/
+	uint32_t  	date;	/* date in BCD (binary coded decimal) format*/
+	uint32_t  	time;	/* time in BCD format*/
+	uint8_t   	log;	/* retrieve log file*/
+	uint8_t   	generate_coverage;	/* for unit testing only, generate coverage data*/
+	uint16_t  	checksum;	/* CRC-16 checksum*/
 } request_packet_t;
 
 typedef struct
