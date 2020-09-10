@@ -20,6 +20,7 @@ set(SOURCES
                 ${APP_SRC}/main.cpp
                 ${APP_SRC}/lowsheen_headers.cpp
                 ${APP_SRC}/lowsheen_interface.cpp
+                ${APP_SRC}/usb_interface.cpp
                 ${MANIFEST_SRC}/manifest.cpp
 )
 
