@@ -23,16 +23,46 @@
 
 #include "KinetekUtility.h"
 
-// #define TEST_IAP
-#define COMMAND_LINE_MODE
+//#define FULL_IAP_TEST
+//#define TEST_FORCED_WINDOW
+#define TEST_IAP_MODE
+//#define COMMAND_LINE_MODE
 
 int main(int argc, char** argv)
 {
     // make the KinetekUtility object
     KinetekUtility ku;
 
+#ifdef FULL_IAP_TEST
+    // execute according to the command line options
+    ku.parse_args(argc, argv);
+
+    // show the status of what was executed (success or error)
+    if(ku.CL_status == KU::UPLOAD_COMPLETE)
+    {
+        printf("+\n");
+    }
+    else
+    {
+        printf("-\n");
+    }
+    return 0;
+
+#endif
+
+#ifdef TEST_FORCED_WINDOW
+    // test the iap forced window time
+    if (argc != 3)
+    {
+        printf("ARG1: window delay ARG2: number of requests\n");
+        exit(EXIT_FAILURE);
+    }
+    ku.init_can();
+    ku.test_forced_window(atoi(argv[1]), atoi(argv[2]));
+
+#endif
 // test reliability and timing of entering iap mode
-#ifdef TEST_IAP
+#ifdef TEST_IAP_MODE
 
     ku.init_can();
 
@@ -41,21 +71,12 @@ int main(int argc, char** argv)
 
     if (ku.CL_status == KU::UPLOAD_COMPLETE)
     {
-        printf("S,%s\n", ku.IAP_test_string.c_str());
+        printf("+,%s\n", ku.IAP_test_string.c_str());
     }
     else
     {
-        printf("F,%s\n", ku.IAP_test_string.c_str());
+        printf("-,%s\n", ku.IAP_test_string.c_str());
     }
-
-    // test IAP modes as stand alone functions, not in terms of state machine
-    // if (argc != 4)
-    // {
-    //     printf("ARG1: window delay ARG2: number of requests ARG3: IAP mode\n");
-    //     exit(EXIT_FAILURE);
-    // }
-
-    // ku.test_iap(atoi(argv[1]), atoi(argv[2]), atoi(argv[3]));
     return 0;
 #endif
 
