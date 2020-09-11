@@ -25,7 +25,7 @@
 
 //#define PROGRESS_BAR
 
-//#define IAP_SELECTIVE_MODE_TEST
+#define IAP_SELECTIVE_MODE_TEST
 //#define IAP_FORCED_MODE_TEST
 
 // these are timeout values used for waiting for response frames
@@ -33,7 +33,7 @@
 #define MEDIUM_WAIT_TIME 100  // ms
 #define SHORT_WAIT_TIME 10    // ms
 
-#define IAP_WINDOW_START 38
+#define IAP_WINDOW_START 31
 
 // init member variables, IAP needs access to the Kinetek Utility can data and socket can helper
 IAP::IAP(SocketCanHelper* sc, KU::CanDataList* ku_data)
@@ -123,7 +123,7 @@ void IAP::progress_bar(int current, int total, int bar_length)
     {
         spaces += " ";
     }
-    printf("Progress [%s%s] %i %% PAGE: %i\r", arrow.c_str(), spaces.c_str(), percent, page_count);
+    DEBUG_PRINTF("Progress [%s%s] %i %% PAGE: %i\r", arrow.c_str(), spaces.c_str(), percent, page_count);
 }
 
 // callback function for received messages, not used as of now
@@ -209,7 +209,7 @@ KU::StatusCode IAP::put_in_iap_mode(bool forced_mode)
         end = std::chrono::steady_clock::now();
 
         // wait until get close the 6ms forced window
-        while (std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count() / 1000.0 < IAP_WINDOW_START)
+        while (std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count() / 1000.0 < IAP_WINDOW_START -5)
         {
             end = std::chrono::steady_clock::now();
         }
@@ -227,19 +227,20 @@ KU::StatusCode IAP::put_in_iap_mode(bool forced_mode)
         // send IAP request to force the Kinetek to enter IAP mode
         sc->send_frame(KU::IAP_REQUEST_ID, ku_data->force_enter_iap_mode_data,
                        sizeof(ku_data->force_enter_iap_mode_data));
+        usleep(2000);
 
-        // send the request 10 times at a 1ms interval
-        while (forced_tries < 10)
+        // send the request 5 times at a 1ms interval
+        while (forced_tries < 5)
         {
             sc->send_frame(KU::IAP_REQUEST_ID, ku_data->force_enter_iap_mode_data,
                            sizeof(ku_data->force_enter_iap_mode_data));
-            usleep(1000);
+            usleep(2000);
             forced_tries++;
         }
 #endif
 
         // wait until after first possible IAP heartbeat
-        while (std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count() / 1000.0 < 85)
+        while (std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count() / 1000.0 < IAP_WINDOW_START+35)
         {
             end = std::chrono::steady_clock::now();
         }

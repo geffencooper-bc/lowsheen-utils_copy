@@ -30,7 +30,7 @@
 #define DEBUG_VERBOSE 0
 
 // normal printf, used for error messages
-#define DEBUG_DEFAULT 0
+#define DEBUG_DEFAULT 1
 
 // define this to see messages sent/received over socketcan (can trace)
 #define DEBUG_SOCKET_CAN 1

@@ -24,6 +24,8 @@
 #include "KinetekUtility.h"
 #include <argp.h>
 
+#define IAP_MODE_TEST
+
 KinetekUtility::KinetekUtility()
 {
     ku_data = new KU::CanDataList;
@@ -151,7 +153,7 @@ string KinetekUtility::translate_status_code(KU::StatusCode status)
         }
         case KU::UPLOAD_ERROR:
         {
-            return "There was an error while downloading the hex file";
+            return "There was an error while downloading the hex file. See debug print statements for more details";
         }
         case KU::KU_INIT_ERROR:
         {
@@ -223,7 +225,7 @@ string KinetekUtility::translate_status_code(KU::StatusCode status)
         }
     }
 }
-#define IAP_MODE_TEST
+
 KU::StatusCode KinetekUtility::run_iap(const string& file_path, bool iap_mode)
 {
     if (iap == nullptr)
@@ -364,11 +366,11 @@ KU::StatusCode KinetekUtility::get_stu_param(int param_num)
     }
     if (param_value == 255)
     {
-        printf("Parameter not used\r\n");
+        DEBUG_PRINTF("Parameter not used\r\n");
     }
     else
     {
-        printf("STU PARAM #%i: %i\r\n", param_num, param_value);
+        DEBUG_PRINTF("STU PARAM #%i: %i\r\n", param_num, param_value);
     }
     return KU::STU_PARAM_READ_SUCCESS;
 }
@@ -541,7 +543,9 @@ static int parse_opt(int key, char* arg, struct argp_state* state)
                     // IAP mode state machine
                     int iap_mode_attempts = 0;
                     int forced_mode_attempts = 0;
-                    char mode_that_worked = '-';
+                    char mode_that_worked = '-'; // debug string
+                    
+                    // try the whole state machine 3 times or forced mode 10 times if FW gets into a bad state with no heartbeats
                     while (iap_mode_attempts != 3 || forced_mode_attempts != 10)
                     {
                         // try forced first because xt_can will trigger estop anyways
@@ -556,6 +560,12 @@ static int parse_opt(int key, char* arg, struct argp_state* state)
                             mode_that_worked = 'S'; // set temporarily
                         }
 
+                        // if selective mode times out, then increment the iap mode attempts
+                        if (ku->CL_status == KU::IAP_HEARTBEAT_TIMEOUT)
+                        {
+                            iap_mode_attempts++;
+                        }
+
                         // if any attempt succeeds then break
                         if (ku->CL_status == KU::UPLOAD_COMPLETE)
                         {
@@ -567,12 +577,6 @@ static int parse_opt(int key, char* arg, struct argp_state* state)
                         if (ku->CL_status == KU::UPLOAD_ERROR)
                         {
                             break;
-                        }
-
-                        // if selective mode times out, then increment the iap mode attempts
-                        if (ku->CL_status == KU::IAP_HEARTBEAT_TIMEOUT)
-                        {
-                            iap_mode_attempts++;
                         }
                     }
 #ifdef IAP_MODE_TEST
