@@ -7,11 +7,21 @@
 namespace lowsheen
 {
 
-bool Manifest::read(std::string filename)
+bool Manifest::read(const char * filename)
 {
     tinyxml2::XMLDocument xmlDoc;
 
-    int eResult = (int)xmlDoc.LoadFile(filename.c_str());
+    if(filename == nullptr)
+    {
+        return false;
+    }
+
+    if(filename[0] == '0')
+    {
+        return false;
+    }
+
+    int eResult = (int)xmlDoc.LoadFile(filename);
     if(eResult != 0)
     {
         return false;
@@ -83,7 +93,7 @@ bool Manifest::read(std::string filename)
     return true;
 }
 
-bool Manifest::write(std::string filename)
+bool Manifest::write(const char * filename)
 {
     tinyxml2::XMLDocument xmlDoc;
     tinyxml2::XMLNode * pRoot = xmlDoc.NewElement("manifest");
@@ -131,9 +141,28 @@ bool Manifest::write(std::string filename)
     }
     pRoot->InsertEndChild(pElementPaths);
 
-    int eResult = (int)xmlDoc.SaveFile(filename.c_str());
+    int eResult = (int)xmlDoc.SaveFile(filename);
 
     return eResult == 0;
+}
+
+bool Manifest::find(int *id, const char *id_or_name)
+{
+    for (auto const& m : machines)
+    {
+        if(std::to_string(m.first) == std::string(id_or_name))
+        {
+            *id = m.first;
+            return true;
+        }
+        else if(m.second.machine_name == std::string(id_or_name))
+        {
+            *id = m.first;
+            return true;
+        }
+    }
+
+    return false;
 }
 
 }

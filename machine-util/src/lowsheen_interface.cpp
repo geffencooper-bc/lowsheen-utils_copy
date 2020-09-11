@@ -12,11 +12,6 @@ static const uint16_t USB_MULE_PID = 0x0002;
 namespace lowsheen
 {
 
-MuleInterface::MuleInterface(const char *filename)
-{
-    manifest.read(filename);
-}
-
 bool MuleInterface::enter_normal_mode()
 {
     // detect mode
@@ -53,23 +48,20 @@ bool MuleInterface::get_header(header_t *header)
     {
         return false;
     }
+
+    return true;
 }
 
 bool MuleInterface::enter_xt_can_mode()
 {    
     header_t header;
     
-    if(get_header(&header) == false)
-    {
-        return false;
-    }
     config_packet_t config_packet;
+
     USBInterface usb_interface;
 
-    if(header.safe_to_flash == 1 && header.estop_code == 0)
+    if(usb_interface.claim(USB_MULE_VID, USB_MULE_PID))
     {
-        usb_interface.claim(USB_MULE_VID, USB_MULE_PID);
-
         config_packet.magic_number = MAGIC_NUMBER;
         config_packet.mode = 2;
         config_packet.checksum = 0; // not used
@@ -79,6 +71,7 @@ bool MuleInterface::enter_xt_can_mode()
     }
 
     return false;
+
 }
 
 }

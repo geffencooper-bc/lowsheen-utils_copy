@@ -3,6 +3,8 @@
 #include <map>
 #include <vector>
 
+#pragma once
+
 namespace lowsheen
 {
     class ControllerEntry
@@ -25,7 +27,8 @@ namespace lowsheen
     public:
         std::map<int, MachineEntry> machines;
         std::vector<std::string> paths;
-        bool read(std::string filename);
-        bool write(std::string filename);
+        bool read(const char * filename);
+        bool write(const char * filename);
+        bool find(int *id, const char *id_or_name);
     };
 }

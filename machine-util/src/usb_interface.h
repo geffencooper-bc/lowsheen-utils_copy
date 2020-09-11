@@ -2,9 +2,19 @@
 
 #pragma once
 #include <libusb.h>
+#include <vector>
 
 namespace lowsheen
 {
+struct USBDevice
+{
+    uint8_t num_configurations;
+    uint8_t device_class;
+    uint16_t vid;
+    uint16_t pid;    
+};
+
+
 class USBInterface
 {
     private:
@@ -14,8 +24,10 @@ class USBInterface
         bool ready;
     public:
         USBInterface();
-        ~USBInterface();
-        bool claim(uint16_t vid, uint16_t pid);
+        ~USBInterface();    
+        bool list(std::vector<USBDevice> *entries);     
+        bool init();
+        bool claim(uint16_t vid, uint16_t pid);        
         void release();
         int32_t get_status();
 

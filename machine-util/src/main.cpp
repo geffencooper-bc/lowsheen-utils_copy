@@ -1,148 +1,159 @@
-#include <libusb.h>
-#include <stdio.h>
+
 #include "lowsheen_interface.h"
 #include <iostream>
+#include <cstdlib>
+#include <cstring>
+#include <unistd.h>
+#include <argp.h>
+#include "version.h"
+#include "manifest.h"
 
-void printdev(libusb_device *dev); //prototype of the function
+const char *argp_program_version = "programname programversion";
+const char *argp_program_bug_address = "<your@email.address>";
+static char doc[] = "MANIFEST_FILE MACHINE_NAME_OR_ID";
+static char args_doc[] = "";
+static struct argp_option options[] = { 
+    {"update", 'u', "ARG", 0, "Update Program and Configuration Parameter"},
+    {"read", 'r', "ARG", 0, "Read a parameter or file"},
+    {"write", 'w', "ARG", 0, "Write a parameter or file\nParameter requires value argument"},
+    {"interface", 'i', "NAME", 0, "Specify interface name, can0 by default"},
+    {"cycle", 'c', 0, 0, "Reset xt can"},
+    {"estop", 'e', "STATE", 0, "Toggle estop, 1 = trigger estop 2 = disable estop"},
+    {"value", 'v', "VAL", 0, "Value arg for write parameter"},
+    {"live", 'l', 0, 0, "Launch the live data output"},    
+    {0},
+};
 
-// int attempt_xt_can(libusb_context *ctx)
-// {
-//     struct libusb_device_handle *dev_handle;
-//     int r;
-//     int actual;
-//     lowsheen::config_packet_t config_packet = { MAGIC_NUMBER, 0x02, 0x00};
-
-// 	dev_handle = libusb_open_device_with_vid_pid(ctx, 0x0483, 0x0002); //these are vendorID and productID I found for my usb device
-
-// 	if(dev_handle == NULL)
-//     {
-// 		printf("Cannot open device\r\n");
-//         return 1;
-//     }
- 
-//     if(libusb_kernel_driver_active(dev_handle, 0) == 1)  //find out if kernel driver is attached
-//     {
-//         printf("Kernel Driver Active\r\n");
-//         if(libusb_detach_kernel_driver(dev_handle, 0) == 0) //detach it
-//         {
-//             printf("Kernel Driver Detached!\r\n");
-//         }
-//     }
-
-//     r = libusb_claim_interface(dev_handle, 0); //claim interface 0 (the first) of device (mine had jsut 1)
-
-// 	if(r < 0) 
-//     {
-// 		printf("Cannot Claim Interface\r\n");
-// 		return 1;
-// 	}
-// 	printf("Claimed Interface\r\n");
-	
-//  	printf("Writing Data...\r\n");
-// 	r = libusb_bulk_transfer(dev_handle, (2 | LIBUSB_ENDPOINT_OUT), (unsigned char *)&config_packet, sizeof(config_packet), &actual, 0); //my device's out endpoint was 2, found with trial- the device had 2 endpoints: 2 and 129
-// 	if(r == 0 && actual == sizeof(config_packet)) 
-// 		printf("Writing Successful!\r\n");
-// 	else
-// 		printf("Write Error\r\n");
-	
-// 	r = libusb_release_interface(dev_handle, 0); //release the claimed interface
-// 	if(r!=0) {
-// 		printf("Cannot Release Interface\r\n");
-// 		return 1;
-// 	}
-// 	printf("Released Interface\r\n");
-
-// 	libusb_close(dev_handle); //close the device we opened
-
-//     return 0;
-// }
-
-void list_devices()
+struct cmd_args
 {
-	libusb_device **devs; //pointer to pointer of device, used to retrieve a list of devices
-	libusb_context *ctx = NULL; //a libusb session
-	int r; //for return values
-	ssize_t cnt; //holding number of devices in list
-	r = libusb_init(&ctx); //initialize a library session
-	if(r < 0)
-    {
-		printf("Init Error: %d\r\n", r); //there was an error
-		return;
-	}
-	libusb_set_debug(ctx, 3); //set verbosity level to 3, as suggested in the documentation
-	cnt = libusb_get_device_list(ctx, &devs); //get the list of devices
-	if(cnt < 0) {
-		printf("Get Device Error\r\n"); //there was an error
-        return;
-	}
-	printf("%d Devices in list.\r\n", (int)cnt); //print total number of usb devices
-		ssize_t i; //for iterating through the list
+    char *manifest_file;
+    char *machine;
+    bool update;
+    bool *interface;
+};
 
-	for(i = 0; i < cnt; i++) 
-    {
-		printdev(devs[i]); //print specs of this device
-	}
-	libusb_free_device_list(devs, 1); //free the list, unref the devices in it
-	    
-    libusb_exit(ctx); //close the session
+static error_t parse_opt(int key, char *arg, struct argp_state *state) 
+{
+    cmd_args *args = (cmd_args *)state->input;
+
+    switch (key) {
+    case 'p':
+    
+        break;
+    case 'f': 
+        break;
+    case 'i': 
+        break;
+    case 'n':  
+        break;
+    case 'd': 
+        break;
+    case 'r': 
+        break;
+    case 's':
+        break;
+    case 'v':  // version information
+        printf("GIT Tag Name: %s\r\n", VERSION_GIT_TAG_NAME);
+        printf("GIT Tag Hash: %s\r\n", VERSION_GIT_TAG_HASH);
+        printf("GIT Tag Date: %s\r\n", VERSION_GIT_TAG_DATE);
+        printf("Build Date: %s\r\n", VERSION_BUILD_DATE);
+        exit(0);        
+    case 't': 
+        break;       
+    case 'e': 
+        break;  
+    case ARGP_KEY_END:
+        if (state->arg_num < 2)
+        {
+            /* Not enough arguments. */
+            argp_usage (state);
+        }
+        break;
+
+    case ARGP_KEY_ARG: 
+        // these are arguments passed without key
+        if ( state->arg_num == 0 ) 
+        {
+            args->manifest_file = arg;
+        } 
+        else if ( state->arg_num == 1 ) 
+        {
+            args->machine = arg;
+        } 
+        else
+        {
+            /* wrong arguments*/
+            argp_usage (state);
+        }
+        break;
+
+    default: 
+        return ARGP_ERR_UNKNOWN;
+    }   
+
+    return 0;
 }
+ 
+static struct argp argp = { options, parse_opt, args_doc, doc, 0, 0, 0 };
+static cmd_args args;
 
 int main(int argc, char *argv[])
 {
-
-    lowsheen::MuleInterface interface(argv[1]);
-
+    lowsheen::Manifest manifest;
+    lowsheen::MuleInterface interface; 
     lowsheen::header_t header;
-    
-    if(interface.get_header(&header))
-    {
-        std::cout << "Found header: " << header.header_protocol_version << std::endl;
+    int machine_id;
+ 
+    argp_parse(&argp, argc, argv, 0, 0, &args);
 
-        interface.enter_xt_can_mode();
-    }
-    else
+    if(manifest.read(args.manifest_file) == false)
     {
-        std::cout << "failed to communicate with lowsheen device" << std::endl;
+        std::cout << "Unable to read Manifest file" << std::endl;
+        return -1;
     }
+
+    if(manifest.find(&machine_id, args.machine) == false)
+    {
+        std::cout << "machine name does not match manifest file list" << std::endl;
+        return -1;
+    }
+
+    if(interface.get_header(&header) == false)
+    {
+        std::cout << "Failed to Find Lowsheen Interface" << std::endl;
+        return -1;
+    }
+
+    if(header.safe_to_flash == 0)
+    {
+        std::cout << "Lowsheen indicated an unsafe state to flash" << std::endl;
+        return -1;
+    }
+
+    if(header.estop_code != 0)
+    {
+        std::cout << "Lowsheen indicated an estop has been activated" << std::endl;
+        return -1;
+    }
+
+    interface.enter_xt_can_mode();
+
+    sleep(3);
+
+    std::string utility_name;
+
+    if(manifest.machines[machine_id].controller.controller_type == "kinetek")
+    {
+        utility_name = "kinetek-util";
+    }
+    else if(manifest.machines[machine_id].controller.controller_type == "vcis")
+    {
+        utility_name = "vcis-util";
+    }
+
+    std::cout << "This requires " << utility_name << std::endl;
+
+    system("vcis-util --reset");
 
 	return 0;
-}
-
-
-void printdev(libusb_device *dev) {
-	struct libusb_device_descriptor desc;
-	int r = libusb_get_device_descriptor(dev, &desc);
-	if (r < 0) {
-		printf("failed to get device descriptor\r\n");
-		return;
-	}
-	printf("Number of possible configurations: %d\r\n",(int)desc.bNumConfigurations);
-	printf("Device Class: %d\r\n", (int)desc.bDeviceClass);
-	printf("VendorID: %X\r\n", desc.idVendor);
-	printf("ProductID: %X\r\n", desc.idProduct);
-
-	struct libusb_config_descriptor *config;
-	libusb_get_config_descriptor(dev, 0, &config);
-	printf("Interfaces: %d\r\n", (int)config->bNumInterfaces);
-
-	const struct libusb_interface *inter;
-	const struct libusb_interface_descriptor *interdesc;
-	const struct libusb_endpoint_descriptor *epdesc;
-
-	for(int i=0; i<(int)config->bNumInterfaces; i++) {
-		inter = &config->interface[i];
-		printf("Number of alternate settings: %d \r\n", inter->num_altsetting);
-		for(int j=0; j<inter->num_altsetting; j++) {
-			interdesc = &inter->altsetting[j];
-			printf("Interface Number: %d\r\n", (int)interdesc->bInterfaceNumber);
-			printf("Number of endpoints: %d\r\n", (int)interdesc->bNumEndpoints);
-			for(int k=0; k<(int)interdesc->bNumEndpoints; k++) {
-				epdesc = &interdesc->endpoint[k];
-				printf("Descriptor Type: %d\r\n",(int)epdesc->bDescriptorType);
-				printf("EP Address: %d\r\n", (int)epdesc->bEndpointAddress);
-			}
-		}
-	}
-	printf("\r\n\r\n\r\n");
-	libusb_free_config_descriptor(config);
 }

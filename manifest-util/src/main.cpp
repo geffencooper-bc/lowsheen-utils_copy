@@ -12,7 +12,7 @@ int main(int argc, char *argv[])
 
     lowsheen::Manifest manifest;
 
-    if(manifest.read(std::string(argv[1])))
+    if(manifest.read(argv[1]))
     {
         std::cout << "Success: " << manifest.paths[0] << std::endl;
     }
