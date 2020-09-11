@@ -25,7 +25,7 @@
 
 //#define PROGRESS_BAR
 
-#define IAP_SELECTIVE_MODE_TEST
+//#define IAP_SELECTIVE_MODE_TEST
 //#define IAP_FORCED_MODE_TEST
 
 // these are timeout values used for waiting for response frames
@@ -33,7 +33,7 @@
 #define MEDIUM_WAIT_TIME 100  // ms
 #define SHORT_WAIT_TIME 10    // ms
 
-#define IAP_WINDOW_START 31
+#define IAP_WINDOW_START 34
 
 // init member variables, IAP needs access to the Kinetek Utility can data and socket can helper
 IAP::IAP(SocketCanHelper* sc, KU::CanDataList* ku_data)

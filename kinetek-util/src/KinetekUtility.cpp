@@ -24,7 +24,7 @@
 #include "KinetekUtility.h"
 #include <argp.h>
 
-#define IAP_MODE_TEST
+//#define IAP_MODE_TEST
 
 KinetekUtility::KinetekUtility()
 {
