@@ -70,9 +70,8 @@ class KinetekUtility
     KU::StatusCode toggle_estop(int mode);
     KU::StatusCode reset_xt_can();
 
-    // function to analyze IAP mode timing and reliability, forced and selective
-    // for forced specify the amount of time to delay after power up, and the number of requests to send
-    void test_iap(int window_time, int tries, bool mode);
+    // function to estimate forced mode iap window
+    void test_forced_window(int window_time, int tries);
 
     // set interface when don't want default "can0"
     void set_can_interface(const string& interface) { can_interface = interface; }

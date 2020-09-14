@@ -87,7 +87,7 @@ int SocketCanHelper::init_socketcan(const char* interface_name)
     unsigned int if_index = if_nametoindex(interface_name);
     if (if_index == 0)
     {
-        printf("If Index Error\r\n");
+        DEBUG_PRINTF("If Index Error\r\n");
         return -1;
     }
 
@@ -97,7 +97,7 @@ int SocketCanHelper::init_socketcan(const char* interface_name)
     int err = CO_CANmodule_init(can_module, (void*)if_index, rx_arr, 1, tx_arr, 1, 250);
     if (err != 0)
     {
-        printf("Init CO_CANmodule. Error: %i\tInterface Count: %i\r\n", err, can_module->CANinterfaceCount);
+        DEBUG_PRINTF("Init CO_CANmodule. Error: %i\tInterface Count: %i\r\n", err, can_module->CANinterfaceCount);
         exit(EXIT_FAILURE);
     }
 
@@ -136,7 +136,7 @@ int SocketCanHelper::send_frame(uint32_t can_id, uint8_t* data, uint8_t data_len
 
     if (err < 0)
     {
-        printf("Transmit Error: %i\t", err);
+        DEBUG_PRINTF("Transmit Error: %i\t", err);
         exit(EXIT_FAILURE);
     }
 
@@ -171,7 +171,7 @@ CO_CANrxMsg_t* SocketCanHelper::get_frame(uint32_t can_id,
 
     if (err < 0)
     {
-        printf("Timer Error: %i\n", err);
+        DEBUG_PRINTF("Timer Error: %i\n", err);
         exit(EXIT_FAILURE);
     }
 
@@ -182,7 +182,7 @@ CO_CANrxMsg_t* SocketCanHelper::get_frame(uint32_t can_id,
 
     if (err < 0)
     {
-        printf("Receive Error: %i\t", err);
+        DEBUG_PRINTF("Receive Error: %i\t", err);
         exit(EXIT_FAILURE);
     }
     // waits until receive specified can id or until timer ends (blocking function)

@@ -24,6 +24,8 @@
 #include "KinetekUtility.h"
 #include <argp.h>
 
+//#define IAP_MODE_TEST
+
 KinetekUtility::KinetekUtility()
 {
     ku_data = new KU::CanDataList;
@@ -151,7 +153,7 @@ string KinetekUtility::translate_status_code(KU::StatusCode status)
         }
         case KU::UPLOAD_ERROR:
         {
-            return "There was an error while downloading the hex file";
+            return "There was an error while downloading the hex file. See debug print statements for more details";
         }
         case KU::KU_INIT_ERROR:
         {
@@ -223,7 +225,7 @@ string KinetekUtility::translate_status_code(KU::StatusCode status)
         }
     }
 }
-//#define IAP_MODE_TEST
+
 KU::StatusCode KinetekUtility::run_iap(const string& file_path, bool iap_mode)
 {
     if (iap == nullptr)
@@ -364,11 +366,11 @@ KU::StatusCode KinetekUtility::get_stu_param(int param_num)
     }
     if (param_value == 255)
     {
-        printf("Parameter not used\r\n");
+        DEBUG_PRINTF("Parameter not used\r\n");
     }
     else
     {
-        printf("STU PARAM #%i: %i\r\n", param_num, param_value);
+        DEBUG_PRINTF("STU PARAM #%i: %i\r\n", param_num, param_value);
     }
     return KU::STU_PARAM_READ_SUCCESS;
 }
@@ -541,28 +543,21 @@ static int parse_opt(int key, char* arg, struct argp_state* state)
                     // IAP mode state machine
                     int iap_mode_attempts = 0;
                     int forced_mode_attempts = 0;
+                    char mode_that_worked = '-'; // debug string
+                    
+                    // try the whole state machine 3 times or forced mode 10 times if FW gets into a bad state with no heartbeats
                     while (iap_mode_attempts != 3 || forced_mode_attempts != 10)
                     {
                         // try forced first because xt_can will trigger estop anyways
                         ku->CL_status = ku->run_iap(string(arg), FORCED_MODE);
+                        mode_that_worked = 'F'; // set temporarily
 
                         // if forced times out, try selective
                         if (ku->CL_status == KU::HEARTBEAT_DETECTED)
                         {
                             forced_mode_attempts++;
                             ku->CL_status = ku->run_iap(string(arg), SELECTIVE_MODE);
-                        }
-
-                        // if any attempt succeeds then break
-                        if (ku->CL_status == KU::UPLOAD_COMPLETE)
-                        {
-                            break;
-                        }
-
-                        // if the error is an upload error then exit, external app will determine a retry
-                        if (ku->CL_status == KU::UPLOAD_ERROR)
-                        {
-                            break;
+                            mode_that_worked = 'S'; // set temporarily
                         }
 
                         // if selective mode times out, then increment the iap mode attempts
@@ -570,10 +565,23 @@ static int parse_opt(int key, char* arg, struct argp_state* state)
                         {
                             iap_mode_attempts++;
                         }
+
+                        // if any attempt succeeds then break
+                        if (ku->CL_status == KU::UPLOAD_COMPLETE)
+                        {
+                            break;
+                        }
+                        mode_that_worked = '-'; // if reach here then attempt was a fail
+
+                        // if the error is an upload error then exit, external app will determine a retry
+                        if (ku->CL_status == KU::UPLOAD_ERROR)
+                        {
+                            break;
+                        }
                     }
 #ifdef IAP_MODE_TEST
                     ku->IAP_test_string +=
-                        std::to_string(iap_mode_attempts) + "," + std::to_string(forced_mode_attempts);
+                        std::to_string(iap_mode_attempts) + "," + std::to_string(forced_mode_attempts) + "," + mode_that_worked;
 #endif
                 }
                 else if (file_type == "stu")
@@ -661,112 +669,66 @@ void test_resp_call_back(void* obj, const CO_CANrxMsg_t* can_msg)
     // nothing needed
 }
 
-void KinetekUtility::test_iap(int delay_time, int tries, bool mode)
+void KinetekUtility::test_forced_window(int delay_time, int tries)
 {
     string iap_data_point = "";
 
-    // test reliability of entering IAP mode using selective command
-    if (mode == SELECTIVE_MODE)
+    std::chrono::steady_clock::time_point begin;
+    std::chrono::steady_clock::time_point end;
+    CO_CANrxMsg_t* resp;
+
+    // first reset the Kinetek by toggling the estop line
+    sc->send_frame(KU::XT_CAN_REQUEST_ID, ku_data->disable_kinetek_data, sizeof(ku_data->disable_kinetek_data));
+    usleep(2500000);  // sleep for 2.5 seconds
+    // turn on the kinetek and wait some time before trying to send the fored command
+    sc->send_frame(KU::XT_CAN_REQUEST_ID, ku_data->enable_kinetek_data, sizeof(ku_data->enable_kinetek_data));
+    sc->send_frame(KU::HAND_HELD_PROGRAMMER_ID, ku_data->force_enter_iap_mode_data,
+                    sizeof(ku_data->force_enter_iap_mode_data));
+
+    // start the clock
+    begin = std::chrono::steady_clock::now();
+    end = std::chrono::steady_clock::now();
+
+    // wait for window time
+    while (std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count() / 1000.0 < delay_time)
     {
-        // wait for a heart beat before trying soft reset
-        CO_CANrxMsg_t* resp = sc->get_frame(KU::HEARTBEAT_ID, this, test_resp_call_back, 500);
+        end = std::chrono::steady_clock::now();
+    }
+
+    uint8_t mask = 0b00011111;
+    // after window finishes, attempt to enter iap mode
+    int count = 0;
+    while (true)
+    {
+        // send forced command
+        if (count < tries)
         {
-            if (ku_data->get_response_type(resp->ident, resp->data, resp->DLC) != KU::HEARTBEAT)
-            {
-                printf("FAIL -- no heartbeat. Response: %i\n",
-                       ku_data->get_response_type(resp->ident, resp->data, resp->DLC));
-                return;
-            }
+            sc->send_frame(KU::IAP_REQUEST_ID, ku_data->force_enter_iap_mode_data,
+                            sizeof(ku_data->force_enter_iap_mode_data));
+            count++;
         }
 
-        // next do soft reset by sending selective download command
-        sc->send_frame(KU::KINETEK_REQUEST_ID, ku_data->enter_iap_mode_selective_data,
-                       sizeof(ku_data->enter_iap_mode_selective_data));
-        resp = sc->get_frame(KU::KINETEK_RESPONSE_ID, this, test_resp_call_back, 500);
-
-        if (ku_data->get_response_type(resp->ident, resp->data, resp->DLC) != KU::ENTER_IAP_MODE_SELECTIVE_RESPONSE)
-        {
-            // may have missed response, still check if entered into iap mode
-            printf("WARNING -- selective command timeout\n");
-        }
-
-        // wait for iap mode, selective defaults to 0x080 which according to Laurence is the id the LCD uses for IAP
-        int count = 0;
-        resp = sc->get_frame(KU::LCD_IAP_HEARTBEAT_ID, this, test_resp_call_back, 500);
+        // check for a 0x060 or 0x080 response, 1ms timeout
+        resp = sc->get_frame(KU::IAP_HEARTBEAT_ID, this, test_resp_call_back, 1, mask);
 
         // received the IAP heartbeat response
         if (ku_data->get_response_type(resp->ident, resp->data, resp->DLC) == KU::IN_IAP_MODE)
         {
-            printf("SUCCESS\n");
+            end = std::chrono::steady_clock::now();
+            iap_data_point += 'S';
+            break;
         }
 
         // if receive normal heartbeat then failed
         else if (ku_data->get_response_type(resp->ident, resp->data, resp->DLC) == KU::HEARTBEAT)
         {
-            printf("FAIL -- no iap mode message\n");
-        }
-    }
-
-    // test the iap window for forced
-    else if (mode == FORCED_MODE)
-    {
-        std::chrono::steady_clock::time_point begin;
-        std::chrono::steady_clock::time_point end;
-        CO_CANrxMsg_t* resp;
-
-        // first reset the Kinetek by toggling the estop line
-        sc->send_frame(KU::XT_CAN_REQUEST_ID, ku_data->disable_kinetek_data, sizeof(ku_data->disable_kinetek_data));
-        usleep(2500000);  // sleep for 2.5 seconds
-        // turn on the kinetek and wait some time before trying to send the fored command
-        sc->send_frame(KU::XT_CAN_REQUEST_ID, ku_data->enable_kinetek_data, sizeof(ku_data->enable_kinetek_data));
-        sc->send_frame(KU::HAND_HELD_PROGRAMMER_ID, ku_data->force_enter_iap_mode_data,
-                       sizeof(ku_data->force_enter_iap_mode_data));
-
-        // start the clock
-        begin = std::chrono::steady_clock::now();
-        end = std::chrono::steady_clock::now();
-
-        // wait for window time
-        while (std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count() / 1000.0 < delay_time)
-        {
             end = std::chrono::steady_clock::now();
+            iap_data_point += 'F';
+            break;
         }
-
-        uint8_t mask = 0b00011111;
-        // after window finishes, attempt to enter iap mode
-        int count = 0;
-        while (true)
-        {
-            // send forced command
-            if (count < tries)
-            {
-                sc->send_frame(KU::IAP_REQUEST_ID, ku_data->force_enter_iap_mode_data,
-                               sizeof(ku_data->force_enter_iap_mode_data));
-                count++;
-            }
-
-            // check for a 0x060 or 0x080 response, 1ms timeout
-            resp = sc->get_frame(KU::IAP_HEARTBEAT_ID, this, test_resp_call_back, 1, mask);
-
-            // received the IAP heartbeat response
-            if (ku_data->get_response_type(resp->ident, resp->data, resp->DLC) == KU::IN_IAP_MODE)
-            {
-                end = std::chrono::steady_clock::now();
-                iap_data_point += 'S';
-                break;
-            }
-
-            // if receive normal heartbeat then failed
-            else if (ku_data->get_response_type(resp->ident, resp->data, resp->DLC) == KU::HEARTBEAT)
-            {
-                end = std::chrono::steady_clock::now();
-                iap_data_point += 'F';
-                break;
-            }
-        }
-        iap_data_point +=
-            "," + std::to_string(count) + "," +
-            std::to_string(std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count() / 1000.0);
-        printf("%s\n", iap_data_point.c_str());
     }
+    iap_data_point +=
+        "," +
+        std::to_string(std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count() / 1000.0);
+    printf("%s\n", iap_data_point.c_str());
 }
