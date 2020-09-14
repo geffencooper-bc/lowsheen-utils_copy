@@ -26,7 +26,7 @@
 //#define FULL_IAP_TEST
 //#define TEST_FORCED_WINDOW
 //#define TEST_IAP_MODE
-#define COMMAND_LINE_MODE
+//#define COMMAND_LINE_MODE
 
 int main(int argc, char** argv)
 {

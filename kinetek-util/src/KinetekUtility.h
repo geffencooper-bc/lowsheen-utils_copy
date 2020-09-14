@@ -66,6 +66,8 @@ class KinetekUtility
     KU::StatusCode set_stu_param(int param_num, int new_value);
     KU::StatusCode get_live_data();
 
+    int get_cdt();
+
     // 1 = enable 2 = disable
     KU::StatusCode toggle_estop(int mode);
     KU::StatusCode reset_xt_can();

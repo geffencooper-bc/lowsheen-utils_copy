@@ -375,6 +375,31 @@ KU::StatusCode KinetekUtility::get_stu_param(int param_num)
     return KU::STU_PARAM_READ_SUCCESS;
 }
 
+int KinetekUtility::get_cdt()
+{
+    if (stu == nullptr)
+    {
+        stu = new STUparam(sc, ku_data);
+    }
+
+    // step 1: check if interface accessible
+    if (!can_initialized)
+    {
+        DEBUG_PRINTF(("Can not initialized. Call init_can\r\n"));
+        return KU::INIT_CAN_FAIL;
+    }
+    int cdt = stu->get_stu_param(16); // 16 is the param index of cdt
+    if (cdt < 0)
+    {
+        DEBUG_PRINTF("Error: %s\r\n", translate_status_code((KU::StatusCode)cdt).c_str());
+        return -1;
+    }
+    else
+    {
+        return cdt;
+    }
+}
+
 // write stu param
 KU::StatusCode KinetekUtility::set_stu_param(int param_num, int new_value)
 {
