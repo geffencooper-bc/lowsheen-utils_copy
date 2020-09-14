@@ -165,4 +165,11 @@ bool Manifest::find(int *id, const char *id_or_name)
     return false;
 }
 
+bool Manifest::find(int id)
+{
+    auto it = machines.find(id);
+
+    return it != machines.end();
+}
+
 }

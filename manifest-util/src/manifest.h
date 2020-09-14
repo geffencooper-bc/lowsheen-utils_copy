@@ -30,5 +30,6 @@ namespace lowsheen
         bool read(const char * filename);
         bool write(const char * filename);
         bool find(int *id, const char *id_or_name);
+        bool find(int id);
     };
 }

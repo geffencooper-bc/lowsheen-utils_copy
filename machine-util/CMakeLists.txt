@@ -7,6 +7,8 @@ set(CMAKE_BUILD_TYPE Debug)
 # default directory paths
 set(APP_SRC ${CMAKE_CURRENT_SOURCE_DIR}/src)
 set(MANIFEST_SRC ${APP_SRC}/../../manifest-util/src)
+set(CANOPEN_SRC ${CMAKE_CURRENT_SOURCE_DIR}/../modules/CANopenNode) 
+set(STACKDRV_SRC ${CANOPEN_SRC}/stack/neuberger-socketCAN)
 
 include_directories(    
                         /usr/include/libusb-1.0/
@@ -14,13 +16,18 @@ include_directories(
                         ${CMAKE_CURRENT_BINARY_DIR}
                         ${CMAKE_BINARY_DIR}
                         ${MANIFEST_SRC}
+                        ${CANOPEN_SRC}
+                        ${STACKDRV_SRC}
 )
 
 set(SOURCES     
+                ${STACKDRV_SRC}/CO_driver.c        
+                ${STACKDRV_SRC}/CO_notify_pipe.c 
                 ${APP_SRC}/main.cpp
                 ${APP_SRC}/lowsheen_headers.cpp
                 ${APP_SRC}/lowsheen_interface.cpp
                 ${APP_SRC}/usb_interface.cpp
+                ${APP_SRC}/SocketCanHelper.cpp
                 ${MANIFEST_SRC}/manifest.cpp
 )
 

@@ -3,23 +3,84 @@
 #include "lowsheen_interface.h"
 #include "lowsheen_headers.h"
 #include "usb_interface.h"
+#include <ifaddrs.h>
+#include <sys/types.h>
+#include <sys/ioctl.h>
+#include <sys/socket.h>
+#include <unistd.h>
+#include <cstring>
+#include "SocketCanHelper.h"
+
 
 static const uint16_t USB_MULE_VID = 0x0483;
 //static const uint16_t USB_MULE_PID = 0x5710;
 static const uint16_t USB_MULE_PID = 0x0002;
 
-
 namespace lowsheen
 {
 
+static bool reset_xt_can(struct ifaddrs *ifname)
+{
+ 
+    SocketCanHelper socket_can;
+
+    socket_can.init_socketcan(ifname->ifa_name);
+
+    uint8_t data[2] = { 0x00, 0x01};
+
+    socket_can.send_frame(0xAC1DC0DE, data, 2);
+
+    return true;
+}
+
 bool MuleInterface::enter_normal_mode()
 {
-    // detect mode
-    // if xt_can, reset
-    // detect mode
+    bool mule_found = false;
+    bool cp_found = false;
+    std::vector<USBDevice> usb_list;
  
 	USBInterface usb_interface;
-    
+ 
+    if(usb_interface.claim(USB_MULE_VID, USB_MULE_PID))
+    {
+        return true;
+    }
+
+    // mule not found, time to spam all can interfaces and 
+    // attempt to switch back to mule
+
+    struct ifaddrs *ifaddr, *ifa;
+
+    if (getifaddrs(&ifaddr) == -1) 
+    {
+        perror("getifaddrs");
+        return -1;
+    }
+
+    /* Walk through linked list, maintaining head pointer so we
+        can free list later */
+    for (ifa = ifaddr; ifa != NULL; ifa = ifa->ifa_next) 
+    {
+         if(strncmp(ifa->ifa_name, "can", 3) != 0)
+        {
+            continue;
+        }
+
+        if (reset_xt_can(ifa)) 
+        {
+            printf("successfully reset socketcan interface\r\n");
+        } 
+        else 
+        {
+            printf("failed to reset socketcan interface\r\n");
+        }
+     }
+
+    freeifaddrs(ifaddr);
+
+    // wait for mule to return
+    sleep(5);
+
     return usb_interface.claim(USB_MULE_VID, USB_MULE_PID);
 }
 
