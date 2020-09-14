@@ -8,9 +8,11 @@ project(lowsheen-utils)
 set(LOWSHEEN_UTILS_PATH /usr/local/bin)
 
 set(CMAKE_C_FLAGS ${CMAKE_C_FLAGS} "-Wall -Werror")
+set(CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS} "-std=c++11 -g")
 
 set(BUILD_OUTPUT_PATH ${PROJECT_SOURCE_DIR})
 set(CMAKE_BINARY_DIR ${BUILD_OUTPUT_PATH})
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/bin)
 
 # Extract GIT information
 
@@ -38,9 +40,7 @@ execute_process(
 
 if (NOT TAG_NAME)
     set(TAG_NAME "1.0.0")
-    message(STATUS "There is no TAG setup, defaulting version to 1.0.0")
-else()
-    
+    message(STATUS "There is no TAG setup, defaulting version to 1.0.0")   
 endif()
 
 message(STATUS "TAG_NAME: " ${TAG_NAME})
@@ -52,6 +52,8 @@ configure_file(${PROJECT_SOURCE_DIR}/version.h.cmake ${BUILD_OUTPUT_PATH}/versio
  
 # Project Applications
 add_subdirectory(vcis-util)
+add_subdirectory(machine-util)
+add_subdirectory(manifest-util)
 
 # Debian Package Definition (using CPack)
 SET(CPACK_GENERATOR "DEB")
