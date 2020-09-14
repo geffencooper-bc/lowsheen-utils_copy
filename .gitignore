@@ -72,6 +72,8 @@ vcis-util/vcis-util
 kinetek-util/kinetek-util
 version.h
 *.stu
+/bin
 
 # VScode
 .vscode
+
