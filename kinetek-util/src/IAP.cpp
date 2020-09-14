@@ -33,7 +33,7 @@
 #define MEDIUM_WAIT_TIME 100  // ms
 #define SHORT_WAIT_TIME 10    // ms
 
-#define IAP_WINDOW_START 34
+#define IAP_WINDOW_CENTER 34
 
 // init member variables, IAP needs access to the Kinetek Utility can data and socket can helper
 IAP::IAP(SocketCanHelper* sc, KU::CanDataList* ku_data)
@@ -209,7 +209,7 @@ KU::StatusCode IAP::put_in_iap_mode(bool forced_mode)
         end = std::chrono::steady_clock::now();
 
         // wait until get close the 6ms forced window
-        while (std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count() / 1000.0 < IAP_WINDOW_START -5)
+        while (std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count() / 1000.0 < IAP_WINDOW_CENTER -5)
         {
             end = std::chrono::steady_clock::now();
         }
@@ -218,7 +218,7 @@ KU::StatusCode IAP::put_in_iap_mode(bool forced_mode)
         // if want to test selective mode, simulate a forced mode failure by delaying for 10ms instead
         // of sending the request for 10 ms
         while (std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count() / 1000.0 <
-               IAP_WINDOW_START + 10)
+               IAP_WINDOW_CENTER + 10)
         {
             end = std::chrono::steady_clock::now();
         }
@@ -240,7 +240,7 @@ KU::StatusCode IAP::put_in_iap_mode(bool forced_mode)
 #endif
 
         // wait until after first possible IAP heartbeat
-        while (std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count() / 1000.0 < IAP_WINDOW_START+35)
+        while (std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count() / 1000.0 < IAP_WINDOW_CENTER+35)
         {
             end = std::chrono::steady_clock::now();
         }
