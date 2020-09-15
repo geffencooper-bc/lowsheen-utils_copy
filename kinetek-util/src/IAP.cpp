@@ -99,7 +99,7 @@ void IAP::load_hex_file(string file_path)
 // sanity check to make sure reading file correctly
 void IAP::print()
 {
-    DEBUG_PRINTF("\n================= IAP DETAILS ===============\r\n");
+    DEBUG_PRINTF("\n============= HEX FILE DETAILS ============\r\n");
     DEBUG_PRINTF("HEX FILE DATA SIZE:             %i bytes\r\n", hex_data_size);
     DEBUG_PRINTF("HEX FILE DATA TOTAL CHECKSUM:   %08X\r\n", total_checksum);
     DEBUG_PRINTF("START ADDRESS:                  %08X\r\n", start_address);
@@ -272,7 +272,7 @@ KU::StatusCode IAP::put_in_iap_mode(bool forced_mode)
 KU::StatusCode IAP::send_init_frames()
 {
     usleep(3000);
-    DEBUG_PRINTF("\n====== SEND INIT PACKETS ======\r\n");
+    DEBUG_PRINTF("Sending initialization frames to Kinetek before downlaod\r\n");
     // first send the fw version request
     sc->send_frame(KU::FW_VERSION_REQUEST_ID, ku_data->fw_version_request_data,
                    sizeof(ku_data->fw_version_request_data));
@@ -280,62 +280,66 @@ KU::StatusCode IAP::send_init_frames()
 
     if (ku_data->get_response_type(resp->ident, resp->data, resp->DLC) != KU::FW_VERSION_RESPONSE)
     {
-        DEBUG_PRINTF("ERROR: Kinetek version request timeout\r\n");
-        return KU::FW_VERSION_REQUEST_FAIL;
+        DEBUG_PRINTF("Warning: Kinetek version request timeout (init frame 1 not received by Kinetek)\r\n");
+        // return KU::FW_VERSION_REQUEST_FAIL; // not required to continue
     }
 
     DEBUG_PRINTF("Kinetek Bootloader Version: %i.%i\r\n", resp->data[0], resp->data[1]);
 
+    usleep(3000);
     // next send  a request to sent bytes
     sc->send_frame(KU::IAP_REQUEST_ID, ku_data->start_download_data, sizeof(ku_data->start_download_data));
     resp = sc->get_frame(KU::IAP_RESPONSE_ID, this, IAP_resp_call_back, MEDIUM_WAIT_TIME);
 
     if (ku_data->get_response_type(resp->ident, resp->data, resp->DLC) != KU::START_DOWNLOAD_RESPONSE)
     {
-        DEBUG_PRINTF("ERROR: start download timeout\r\n");
+        DEBUG_PRINTF("ERROR: start download timeout (init frame 2 not received by Kinetek)\r\n");
         return KU::START_DOWNLOAD_FAIL;
     }
     DEBUG_PRINTF("Starting download\r\n");
 
+    usleep(3000);
     // next send the start address
     sc->send_frame(KU::IAP_REQUEST_ID, ku_data->start_address_data, sizeof(ku_data->start_address_data));
     resp = sc->get_frame(KU::IAP_RESPONSE_ID, this, IAP_resp_call_back, MEDIUM_WAIT_TIME);
 
     if (ku_data->get_response_type(resp->ident, resp->data, resp->DLC) != KU::START_ADDRESS_RESPONSE)
     {
-        DEBUG_PRINTF("ERROR: start address timeout\r\n");
+        DEBUG_PRINTF("ERROR: start address timeout (init frame 3 not received by Kinetek)\r\n");
         return KU::SEND_START_ADDRESS_FAIL;
     }
-    DEBUG_PRINTF("start address received\r\n");
+    DEBUG_PRINTF("Start address received by Kinetek\r\n");
 
+    usleep(3000);
     // next send the total checksum
     sc->send_frame(KU::IAP_REQUEST_ID, ku_data->total_checksum_data, sizeof(ku_data->total_checksum_data));
     resp = sc->get_frame(KU::IAP_RESPONSE_ID, this, IAP_resp_call_back, MEDIUM_WAIT_TIME);
 
     if (ku_data->get_response_type(resp->ident, resp->data, resp->DLC) != KU::TOTAL_CHECKSUM_RESPONSE)
     {
-        DEBUG_PRINTF("ERROR: checksum timeout\r\n");
+        DEBUG_PRINTF("ERROR: hex file checksum timeout (init frame 4 not received by Kinetek)\r\n");
         return KU::SEND_CHECKSUM_FAIL;
     }
-    DEBUG_PRINTF("checksum data received\r\n");
+    DEBUG_PRINTF("Hex file checksum received by Kinetek\r\n");
 
+    usleep(3000);
     // finally send the data size
     sc->send_frame(KU::IAP_REQUEST_ID, ku_data->hex_data_size_data, sizeof(ku_data->hex_data_size_data));
     resp = sc->get_frame(KU::IAP_RESPONSE_ID, this, IAP_resp_call_back, MEDIUM_WAIT_TIME);
 
     if (ku_data->get_response_type(resp->ident, resp->data, resp->DLC) != KU::HEX_DATA_SIZE_RESPONSE)
     {
-        DEBUG_PRINTF("ERROR: data size timeout\n\r\n");
+        DEBUG_PRINTF("ERROR: hex file data size timeout (init frame 5 not received by Kinetek)\n\r\n");
         return KU::SEND_DATA_SIZE_FAIL;
     }
 
-    DEBUG_PRINTF("data size received\r\n");
+    DEBUG_PRINTF("Hex file data size received by Kinetek\r\n");
     return KU::INIT_PACKET_SUCCESS;
 }
 
 KU::StatusCode IAP::upload_hex_file()
 {
-    DEBUG_PRINTF("\n======== UPLOADING HEX FILE =======\r\n");
+    DEBUG_PRINTF("Starting to send hex packets to Kinetek\r\n");
 
     while (true)  // keep sending packets until reached end of file or fail and function returns
     {
@@ -408,7 +412,7 @@ KU::StatusCode IAP::upload_hex_file()
             status = send_hex_packet(true);
             if (status != KU::PACKET_SENT_SUCCESS)
             {
-                DEBUG_PRINTF("ERROR: packet resend timeout\r\n");
+                DEBUG_PRINTF("ERROR: packet resend timeout. Bytes uploaded: \r\n", num_bytes_uploaded);
                 return KU::PACKET_RESENT_FAIL;
             }
             num_bytes_uploaded += PACKET_SIZE;
@@ -438,10 +442,11 @@ KU::StatusCode IAP::upload_hex_file()
                 resp = sc->get_frame(KU::IAP_RESPONSE_ID, this, IAP_resp_call_back, MEDIUM_WAIT_TIME);
                 if (ku_data->get_response_type(resp->ident, resp->data, resp->DLC) != KU::END_OF_HEX_FILE_RESPONSE)
                 {
-                    DEBUG_PRINTF("ERROR: end of file timeout\r\n");
+                    DEBUG_PRINTF("ERROR: end of file timeout, Kinetek did not receive EOF notification\r\n");
                     return KU::END_OF_FILE_FAIL;
                 }
             }
+            DEBUG_PRINTF("Kinetek Received EOF notification\r\n");
 
             // wait for the kinetek to send its calculated page checksum
             resp = sc->get_frame(KU::IAP_HEARTBEAT_ID, this, IAP_resp_call_back, MEDIUM_WAIT_TIME);
@@ -469,6 +474,7 @@ KU::StatusCode IAP::upload_hex_file()
                     return KU::PAGE_CHECKSUM_FAIL;
                 }
             }
+            DEBUG_PRINTF("Final Kinetek page checksum is correct\r\n");
             // send total checksum
             sc->send_frame(KU::IAP_REQUEST_ID, ku_data->calculate_total_checksum_data,
                            sizeof(ku_data->calculate_total_checksum_data));
@@ -479,6 +485,7 @@ KU::StatusCode IAP::upload_hex_file()
                 DEBUG_PRINTF("ERROR: total checksum timeout\r\n");
                 return KU::TOTAL_CHECKSUM_FAIL;
             }
+            DEBUG_PRINTF("Total Checksum is correct\r\n");
 
             // first heartbeat message after update misses some information, wait till page one comes around again
             resp = sc->get_frame(KU::HEARTBEAT_ID, this, IAP_resp_call_back, LONG_WAIT_TIME);
@@ -492,6 +499,7 @@ KU::StatusCode IAP::upload_hex_file()
                     return KU::NO_HEARTBEAT_DETECTED;
                 }
             }
+            DEBUG_PRINTF("Heartbeat Detected\r\n");
             // error value is on page 1, byte 4
             if (resp->data[3] == 0)
             {

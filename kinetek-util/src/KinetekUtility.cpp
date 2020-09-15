@@ -254,29 +254,30 @@ KU::StatusCode KinetekUtility::run_iap(const string& file_path, bool iap_mode)
 #ifdef IAP_MODE_TEST
         return KU::UPLOAD_COMPLETE;
 #endif
-        DEBUG_PRINTF("\n====== IN IAP MODE ======\n\r\n");
-        iap->print();  // hex file information
+        DEBUG_PRINTF("Entered FW Download mode\r\n");
+        //iap->print();  // hex file information
 
         // step 3: send initialization frames (hex file size, checksum, start address, etc)
         status = iap->send_init_frames();
         if (status == KU::INIT_PACKET_SUCCESS)
         {
+            DEBUG_PRINTF("Initialization frames sent successfully\r\n");
             // step 4: upload the hex file
             status = iap->upload_hex_file();
             if (status == KU::UPLOAD_COMPLETE)
             {
-                DEBUG_PRINTF("\n\n====== SUCCESS ======\r\n");
+                DEBUG_PRINTF("Uploaded hex file successfully. FW Download process complete\r\n");
             }
         }
     }
     else
     {
-        DEBUG_PRINTF("Error: Could not enter IAP mode.\nStatus: %s\r\n", translate_status_code(status).c_str());
+        DEBUG_PRINTF("Error: Could not enter IAP mode. Status: %s\r\n", translate_status_code(status).c_str());
         return status;
     }
     if (status != KU::UPLOAD_COMPLETE)
     {
-        DEBUG_PRINTF("Error: %s\r\n", translate_status_code(status).c_str());
+        DEBUG_PRINTF("Error: hex file uploaded unsuccessfully. Status: %s\r\n", translate_status_code(status).c_str());
         return KU::UPLOAD_ERROR;
     }
     return KU::UPLOAD_COMPLETE;

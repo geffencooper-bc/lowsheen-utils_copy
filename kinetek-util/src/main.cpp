@@ -26,12 +26,22 @@
 //#define FULL_IAP_TEST
 //#define TEST_FORCED_WINDOW
 //#define TEST_IAP_MODE
-//#define COMMAND_LINE_MODE
+#define COMMAND_LINE_MODE
 
 int main(int argc, char** argv)
 {
     // make the KinetekUtility object
     KinetekUtility ku;
+
+// if doing a code review, ignore the TEST #ifdefs below
+#ifdef COMMAND_LINE_MODE
+    // execute according to the command line options
+    ku.parse_args(argc, argv);
+
+    // show the status of what was executed (success or error)
+    printf("STATUS: %s\n", ku.translate_status_code(ku.CL_status).c_str());
+    return 0;
+#endif
 
 #ifdef FULL_IAP_TEST
     // execute according to the command line options
@@ -77,15 +87,6 @@ int main(int argc, char** argv)
     {
         printf("-,%s\n", ku.IAP_test_string.c_str());
     }
-    return 0;
-#endif
-
-#ifdef COMMAND_LINE_MODE
-    // execute according to the command line options
-    ku.parse_args(argc, argv);
-
-    // show the status of what was executed (success or error)
-    printf("STATUS: %s\n", ku.translate_status_code(ku.CL_status).c_str());
     return 0;
 #endif
 }

@@ -182,7 +182,7 @@ CO_CANrxMsg_t* SocketCanHelper::get_frame(uint32_t can_id,
 
     if (err < 0)
     {
-        DEBUG_PRINTF("Receive Error: %i\t", err);
+        printf("Receive Error: %i\t", err);
         exit(EXIT_FAILURE);
     }
     // waits until receive specified can id or until timer ends (blocking function)
