@@ -150,6 +150,7 @@ namespace KU
         //                   IAP RESPONSE data
         // ID = 0x060/0x080
         static uint8_t in_iap_mode_data[5];
+        static uint8_t in_iap_download_mode_data[5];
         static uint8_t kt_calculated_page_checksum_data[5];
 
         // ID = 0x067

@@ -35,6 +35,9 @@
 #include <sys/timerfd.h>
 #include <time.h>
 #include <unistd.h>
+#include <sstream>
+#include "chrono"
+#include <queue>
 
 class SocketCanHelper
 {
@@ -60,6 +63,8 @@ class SocketCanHelper
                              int wait_time,
                              uint16_t can_id_mask = 0x7FFU);
 
+    void print_mini_log();
+
    private:
     // objects rerquired to use CO_driver
     CO_CANmodule_t* can_module;
@@ -70,6 +75,13 @@ class SocketCanHelper
     // timer variables
     itimerspec* time_out;
     int timer_fd;
+
+    // store last n messages sent and received
+    std::queue<std::string> mini_can_log;
+    std::stringstream can_string;
+
+    std::chrono::steady_clock::time_point begin;
+    std::chrono::steady_clock::time_point end;
 };
 
 #endif

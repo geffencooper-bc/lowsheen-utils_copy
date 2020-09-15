@@ -33,7 +33,7 @@
 #define MEDIUM_WAIT_TIME 100  // ms
 #define SHORT_WAIT_TIME 10    // ms
 
-#define IAP_WINDOW_CENTER 34
+#define IAP_WINDOW_CENTER 30
 
 // init member variables, IAP needs access to the Kinetek Utility can data and socket can helper
 IAP::IAP(SocketCanHelper* sc, KU::CanDataList* ku_data)
@@ -208,8 +208,8 @@ KU::StatusCode IAP::put_in_iap_mode(bool forced_mode)
         begin = std::chrono::steady_clock::now();
         end = std::chrono::steady_clock::now();
 
-        // wait until get close the 6ms forced window
-        while (std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count() / 1000.0 < IAP_WINDOW_CENTER -5)
+        // forced window is ~30ms on most machines so send request from 20 - 45 ms at a 2ms interval
+        while (std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count() / 1000.0 < IAP_WINDOW_CENTER -10)
         {
             end = std::chrono::steady_clock::now();
         }
@@ -227,10 +227,10 @@ KU::StatusCode IAP::put_in_iap_mode(bool forced_mode)
         // send IAP request to force the Kinetek to enter IAP mode
         sc->send_frame(KU::IAP_REQUEST_ID, ku_data->force_enter_iap_mode_data,
                        sizeof(ku_data->force_enter_iap_mode_data));
-        usleep(2000);
+        usleep(2500);
 
-        // send the request 5 times at a 1ms interval
-        while (forced_tries < 5)
+        // send the request until ~55ms at a 2ms interval
+        while (forced_tries < 18)
         {
             sc->send_frame(KU::IAP_REQUEST_ID, ku_data->force_enter_iap_mode_data,
                            sizeof(ku_data->force_enter_iap_mode_data));
@@ -273,6 +273,7 @@ KU::StatusCode IAP::send_init_frames()
 {
     usleep(3000);
     DEBUG_PRINTF("Sending initialization frames to Kinetek before downlaod\r\n");
+
     // first send the fw version request
     sc->send_frame(KU::FW_VERSION_REQUEST_ID, ku_data->fw_version_request_data,
                    sizeof(ku_data->fw_version_request_data));
@@ -283,57 +284,88 @@ KU::StatusCode IAP::send_init_frames()
         DEBUG_PRINTF("Warning: Kinetek version request timeout (init frame 1 not received by Kinetek)\r\n");
         // return KU::FW_VERSION_REQUEST_FAIL; // not required to continue
     }
-
     DEBUG_PRINTF("Kinetek Bootloader Version: %i.%i\r\n", resp->data[0], resp->data[1]);
 
     usleep(3000);
-    // next send  a request to sent bytes
+
+    // next send  a request to start the download process
+    DEBUG_PRINTF("Sending \"Start Download\" Command to Kinetek\r\n");
     sc->send_frame(KU::IAP_REQUEST_ID, ku_data->start_download_data, sizeof(ku_data->start_download_data));
     resp = sc->get_frame(KU::IAP_RESPONSE_ID, this, IAP_resp_call_back, MEDIUM_WAIT_TIME);
 
     if (ku_data->get_response_type(resp->ident, resp->data, resp->DLC) != KU::START_DOWNLOAD_RESPONSE)
     {
-        DEBUG_PRINTF("ERROR: start download timeout (init frame 2 not received by Kinetek)\r\n");
+        // try again and check if IAP heartbeat says in download mode
+        sc->send_frame(KU::IAP_REQUEST_ID, ku_data->start_download_data, sizeof(ku_data->start_download_data));
+        resp = sc->get_frame(KU::IAP_HEARTBEAT_ID, this, IAP_resp_call_back, MEDIUM_WAIT_TIME);
+        if (ku_data->get_response_type(resp->ident, resp->data, resp->DLC) != KU::START_DOWNLOAD_RESPONSE)
+        {
+            DEBUG_PRINTF("ERROR: start download timeout (init frame 2 not received by Kinetek)\r\n");
+            return KU::START_DOWNLOAD_FAIL;
+        }
+    }
+    // make sure in download mode by checking IAP heartbeat
+    resp = sc->get_frame(KU::IAP_HEARTBEAT_ID, this, IAP_resp_call_back, MEDIUM_WAIT_TIME);
+    if (ku_data->get_response_type(resp->ident, resp->data, resp->DLC) != KU::START_DOWNLOAD_RESPONSE)
+    {
+        DEBUG_PRINTF("ERROR: could not start the download process, Kinetek not receiving start download request\r\n");
         return KU::START_DOWNLOAD_FAIL;
     }
-    DEBUG_PRINTF("Starting download\r\n");
 
-    usleep(3000);
     // next send the start address
+    DEBUG_PRINTF("Sending FW start address to Kinetek\r\n");
     sc->send_frame(KU::IAP_REQUEST_ID, ku_data->start_address_data, sizeof(ku_data->start_address_data));
     resp = sc->get_frame(KU::IAP_RESPONSE_ID, this, IAP_resp_call_back, MEDIUM_WAIT_TIME);
 
     if (ku_data->get_response_type(resp->ident, resp->data, resp->DLC) != KU::START_ADDRESS_RESPONSE)
     {
-        DEBUG_PRINTF("ERROR: start address timeout (init frame 3 not received by Kinetek)\r\n");
-        return KU::SEND_START_ADDRESS_FAIL;
+        sc->send_frame(KU::IAP_REQUEST_ID, ku_data->start_address_data, sizeof(ku_data->start_address_data));
+        resp = sc->get_frame(KU::IAP_RESPONSE_ID, this, IAP_resp_call_back, MEDIUM_WAIT_TIME);
+        if (ku_data->get_response_type(resp->ident, resp->data, resp->DLC) != KU::START_ADDRESS_RESPONSE)
+        {
+            DEBUG_PRINTF("ERROR: start address timeout (init frame 3 not received by Kinetek)\r\n");
+            return KU::SEND_START_ADDRESS_FAIL;
+        }
     }
-    DEBUG_PRINTF("Start address received by Kinetek\r\n");
 
     usleep(3000);
+
     // next send the total checksum
+    DEBUG_PRINTF("Sending Hex file checksum to Kinetek\r\n");
     sc->send_frame(KU::IAP_REQUEST_ID, ku_data->total_checksum_data, sizeof(ku_data->total_checksum_data));
     resp = sc->get_frame(KU::IAP_RESPONSE_ID, this, IAP_resp_call_back, MEDIUM_WAIT_TIME);
 
     if (ku_data->get_response_type(resp->ident, resp->data, resp->DLC) != KU::TOTAL_CHECKSUM_RESPONSE)
     {
-        DEBUG_PRINTF("ERROR: hex file checksum timeout (init frame 4 not received by Kinetek)\r\n");
-        return KU::SEND_CHECKSUM_FAIL;
+        sc->send_frame(KU::IAP_REQUEST_ID, ku_data->total_checksum_data, sizeof(ku_data->total_checksum_data));
+        resp = sc->get_frame(KU::IAP_RESPONSE_ID, this, IAP_resp_call_back, MEDIUM_WAIT_TIME);
+
+        if (ku_data->get_response_type(resp->ident, resp->data, resp->DLC) != KU::TOTAL_CHECKSUM_RESPONSE)
+        {
+            DEBUG_PRINTF("ERROR: hex file checksum timeout (init frame 4 not received by Kinetek)\r\n");
+            return KU::SEND_CHECKSUM_FAIL;
+        }
     }
-    DEBUG_PRINTF("Hex file checksum received by Kinetek\r\n");
 
     usleep(3000);
+
     // finally send the data size
+    DEBUG_PRINTF("Sending Hex file data size to Kinetek\r\n");
     sc->send_frame(KU::IAP_REQUEST_ID, ku_data->hex_data_size_data, sizeof(ku_data->hex_data_size_data));
     resp = sc->get_frame(KU::IAP_RESPONSE_ID, this, IAP_resp_call_back, MEDIUM_WAIT_TIME);
 
     if (ku_data->get_response_type(resp->ident, resp->data, resp->DLC) != KU::HEX_DATA_SIZE_RESPONSE)
     {
-        DEBUG_PRINTF("ERROR: hex file data size timeout (init frame 5 not received by Kinetek)\n\r\n");
-        return KU::SEND_DATA_SIZE_FAIL;
+        sc->send_frame(KU::IAP_REQUEST_ID, ku_data->hex_data_size_data, sizeof(ku_data->hex_data_size_data));
+        resp = sc->get_frame(KU::IAP_RESPONSE_ID, this, IAP_resp_call_back, MEDIUM_WAIT_TIME);
+
+        if (ku_data->get_response_type(resp->ident, resp->data, resp->DLC) != KU::HEX_DATA_SIZE_RESPONSE)
+        {
+            DEBUG_PRINTF("ERROR: hex file data size timeout (init frame 5 not received by Kinetek)\n\r\n");
+            return KU::SEND_DATA_SIZE_FAIL;
+        }
     }
 
-    DEBUG_PRINTF("Hex file data size received by Kinetek\r\n");
     return KU::INIT_PACKET_SUCCESS;
 }
 

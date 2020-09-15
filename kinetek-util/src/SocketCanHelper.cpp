@@ -23,36 +23,42 @@
 
 #include "SocketCanHelper.h"
 #include "debug.h"
+#include <iomanip>
 
 // the can trace is written to a log file
 #if DEBUG_SOCKET_CAN
 static FILE* can_trace;
-#define DEBUG_PRINTF(...)                \
+#define DEBUG_PRINTF_TO_FILE(...)                \
     do                                   \
     {                                    \
         fprintf(can_trace, __VA_ARGS__); \
     } while (0)
 #else
-#define DEBUG_PRINTF(...) \
+#define DEBUG_PRINTF_TO_FILE(...) \
     do                    \
     {                     \
     } while (0)
 #endif
+
+#define MAX_QUEUE_SIZE 16
 
 // create timer used for receive message timeouts
 SocketCanHelper::SocketCanHelper()
 {
 #if DEBUG_SOCKET_CAN
     can_trace = fopen("/home/brain/SocketCanHelper_trace.txt", "a");
-    DEBUG_PRINTF("\r\n-------------------------------------------------------\r\n", can_trace);
+    DEBUG_PRINTF_TO_FILE("\r\n-------------------------------------------------------\r\n", can_trace);
     if (can_trace == NULL)
     {
         printf("Can't open file for CAN trace: /home/brain/SocketCanHelper_trace.txt\n");
         exit(EXIT_FAILURE);
     }
 #endif
+
     time_out = new itimerspec;
     timer_fd = timerfd_create(CLOCK_REALTIME, 0);
+
+    begin = std::chrono::steady_clock::now();
 }
 
 // deallocate memory
@@ -126,13 +132,17 @@ int SocketCanHelper::send_frame(uint32_t can_id, uint8_t* data, uint8_t data_len
         tx1 = CO_CANtxBufferInit(can_module, 0, can_id, 0, data_len, false);
     }
 
-    DEBUG_PRINTF("Sending Message-->");  // no-crlf-check
+    // first clear the string
+    can_string.str("");
+
+    can_string << "TX\t";
 
     // copy the message data into the transmit buffer
     memcpy(tx1->data, data, data_len);
 
     // send the message
     int err = CO_CANsend(can_module, tx1);
+    end = std::chrono::steady_clock::now();
 
     if (err < 0)
     {
@@ -140,12 +150,21 @@ int SocketCanHelper::send_frame(uint32_t can_id, uint8_t* data, uint8_t data_len
         exit(EXIT_FAILURE);
     }
 
-    DEBUG_PRINTF("Id: %02X\t", can_id);  // no-crlf-check
+    can_string << "Id: " << std::hex << std::uppercase << std::setfill('0') << std::setw(3) << can_id << "\t\tData: ";
     for (uint8_t i = 0; i < data_len; i++)
     {
-        DEBUG_PRINTF("%02X ", data[i]);  // no-crlf-check
+        int byte = data[i];
+        can_string << std::hex << std::uppercase << std::setfill('0') << std::setw(2) << byte << " ";
     }
-    DEBUG_PRINTF("\r\n");
+    can_string << "\t" << std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count() / 1000000.0 << "\r\n";
+
+    // only log the last n messages
+    if(mini_can_log.size() == MAX_QUEUE_SIZE)
+    {
+        mini_can_log.pop();
+    }
+    mini_can_log.push(can_string.str());
+    DEBUG_PRINTF_TO_FILE("%s", can_string.str().c_str());
 }
 
 // wait for next can frame with the specified id (and mask)
@@ -175,32 +194,60 @@ CO_CANrxMsg_t* SocketCanHelper::get_frame(uint32_t can_id,
         exit(EXIT_FAILURE);
     }
 
-    DEBUG_PRINTF("Getting Message-->");  // no-crlf-check
+    // first clear the string
+    can_string.str("");
+    
+    can_string << "RX\t";
 
     // initialize the rx message object
     err = CO_CANrxBufferInit(can_module, 0, can_id, can_id_mask, 0, obj, call_back);
 
     if (err < 0)
     {
-        printf("Receive Error: %i\t", err);
+        DEBUG_PRINTF("Receive Error: %i\t", err);
         exit(EXIT_FAILURE);
     }
     // waits until receive specified can id or until timer ends (blocking function)
     err = CO_CANrxWait(can_module, timer_fd, can_msg);
+    end = std::chrono::steady_clock::now();
 
     if (err < 0)
     {
-        DEBUG_PRINTF("TIME OUT\r\n");
+        can_string << "TIME OUT\r\n";
     }
     else
     {
-        DEBUG_PRINTF("Id: %02X\t", can_msg->ident);  // no-crlf-check
+        can_string << "Id: " << std::hex << std::uppercase << std::setfill('0') << std::setw(3) << can_msg->ident << "\t\tData: ";
         for (uint8_t i = 0; i < can_msg->DLC; i++)
         {
-            DEBUG_PRINTF("%02X ", can_msg->data[i]);  // no-crlf-check
+            int byte = can_msg->data[i];
+            can_string << std::hex << std::uppercase << std::setfill('0') << std::setw(2) << byte << " ";
         }
-        DEBUG_PRINTF("\r\n");
+
+        // add spaces to can messages less than 8 bytes
+        int filler = 3*(8-can_msg->DLC);
+        can_string << std::setw(filler) << std::setfill(' ') << " "; 
+        can_string << "\t" << std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count() / 1000000.0 << "\r\n";
+
+        // only log the last n messages
+        if(mini_can_log.size() == MAX_QUEUE_SIZE)
+        {
+            mini_can_log.pop();
+        }
+        mini_can_log.push(can_string.str());
+        DEBUG_PRINTF_TO_FILE("%s", can_string.str().c_str());
     }
 
     return can_msg;
+}
+
+void SocketCanHelper::print_mini_log()
+{
+    int size = mini_can_log.size();
+    DEBUG_PRINTF("Last %i messages in CAN trace\r\n", size);
+    for(int i = 0; i < size; i++)
+    {
+        DEBUG_PRINTF("%s", mini_can_log.front().c_str());
+        mini_can_log.pop();
+    }
 }

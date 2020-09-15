@@ -33,7 +33,7 @@
 #define DEBUG_DEFAULT 1
 
 // define this to see messages sent/received over socketcan (can trace)
-#define DEBUG_SOCKET_CAN 1
+#define DEBUG_SOCKET_CAN 0
 
 #if DEBUG_VERBOSE
 #define DEBUG_PRINTF(fmt, ...)                                                                                \

@@ -56,6 +56,7 @@ uint8_t CanDataList::page_checksum_data[8] = {0x07, 0xFF, 0xFF, 0xFF, 0xFF, 0x9E
 //                                           IAP RESPONSE data
 // ID = 0x060/0x080
 uint8_t CanDataList::in_iap_mode_data[5] = {0x80, 0x00, 0x00, 0x00, 0x00};
+uint8_t CanDataList::in_iap_download_mode_data[5] = {0x81, 0x00, 0x00, 0x00, 0x00};
 uint8_t CanDataList::kt_calculated_page_checksum_data[5] = {0x84, 0xFF, 0xFF, 0xFF, 0xFF};
 
 // ID = 0x067
@@ -168,6 +169,10 @@ KinetekResponse CanDataList::get_response_type(uint32_t can_id, uint8_t* data_ar
         else if (data_array[0] == 0x84)
         {
             return KT_CALCULATED_PAGE_CHECKSUM;
+        }
+        else if(array_compare(in_iap_download_mode_data, sizeof(in_iap_mode_data), data_array, arr_size))
+        {
+            return START_DOWNLOAD_RESPONSE;
         }
     }
     // Determine if in IAP mode, selective defaults to 0x080 which according to Laurence is the id the LCD uses for IAP
